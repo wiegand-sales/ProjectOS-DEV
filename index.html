@@ -921,7 +921,7 @@ const STORAGE_KEY='toner_kanban_state_v1';
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-07-29T08:12:20.000Z';
+const BUILD_VERSION='2026-07-29T08:19:07.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -3126,11 +3126,10 @@ function followupDayChartHtml(dl){
     const hFB=Math.round(b.feedback/maxTotal*maxH);
     const hOF=Math.round(b.offer/maxTotal*maxH);
     const hOV=Math.round(b.overdue/maxTotal*maxH);
-    const topRadius=(b.overdue?b.overdue:b.offer?b.offer:b.feedback)?'3px 3px':0;
     return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;opacity:${isPast?.45:1}">
       <div style="font-size:9.5px;font-weight:700;color:${b.total?'var(--text2)':'var(--text3)'};margin-bottom:2px">${b.total||''}</div>
       <div style="width:100%;display:flex;flex-direction:column;gap:1px;justify-content:flex-end;height:${maxH}px">
-        ${b.overdue?`<div style="height:${hOV}px;background:var(--red);border-radius:3px 3px 0 0;width:100%"></div>`:''}
+        ${b.overdue?`<div style="height:${hOV}px;background:var(--purple-bg);border-radius:3px 3px 0 0;width:100%"></div>`:''}
         ${b.offer?`<div style="height:${hOF}px;background:var(--purple-dark);border-radius:${!b.overdue?'3px 3px 0 0':0};width:100%"></div>`:''}
         ${b.feedback?`<div style="height:${hFB}px;background:var(--purple);border-radius:${!b.overdue&&!b.offer?'3px 3px 0 0':0};width:100%"></div>`:''}
         ${!b.total?`<div style="height:3px;background:var(--border2);border-radius:2px;width:100%"></div>`:''}
@@ -3141,7 +3140,7 @@ function followupDayChartHtml(dl){
     </div>`;
   }).join('');
   const legend=`<div style="display:flex;gap:14px;margin-top:10px">
-    <div style="display:flex;align-items:center;gap:5px;font-size:10.5px;color:var(--text2)"><span style="width:9px;height:9px;border-radius:2px;background:var(--red);display:inline-block"></span>Überfällig</div>
+    <div style="display:flex;align-items:center;gap:5px;font-size:10.5px;color:var(--text2)"><span style="width:9px;height:9px;border-radius:2px;background:var(--purple-bg);border:1px solid var(--purple);display:inline-block"></span>Überfällig</div>
     <div style="display:flex;align-items:center;gap:5px;font-size:10.5px;color:var(--text2)"><span style="width:9px;height:9px;border-radius:2px;background:var(--purple);display:inline-block"></span>Feedback</div>
     <div style="display:flex;align-items:center;gap:5px;font-size:10.5px;color:var(--text2)"><span style="width:9px;height:9px;border-radius:2px;background:var(--purple-dark);display:inline-block"></span>Angebot</div>
   </div>`;
@@ -3159,7 +3158,7 @@ function followupGanttHtml(dl){
     const days=Math.max(0,Math.round((new Date(TODAY)-new Date(l.statusSince))/86400000));
     const pct=Math.max(8,Math.round(days/maxDays*100));
     const isFeedback=l.status==='fu_feedback';
-    const barColor=days>=21?'var(--red)':days>=10?'var(--purple)':'#5FBAC4';
+    const barColor=days>=21?'var(--purple-dark)':days>=10?'var(--purple)':'#5FBAC4';
     const stageBg=isFeedback?'var(--purple-bg)':'rgba(23,76,82,.12)';
     const stageColor=isFeedback?'var(--purple)':'var(--purple-dark)';
     return `<div style="display:flex;align-items:center;gap:10px;margin-bottom:7px">
@@ -3432,13 +3431,11 @@ function renderDashboard(){
     <div class="info-section">
       ${dashboardActivityChartHtml(dl)}
     </div>
-    <div class="dash-row-1-1">
-      <div class="info-section">
-        ${followupDayChartHtml(dl)}
-      </div>
-      <div class="info-section">
-        ${followupGanttHtml(dl)}
-      </div>
+    <div class="info-section">
+      ${followupDayChartHtml(dl)}
+    </div>
+    <div class="info-section">
+      ${followupGanttHtml(dl)}
     </div>
     <div class="info-section">
       <div class="section-hdr" style="margin-top:0">Pipeline-Trichter <span style="font-weight:400;color:var(--text3);font-size:11px">(Anzahl · Anteil an allen Leads)</span></div>
