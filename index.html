@@ -921,7 +921,7 @@ const STORAGE_KEY='toner_kanban_state_v1';
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-07-29T08:28:04.000Z';
+const BUILD_VERSION='2026-07-29T08:28:53.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -3157,7 +3157,8 @@ function followupGanttHtml(dl){
   const scope=dl.filter(l=>!isClosedLead(l)&&(l.status==='fu_feedback'||l.status==='fu_offer')&&l.statusSince);
   const sorted=[...scope].sort((a,b)=>a.statusSince.localeCompare(b.statusSince)).slice(0,10);
   if(!sorted.length)return`<div class="section-hdr" style="margin-top:0">Toner draußen – warte auf Rückmeldung</div><p style="font-size:12px;color:var(--text3)">Aktuell keine Leads in FollowUp: Feedback oder Angebot.</p>`;
-  const maxDays=Math.max(...sorted.map(l=>Math.max(0,Math.round((new Date(TODAY)-new Date(l.statusSince))/86400000))),1);
+  const MAX_DAYS_SCALE=90;
+  const maxDays=MAX_DAYS_SCALE;
   const rows=sorted.map(l=>{
     const days=Math.max(0,Math.round((new Date(TODAY)-new Date(l.statusSince))/86400000));
     const pct=Math.max(8,Math.round(days/maxDays*100));
