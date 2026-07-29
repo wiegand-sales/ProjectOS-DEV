@@ -921,7 +921,7 @@ const STORAGE_KEY='toner_kanban_state_v1';
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-07-27T07:02:56.000Z';
+const BUILD_VERSION='2026-07-29T08:12:20.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -3107,6 +3107,71 @@ function topForecastChartHtml(dl){
   }
   return `<div style="display:flex;align-items:flex-end;gap:4px;height:120px;margin-bottom:14px">${bars}</div>`;
 }
+// Follow-up-Termine je Tag (gestapeltes Balkendiagramm, letzte 2 + naechste 12 Tage)
+function followupDayChartHtml(dl){
+  const withFU=dl.filter(l=>l.followup&&!isClosedLead(l));
+  const DAYS_DE=['So','Mo','Di','Mi','Do','Fr','Sa'];
+  const bars=Array.from({length:14},(_,i)=>i-2).map(offset=>{
+    const d=new Date(TODAY);d.setDate(d.getDate()+offset);
+    const ds=d.toISOString().slice(0,10);
+    const feedback=withFU.filter(l=>l.followup===ds&&l.status==='fu_feedback').length;
+    const offer=withFU.filter(l=>l.followup===ds&&l.status==='fu_offer').length;
+    const overdue=offset<0?withFU.filter(l=>l.followup===ds).length:0;
+    return{offset,date:d,ds,feedback,offer,overdue,total:feedback+offer+overdue};
+  });
+  const maxTotal=Math.max(...bars.map(b=>b.total),1);
+  const maxH=90;
+  const segs=bars.map(b=>{
+    const isToday=b.offset===0;const isPast=b.offset<0;
+    const hFB=Math.round(b.feedback/maxTotal*maxH);
+    const hOF=Math.round(b.offer/maxTotal*maxH);
+    const hOV=Math.round(b.overdue/maxTotal*maxH);
+    const topRadius=(b.overdue?b.overdue:b.offer?b.offer:b.feedback)?'3px 3px':0;
+    return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;opacity:${isPast?.45:1}">
+      <div style="font-size:9.5px;font-weight:700;color:${b.total?'var(--text2)':'var(--text3)'};margin-bottom:2px">${b.total||''}</div>
+      <div style="width:100%;display:flex;flex-direction:column;gap:1px;justify-content:flex-end;height:${maxH}px">
+        ${b.overdue?`<div style="height:${hOV}px;background:var(--red);border-radius:3px 3px 0 0;width:100%"></div>`:''}
+        ${b.offer?`<div style="height:${hOF}px;background:var(--purple-dark);border-radius:${!b.overdue?'3px 3px 0 0':0};width:100%"></div>`:''}
+        ${b.feedback?`<div style="height:${hFB}px;background:var(--purple);border-radius:${!b.overdue&&!b.offer?'3px 3px 0 0':0};width:100%"></div>`:''}
+        ${!b.total?`<div style="height:3px;background:var(--border2);border-radius:2px;width:100%"></div>`:''}
+      </div>
+      <div style="font-size:8.5px;color:${isToday?'#fff':'var(--text3)'};background:${isToday?'var(--purple-dark)':'transparent'};border-radius:8px;padding:${isToday?'1px 5px':'0'};margin-top:4px;text-align:center;line-height:1.35;white-space:nowrap">
+        ${DAYS_DE[b.date.getDay()]}<br>${b.date.getDate()+'.'+(b.date.getMonth()+1)+'.'}
+      </div>
+    </div>`;
+  }).join('');
+  const legend=`<div style="display:flex;gap:14px;margin-top:10px">
+    <div style="display:flex;align-items:center;gap:5px;font-size:10.5px;color:var(--text2)"><span style="width:9px;height:9px;border-radius:2px;background:var(--red);display:inline-block"></span>Überfällig</div>
+    <div style="display:flex;align-items:center;gap:5px;font-size:10.5px;color:var(--text2)"><span style="width:9px;height:9px;border-radius:2px;background:var(--purple);display:inline-block"></span>Feedback</div>
+    <div style="display:flex;align-items:center;gap:5px;font-size:10.5px;color:var(--text2)"><span style="width:9px;height:9px;border-radius:2px;background:var(--purple-dark);display:inline-block"></span>Angebot</div>
+  </div>`;
+  return `<div class="section-hdr" style="margin-top:0">Follow-up-Termine <span style="font-weight:400;color:var(--text3);font-size:11px">Letzte 2 + nächste 12 Tage</span></div>
+    <div style="display:flex;align-items:flex-end;gap:5px;height:${maxH+34}px">${segs}</div>${legend}`;
+}
+// Gantt-Streifen: Leads in FollowUp: Feedback und Angebot nach Wartezeit (statusSince),
+// begrenzt auf max. 10 Eintraege, sortiert laengste Wartezeit zuerst.
+function followupGanttHtml(dl){
+  const scope=dl.filter(l=>!isClosedLead(l)&&(l.status==='fu_feedback'||l.status==='fu_offer')&&l.statusSince);
+  const sorted=[...scope].sort((a,b)=>a.statusSince.localeCompare(b.statusSince)).slice(0,10);
+  if(!sorted.length)return`<div class="section-hdr" style="margin-top:0">Toner draußen – warte auf Rückmeldung</div><p style="font-size:12px;color:var(--text3)">Aktuell keine Leads in FollowUp: Feedback oder Angebot.</p>`;
+  const maxDays=Math.max(...sorted.map(l=>Math.max(0,Math.round((new Date(TODAY)-new Date(l.statusSince))/86400000))),1);
+  const rows=sorted.map(l=>{
+    const days=Math.max(0,Math.round((new Date(TODAY)-new Date(l.statusSince))/86400000));
+    const pct=Math.max(8,Math.round(days/maxDays*100));
+    const isFeedback=l.status==='fu_feedback';
+    const barColor=days>=21?'var(--red)':days>=10?'var(--purple)':'#5FBAC4';
+    const stageBg=isFeedback?'var(--purple-bg)':'rgba(23,76,82,.12)';
+    const stageColor=isFeedback?'var(--purple)':'var(--purple-dark)';
+    return `<div style="display:flex;align-items:center;gap:10px;margin-bottom:7px">
+      <div style="width:130px;flex-shrink:0;font-size:11px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(l.company)}</div>
+      <div style="font-size:9px;font-weight:700;padding:2px 7px;border-radius:10px;width:76px;text-align:center;flex-shrink:0;background:${stageBg};color:${stageColor}">${isFeedback?'Feedback':'Angebot'}</div>
+      <div style="flex:1;height:20px;background:var(--bg3);border-radius:5px;overflow:hidden">
+        <div style="height:100%;width:${pct}%;background:${barColor};border-radius:5px;display:flex;align-items:center;padding:0 7px;font-size:10px;font-weight:700;color:#fff;white-space:nowrap">${days} T</div>
+      </div>
+    </div>`;
+  }).join('');
+  return `<div class="section-hdr" style="margin-top:0">Toner draußen – warte auf Rückmeldung <span style="font-weight:400;color:var(--text3);font-size:11px">(top ${sorted.length})</span></div>${rows}`;
+}
 function renderDashboard(){
   let dl=activeDashboardAgentFilters.length?leads.filter(l=>(l.members||[]).some(m=>activeDashboardAgentFilters.includes(m))):leads;
   const periodStart=periodStartDate(activeDashboardPeriod);
@@ -3366,6 +3431,14 @@ function renderDashboard(){
     ${kpiHtml}
     <div class="info-section">
       ${dashboardActivityChartHtml(dl)}
+    </div>
+    <div class="dash-row-1-1">
+      <div class="info-section">
+        ${followupDayChartHtml(dl)}
+      </div>
+      <div class="info-section">
+        ${followupGanttHtml(dl)}
+      </div>
     </div>
     <div class="info-section">
       <div class="section-hdr" style="margin-top:0">Pipeline-Trichter <span style="font-weight:400;color:var(--text3);font-size:11px">(Anzahl · Anteil an allen Leads)</span></div>
