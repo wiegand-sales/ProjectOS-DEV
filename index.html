@@ -921,7 +921,7 @@ const STORAGE_KEY='toner_kanban_state_v1';
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-07-29T08:28:53.000Z';
+const BUILD_VERSION='2026-07-29T10:28:22.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -2435,8 +2435,11 @@ function getFilteredLeads(){
       if(!okAgent)return false;
     }
     if(activeLabelFilters.length){
-      const okLabel=(l.labelIds||[]).some(id=>activeLabelFilters.includes(id));
-      if(!okLabel)return false;
+      const wantsNone=activeLabelFilters.includes('__none__');
+      const otherFilters=activeLabelFilters.filter(f=>f!=='__none__');
+      const hasNoLabel=!(l.labelIds||[]).length;
+      const matchesOther=otherFilters.length&&(l.labelIds||[]).some(id=>otherFilters.includes(id));
+      if(!(wantsNone&&hasNoLabel)&&!matchesOther)return false;
     }
     if(q&&!(l.company.toLowerCase().includes(q)||l.contact.toLowerCase().includes(q)||(l.customerNumber||'').toLowerCase().includes(q)))return false;
     return true;
@@ -2501,6 +2504,7 @@ function agentFilterLabels(){
 }
 function labelFilterLabels(){
   return activeLabelFilters.map(f=>{
+    if(f==='__none__')return{id:f,label:'Ohne Label'};
     const lb=LABELS.find(l=>l.id===f);
     return lb?{id:f,label:lb.name}:null;
   }).filter(Boolean);
@@ -2529,7 +2533,9 @@ function renderLabelChips(){
   const el=document.getElementById('filterMenuLabels');
   if(!el)return;
   const noneSel=activeLabelFilters.length===0;
+  const noLabelSel=activeLabelFilters.includes('__none__');
   let html=`<div class="filtermenu-item ${noneSel?'active':''}" onclick="toggleLabelFilter('all')"><span>Alle</span>${noneSel?'<i class="ti ti-check"></i>':''}</div>`;
+  html+=`<div class="filtermenu-item ${noLabelSel?'active':''}" onclick="toggleLabelFilter('__none__')"><span style="display:flex;align-items:center;gap:8px;"><span style="width:8px;height:8px;border-radius:50%;background:var(--border2);border:1px dashed var(--border2);display:inline-block;flex-shrink:0"></span>Ohne Label</span>${noLabelSel?'<i class="ti ti-check"></i>':''}</div>`;
   LABELS.forEach(lb=>{
     const active=activeLabelFilters.includes(lb.id);
     html+=`<div class="filtermenu-item ${active?'active':''}" onclick="toggleLabelFilter('${lb.id}')"><span style="display:flex;align-items:center;gap:8px;"><span style="width:8px;height:8px;border-radius:50%;background:${lb.color};display:inline-block;flex-shrink:0"></span>${esc(lb.name)}</span>${active?'<i class="ti ti-check"></i>':''}</div>`;
