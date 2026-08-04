@@ -921,7 +921,7 @@ const STORAGE_KEY='toner_kanban_state_v1';
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-08-04T16:10:00.000Z';
+const BUILD_VERSION='2026-08-04T16:22:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -3998,13 +3998,11 @@ function renderActivityTrendChart(entries){
         </linearGradient>
         <style>
           #${chartId} .act-line-draw {
-            stroke-dasharray: ${lineLen};
-            stroke-dashoffset: ${lineLen};
-            animation: actLineDraw_${chartId} 1s ease-out forwards;
+            ${buckets.length<=90?`stroke-dasharray: ${lineLen}; stroke-dashoffset: ${lineLen}; animation: actLineDraw_${chartId} 1s ease-out forwards;`:''}
           }
           #${chartId} .act-area-fade {
             opacity: 0;
-            animation: actAreaFade_${chartId} 0.5s ease-out 0.7s forwards;
+            animation: actAreaFade_${chartId} 0.5s ease-out ${buckets.length<=90?'0.7s':'0s'} forwards;
           }
           @keyframes actLineDraw_${chartId} { to { stroke-dashoffset: 0; } }
           @keyframes actAreaFade_${chartId} { to { opacity: 1; } }
