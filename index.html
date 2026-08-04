@@ -921,7 +921,7 @@ const STORAGE_KEY='toner_kanban_state_v1';
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-08-04T16:22:00.000Z';
+const BUILD_VERSION='2026-08-04T16:35:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -3968,7 +3968,8 @@ function renderActivityTrendChart(entries){
     const dx=pts[i][0]-pts[i-1][0], dy=pts[i][1]-pts[i-1][1];
     lineLen+=Math.sqrt(dx*dx+dy*dy);
   }
-  lineLen=Math.ceil(lineLen)+10;
+  lineLen=Math.min(Math.ceil(lineLen)+10, 2000); // Maximal 2000px - sonst dauert Animation ewig
+  const useAnimation = lineLen <= 1500; // Animation nur wenn Linie nicht zu lang
   // Daten im globalen Cache speichern statt als JSON-Attribut im HTML
   // (JSON.stringify erzeugt doppelte Anführungszeichen die HTML-Attribute brechen)
   if(!window.__actChartData)window.__actChartData={};
@@ -3998,11 +3999,11 @@ function renderActivityTrendChart(entries){
         </linearGradient>
         <style>
           #${chartId} .act-line-draw {
-            ${buckets.length<=90?`stroke-dasharray: ${lineLen}; stroke-dashoffset: ${lineLen}; animation: actLineDraw_${chartId} 1s ease-out forwards;`:''}
+            ${useAnimation?`stroke-dasharray: ${lineLen}; stroke-dashoffset: ${lineLen}; animation: actLineDraw_${chartId} 1s ease-out forwards;`:''}
           }
           #${chartId} .act-area-fade {
             opacity: 0;
-            animation: actAreaFade_${chartId} 0.5s ease-out ${buckets.length<=90?'0.7s':'0s'} forwards;
+            animation: actAreaFade_${chartId} 0.5s ease-out ${useAnimation?'0.7s':'0s'} forwards;
           }
           @keyframes actLineDraw_${chartId} { to { stroke-dashoffset: 0; } }
           @keyframes actAreaFade_${chartId} { to { opacity: 1; } }
@@ -5027,7 +5028,8 @@ function onColDragEnd(e){
 // Datenspeicher ist jetzt lead_activities - damit kein Lead-Save mehr
 // Aktivitäten eines anderen Nutzers überschreiben kann.
 async function pushActivityToDb(leadId, activityObj){
-  if(!isSbSessionValid())return; // offline - kein Push möglich
+  if(!isSbSessionValid())return;
+  delete _actCache[leadId]; // Cache invalidieren damit beim nächsten Öffnen neu geladen wird
   try{
     await fetchWithTimeout(`${SUPABASE_URL}/rest/v1/lead_activities`,{
       method:'POST',
@@ -5046,9 +5048,10 @@ async function pushActivityToDb(leadId, activityObj){
     console.warn('pushActivityToDb fehlgeschlagen (wird beim nächsten Sync nachgeholt):',e);
   }
 }
-// Lädt alle Aktivitäten aus lead_activities für einen Lead und merged sie mit
-// den im JSON gespeicherten (Rückwärtskompatibilität mit alten Einträgen).
+// Cache für lead_activities - vermeidet wiederholte DB-Abfragen beim gleichen Lead
+const _actCache={};
 async function fetchActivitiesFromDb(leadId){
+  if(_actCache[leadId])return _actCache[leadId];
   if(!isSbSessionValid())return null;
   try{
     const res=await fetchWithTimeout(
@@ -5057,7 +5060,7 @@ async function fetchActivitiesFromDb(leadId){
     );
     if(!res.ok)return null;
     const rows=await res.json();
-    return rows.map(r=>({
+    const acts=rows.map(r=>({
       id:r.id,
       type:r.type,
       author:r.author,
@@ -5065,6 +5068,8 @@ async function fetchActivitiesFromDb(leadId){
       date:r.date,
       backdated:r.backdated
     }));
+    _actCache[leadId]=acts;
+    return acts;
   }catch(e){
     console.warn('fetchActivitiesFromDb fehlgeschlagen:',e);
     return null;
