@@ -921,7 +921,7 @@ const STORAGE_KEY='toner_kanban_state_v1';
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-08-04T18:02:00.000Z';
+const BUILD_VERSION='2026-08-04T18:15:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -1538,18 +1538,19 @@ async function syncLeadsLayer(){
       delete leadsBaseline[id];
     }));
 
-    // Selbstheilungs-Reparaturen nur wenn sich tatsaechlich etwas geaendert hat
-    const hadChanges=idsToFetch.length>0||remotelyDeletedIds.length>0||locallyChangedOrNew.length>0||locallyDeletedIds.length>0;
-    if(hadChanges){
-      repairDuplicateLeadIds();
-      repairSwappedCompanyCustomerNumber();
-    }
+    // Dieselben Selbstheilungs-Reparaturen wie beim frischen Start - laufen bei jedem
+    // Abgleich erneut mit (guenstige reine Array-Pruefung, keine Netzwerk-Kosten), damit
+    // sie unabhaengig davon greifen, wie ein Lead ins System gekommen ist.
+    repairDuplicateLeadIds();
+    repairSwappedCompanyCustomerNumber();
 
     saveLeadsBaseline(leadsBaseline);
     isFirstLeadsSyncSinceLoad=false;
-    if(hadChanges){
-      refreshCurrentView();
-    }
+    // WICHTIG: Der lokale Zwischenspeicher (fuer den Fall eines Neuladens/erneuten
+    // Anmeldens) wird jetzt auch hier aktualisiert - vorher geschah das nur, wenn man
+    // selbst etwas geaendert hat. Wurden nur Aenderungen von KOLLEGEN uebernommen, blieb
+    // der lokale Cache sonst veraltet, waehrend die Baseline schon weiter war - genau das
+    // fuehrte beim naechsten Neuladen/Anmelden zu einem falschen "alles geloescht"-Alarm.
     try{localStorage.setItem(STORAGE_KEY,JSON.stringify(buildStatePayload()));}catch(e){}
   }catch(e){
     console.warn('Lead-Synchronisierung fehlgeschlagen:',e);
@@ -2624,31 +2625,20 @@ function switchView(view){
     alert('Die Einstellungen sind nur für Admins zugänglich.');
     view='board';
   }
-  // Board-HTML leeren wenn wir das Board verlassen - verhindert dass der Browser
-  // beim Layout-Pass anderer Views durch 438 Lead-Karten iterieren muss
-  if(currentView==='board'&&view!=='board'){
-    const boardEl=document.getElementById('board');
-    if(boardEl)boardEl.innerHTML='';
-    boardDirty=true;
-  }
   currentView=view;
   ['dashboard','board','crrma','tasks','activities','settings'].forEach(v=>{
     document.getElementById('view'+v.charAt(0).toUpperCase()+v.slice(1)).classList.toggle('active',v===view);
     document.getElementById('nav'+v.charAt(0).toUpperCase()+v.slice(1)).classList.toggle('active',v===view);
   });
-  if(view==='dashboard'){renderDashboardAgentChips();renderDashboardPeriodChips();setTimeout(()=>renderDashboard(),0);}
+  if(view==='dashboard'){renderDashboardAgentChips();renderDashboardPeriodChips();renderDashboard();}
   if(view==='board'){renderLabelChips();renderBoard();}
-  if(view==='crrma')setTimeout(()=>renderCrRma(),0);
-  if(view==='tasks'){renderTasksAgentChips();setTimeout(()=>renderTasksView(),0);}
-  if(view==='activities'){renderActivityFilterChips();setTimeout(()=>renderActivities(),0);}
+  if(view==='crrma')renderCrRma();
+  if(view==='tasks'){renderTasksAgentChips();renderTasksView();}
+  if(view==='activities'){renderActivityFilterChips();renderActivities();}
   if(view==='settings'){renderSettings();equalizeRowHeights();}
 }
 
-let boardDirty=true;
-function markBoardDirty(){boardDirty=true;}
 function renderBoard(){
-  if(currentView!=='board'&&!boardDirty)return;
-  boardDirty=false;
   renderStats();
   // Scrollpositionen je Spalte merken, damit eine Liste beim Neu-Rendern (z.B. nach dem
   // Speichern eines Leads) nicht wieder nach ganz oben springt.
@@ -3203,8 +3193,6 @@ function followupGanttHtml(dl){
   return `<div class="section-hdr" style="margin-top:0">Toner draußen – warte auf Rückmeldung <span style="font-weight:400;color:var(--text3);font-size:11px">(top ${sorted.length})</span></div>${rows}`;
 }
 function renderDashboard(){
-  // Memoization-Cache fuer teure Berechnungen innerhalb eines Render-Durchlaufs leeren
-  if(window.__dashCache)window.__dashCache={};
   let dl=activeDashboardAgentFilters.length?leads.filter(l=>(l.members||[]).some(m=>activeDashboardAgentFilters.includes(m))):leads;
   const periodStart=periodStartDate(activeDashboardPeriod);
   let excludedNoDate=0;
@@ -3542,14 +3530,6 @@ let newAgentColorSel=null;
 
 // ── FOLLOW-UP-ÜBERSICHT (Leads mit Follow-up-Datum, live aus dem Board) ──
 function followupBucketCountsAt(withFollowupAll,offsetDays){
-  if(!window.__dashCache)window.__dashCache={};
-  const key='fbc_'+offsetDays+'_'+withFollowupAll.length;
-  if(window.__dashCache[key])return window.__dashCache[key];
-  const result=_followupBucketCountsAt(withFollowupAll,offsetDays);
-  window.__dashCache[key]=result;
-  return result;
-}
-function _followupBucketCountsAt(withFollowupAll,offsetDays){
   const ref=new Date(TODAY);
   ref.setUTCDate(ref.getUTCDate()-offsetDays);
   const refMs=ref.getTime();
