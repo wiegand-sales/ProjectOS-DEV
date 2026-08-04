@@ -921,7 +921,7 @@ const STORAGE_KEY='toner_kanban_state_v1';
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-08-04T15:45:00.000Z';
+const BUILD_VERSION='2026-08-04T16:10:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -6510,14 +6510,23 @@ function saveLead(keepOpen){
     logFieldChanges(original,draftLead).forEach((text,i)=>{
       const _act15={id:Date.now()+10+i,type:'activity',author:currentUser,text,date:nowISO()};draftLead.activity.unshift(_act15);pushActivityToDb(editingLeadId,_act15);
     });
+    // Aktivitaeten werden ab jetzt NUR noch in lead_activities gespeichert (separate Tabelle).
+    // Im Lead-JSON werden sie nicht mehr persistiert - damit kein saveLead() mehr die
+    // Aktivitaeten eines anderen Nutzers ueberschreiben kann.
+    const activityBackup=draftLead.activity; // lokale Kopie fuer die laufende Sitzung behalten
+    draftLead.activity=[];
     Object.assign(original,draftLead);
+    original.activity=activityBackup; // im Arbeitsspeicher behalten (fuer Anzeige), nicht in DB
   }else{
     draftLead.id=genId();
     if(draftLead.followup){
       draftLead.followupHistory=[{date:draftLead.followup,setAt:nowISO()}];
     }
-    const _act16={id:Date.now()+Math.random(),type:'activity',author:currentUser,text:'Lead erstellt',date:nowISO()};draftLead.activity.unshift(_act16);pushActivityToDb(editingLeadId,_act16);
+    const _act16={id:Date.now()+Math.random(),type:'activity',author:currentUser,text:'Lead erstellt',date:nowISO()};draftLead.activity.unshift(_act16);pushActivityToDb(draftLead.id,_act16);
+    const activityBackupNew=draftLead.activity;
+    draftLead.activity=[];
     leads.push(draftLead);
+    draftLead.activity=activityBackupNew; // im Arbeitsspeicher behalten
     editingLeadId=draftLead.id; // wichtig: weitere Speichervorgaenge (bei "im Lead bleiben") aktualisieren jetzt diesen Lead statt neue anzulegen
   }
   saveState();
