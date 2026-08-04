@@ -921,7 +921,7 @@ const STORAGE_KEY='toner_kanban_state_v1';
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-08-04T17:05:00.000Z';
+const BUILD_VERSION='2026-08-04T17:15:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -3960,7 +3960,7 @@ function renderActivityTrendChart(entries){
     .map(([v,l])=>`<span class="chip ${activityPeriod===v?'active':''}" onclick="setActivityFilter('period','${v}')">${l}</span>`).join('');
   // Eindeutige ID pro Render fuer die CSS-Animation
   const chartId='actChart_'+Date.now();
-  const lineLen=99999; // Fester großer Wert - verhindert Abbruch der Animation durch Unterschaetzung
+  const lineLen=999999; // Sehr großer Wert - muss auch nach SVG-Streckung (preserveAspectRatio=none) reichen
   const useAnimation = buckets.length <= 90;
   // Daten im globalen Cache speichern statt als JSON-Attribut im HTML
   // (JSON.stringify erzeugt doppelte Anführungszeichen die HTML-Attribute brechen)
@@ -4003,7 +4003,7 @@ function renderActivityTrendChart(entries){
       </defs>
       <line x1="${padL}" y1="${padT+plotH}" x2="${padL+plotW}" y2="${padT+plotH}" stroke="var(--border)" stroke-width="1" vector-effect="non-scaling-stroke"/>
       <path class="act-area-fade" d="${areaPath}" fill="url(#actTrendGrad_${chartId})"/>
-      <path class="act-line-draw" d="${linePath}" fill="none" stroke="var(--purple)" stroke-width="2" vector-effect="non-scaling-stroke"/>
+      <path class="act-line-draw" d="${linePath}" fill="none" stroke="var(--purple)" stroke-width="2"/>
       <line id="${chartId}_crosshair" x1="0" y1="${padT}" x2="0" y2="${padT+plotH}" stroke="var(--purple)" stroke-width="1" stroke-dasharray="4 3" opacity="0" vector-effect="non-scaling-stroke" style="pointer-events:none"/>
       ${dotsHtml}
       ${overlayRect}
