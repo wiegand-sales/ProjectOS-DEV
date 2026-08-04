@@ -921,7 +921,7 @@ const STORAGE_KEY='toner_kanban_state_v1';
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-07-31T08:19:49.000Z';
+const BUILD_VERSION='2026-08-04T14:02:15.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -3959,9 +3959,16 @@ function renderActivityTrendChart(entries){
     lineLen+=Math.sqrt(dx*dx+dy*dy);
   }
   lineLen=Math.ceil(lineLen)+10;
+  // Daten im globalen Cache speichern statt als JSON-Attribut im HTML
+  // (JSON.stringify erzeugt doppelte Anführungszeichen die HTML-Attribute brechen)
+  if(!window.__actChartData)window.__actChartData={};
+  window.__actChartData[chartId]={
+    pts:pts,
+    buckets:buckets.map(b=>({d:fmtDate(b.key),c:b.count}))
+  };
   // Transparentes Overlay-Rect fuer Mousemove-Crosshair (deckt den Plot ab)
   const overlayRect=`<rect x="${padL}" y="${padT}" width="${plotW}" height="${plotH}" fill="transparent"
-    onmousemove="actChartMousemove(event,this,${JSON.stringify(pts)},${JSON.stringify(buckets.map(b=>({d:fmtDate(b.key),c:b.count})))},'${chartId}')"
+    onmousemove="actChartMousemove(event,this,'${chartId}')"
     onmouseleave="actChartMouseleave('${chartId}')"/>`;
   // Punkte bleiben als kleine Kreise sichtbar, aber ohne Hover-Events (jetzt ueber Overlay)
   const dotsHtml=buckets.map((b,i)=>{
@@ -5652,9 +5659,11 @@ function ensureActivityTooltipEl(){
   }
   return el;
 }
-function actChartMousemove(evt,rectEl,pts,buckets,chartId){
+function actChartMousemove(evt,rectEl,chartId){
   const svgEl=document.getElementById(chartId);
-  if(!svgEl)return;
+  const data=window.__actChartData&&window.__actChartData[chartId];
+  if(!svgEl||!data)return;
+  const pts=data.pts, buckets=data.buckets;
   const svgRect=svgEl.getBoundingClientRect();
   const scaleX=svgEl.viewBox.baseVal.width/svgRect.width;
   const mx=(evt.clientX-svgRect.left)*scaleX;
