@@ -921,7 +921,7 @@ const STORAGE_KEY='toner_kanban_state_v1';
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-08-04T17:38:00.000Z';
+const BUILD_VERSION='2026-08-04T17:45:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -1538,19 +1538,18 @@ async function syncLeadsLayer(){
       delete leadsBaseline[id];
     }));
 
-    // Dieselben Selbstheilungs-Reparaturen wie beim frischen Start - laufen bei jedem
-    // Abgleich erneut mit (guenstige reine Array-Pruefung, keine Netzwerk-Kosten), damit
-    // sie unabhaengig davon greifen, wie ein Lead ins System gekommen ist.
-    repairDuplicateLeadIds();
-    repairSwappedCompanyCustomerNumber();
+    // Selbstheilungs-Reparaturen nur wenn sich tatsaechlich etwas geaendert hat
+    const hadChanges=idsToFetch.length>0||remotelyDeletedIds.length>0||locallyChangedOrNew.length>0||locallyDeletedIds.length>0;
+    if(hadChanges){
+      repairDuplicateLeadIds();
+      repairSwappedCompanyCustomerNumber();
+    }
 
     saveLeadsBaseline(leadsBaseline);
     isFirstLeadsSyncSinceLoad=false;
-    // WICHTIG: Der lokale Zwischenspeicher (fuer den Fall eines Neuladens/erneuten
-    // Anmeldens) wird jetzt auch hier aktualisiert - vorher geschah das nur, wenn man
-    // selbst etwas geaendert hat. Wurden nur Aenderungen von KOLLEGEN uebernommen, blieb
-    // der lokale Cache sonst veraltet, waehrend die Baseline schon weiter war - genau das
-    // fuehrte beim naechsten Neuladen/Anmelden zu einem falschen "alles geloescht"-Alarm.
+    if(hadChanges){
+      refreshCurrentView();
+    }
     try{localStorage.setItem(STORAGE_KEY,JSON.stringify(buildStatePayload()));}catch(e){}
   }catch(e){
     console.warn('Lead-Synchronisierung fehlgeschlagen:',e);
