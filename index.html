@@ -921,7 +921,7 @@ const STORAGE_KEY='toner_kanban_state_v1';
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-08-04T17:15:00.000Z';
+const BUILD_VERSION='2026-08-04T17:30:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -2630,12 +2630,15 @@ function switchView(view){
     document.getElementById('view'+v.charAt(0).toUpperCase()+v.slice(1)).classList.toggle('active',v===view);
     document.getElementById('nav'+v.charAt(0).toUpperCase()+v.slice(1)).classList.toggle('active',v===view);
   });
-  if(view==='dashboard'){renderDashboardAgentChips();renderDashboardPeriodChips();renderDashboard();}
-  if(view==='board'){renderLabelChips();renderBoard();}
-  if(view==='crrma')renderCrRma();
-  if(view==='tasks'){renderTasksAgentChips();renderTasksView();}
-  if(view==='activities'){renderActivityFilterChips();renderActivities();}
-  if(view==='settings'){renderSettings();equalizeRowHeights();}
+  clearTimeout(window.__switchViewTimer);
+  window.__switchViewTimer=setTimeout(()=>{
+    if(view==='dashboard'){renderDashboardAgentChips();renderDashboardPeriodChips();renderDashboard();}
+    if(view==='board'){renderLabelChips();renderBoard();}
+    if(view==='crrma')renderCrRma();
+    if(view==='tasks'){renderTasksAgentChips();renderTasksView();}
+    if(view==='activities'){renderActivityFilterChips();renderActivities();}
+    if(view==='settings'){renderSettings();equalizeRowHeights();}
+  },view==='dashboard'||view==='activities'?30:0);
 }
 
 function renderBoard(){
@@ -3193,6 +3196,8 @@ function followupGanttHtml(dl){
   return `<div class="section-hdr" style="margin-top:0">Toner draußen – warte auf Rückmeldung <span style="font-weight:400;color:var(--text3);font-size:11px">(top ${sorted.length})</span></div>${rows}`;
 }
 function renderDashboard(){
+  // Memoization-Cache fuer teure Berechnungen innerhalb eines Render-Durchlaufs leeren
+  if(window.__dashCache)window.__dashCache={};
   let dl=activeDashboardAgentFilters.length?leads.filter(l=>(l.members||[]).some(m=>activeDashboardAgentFilters.includes(m))):leads;
   const periodStart=periodStartDate(activeDashboardPeriod);
   let excludedNoDate=0;
@@ -3530,6 +3535,14 @@ let newAgentColorSel=null;
 
 // ── FOLLOW-UP-ÜBERSICHT (Leads mit Follow-up-Datum, live aus dem Board) ──
 function followupBucketCountsAt(withFollowupAll,offsetDays){
+  if(!window.__dashCache)window.__dashCache={};
+  const key='fbc_'+offsetDays+'_'+withFollowupAll.length;
+  if(window.__dashCache[key])return window.__dashCache[key];
+  const result=_followupBucketCountsAt(withFollowupAll,offsetDays);
+  window.__dashCache[key]=result;
+  return result;
+}
+function _followupBucketCountsAt(withFollowupAll,offsetDays){
   const ref=new Date(TODAY);
   ref.setUTCDate(ref.getUTCDate()-offsetDays);
   const refMs=ref.getTime();
