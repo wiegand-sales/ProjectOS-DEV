@@ -921,7 +921,7 @@ const STORAGE_KEY='toner_kanban_state_v1';
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-08-04T17:45:00.000Z';
+const BUILD_VERSION='2026-08-04T17:55:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -2624,6 +2624,13 @@ function switchView(view){
     alert('Die Einstellungen sind nur für Admins zugänglich.');
     view='board';
   }
+  // Board-HTML leeren wenn wir das Board verlassen - verhindert dass der Browser
+  // beim Layout-Pass anderer Views durch 438 Lead-Karten iterieren muss
+  if(currentView==='board'&&view!=='board'){
+    const boardEl=document.getElementById('board');
+    if(boardEl)boardEl.innerHTML='';
+    boardDirty=true;
+  }
   currentView=view;
   ['dashboard','board','crrma','tasks','activities','settings'].forEach(v=>{
     document.getElementById('view'+v.charAt(0).toUpperCase()+v.slice(1)).classList.toggle('active',v===view);
@@ -2637,7 +2644,11 @@ function switchView(view){
   if(view==='settings'){renderSettings();equalizeRowHeights();}
 }
 
+let boardDirty=true;
+function markBoardDirty(){boardDirty=true;}
 function renderBoard(){
+  if(currentView!=='board'&&!boardDirty)return;
+  boardDirty=false;
   renderStats();
   // Scrollpositionen je Spalte merken, damit eine Liste beim Neu-Rendern (z.B. nach dem
   // Speichern eines Leads) nicht wieder nach ganz oben springt.
