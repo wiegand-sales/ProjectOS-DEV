@@ -921,7 +921,7 @@ const STORAGE_KEY='toner_kanban_state_v1';
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-08-04T18:20:00.000Z';
+const BUILD_VERSION='2026-08-04T18:25:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -3790,12 +3790,16 @@ function crRmaCellClass(v){
 }
 let crrmaSortKey='sku';
 let crrmaSortDir=1;
+let crrmaPage=0;
+const CRRMA_PAGE_SIZE=150;
 function setCrrmaSort(key){
   if(crrmaSortKey===key)crrmaSortDir*=-1;else{crrmaSortKey=key;crrmaSortDir=1;}
+  crrmaPage=0;
   renderCrRma();
 }
 function renderCrRma(){
   const q=(document.getElementById('crrmaSearch').value||'').toLowerCase().trim();
+  if(q)crrmaPage=0;
   let filtered=ARTICLES.filter(a=>!q||a.sku.toLowerCase().includes(q)||a.title.toLowerCase().includes(q));
   filtered=[...filtered].sort((a,b)=>{
     let va,vb;
@@ -3806,9 +3810,12 @@ function renderCrRma(){
     if(va>vb)return 1*crrmaSortDir;
     return 0;
   });
+  const totalPages=Math.ceil(filtered.length/CRRMA_PAGE_SIZE)||1;
+  crrmaPage=Math.max(0,Math.min(crrmaPage,totalPages-1));
+  const pageItems=filtered.slice(crrmaPage*CRRMA_PAGE_SIZE,(crrmaPage+1)*CRRMA_PAGE_SIZE);
   const sortArrow=key=>crrmaSortKey===key?(crrmaSortDir===1?' ▲':' ▼'):'';
   const fmt2=v=>(v===''||v===null||v===undefined||isNaN(parseFloat(v)))?'':parseFloat(v).toFixed(2);
-  const rowsHtml=filtered.map(a=>{
+  const rowsHtml=pageItems.map(a=>{
     const margin=(parseFloat(a.vk)||0)-(parseFloat(a.ek)||0);
     return `
     <div class="crrma-row">
@@ -3822,7 +3829,11 @@ function renderCrRma(){
       <button class="check-item-del" onclick="deleteArticle(${a.id})" title="Löschen"><i class="ti ti-trash"></i></button>
     </div>`;
   }).join('');
-
+  const paginationHtml=totalPages>1?`<div style="display:flex;align-items:center;gap:10px;padding:12px 0 4px;font-size:12px;color:var(--text2)">
+    <button class="btn" ${crrmaPage===0?'disabled':''} onclick="crrmaPage--;renderCrRma()">← Zurück</button>
+    <span>Seite ${crrmaPage+1} von ${totalPages} · ${filtered.length} Artikel gesamt</span>
+    <button class="btn" ${crrmaPage>=totalPages-1?'disabled':''} onclick="crrmaPage++;renderCrRma()">Weiter →</button>
+  </div>`:'';
   document.getElementById('crrmaContent').innerHTML=`
     <div class="info-section">
       <div class="crrma-legend">
@@ -3843,9 +3854,9 @@ function renderCrRma(){
         </div>
         ${rowsHtml||'<p style="font-size:12px;color:var(--text3);padding:10px 0">Keine Artikel gefunden.</p>'}
       </div>
+      ${paginationHtml}
     </div>`;
 }
-
 // ── AKTIVITÄTEN: vollständiges, durchsuchbares Protokoll + Trend-Chart ──
 let activityPeriod='30'; // Tage als String, oder 'all'
 let activityAgentFilter='all';
