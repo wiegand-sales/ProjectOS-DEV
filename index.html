@@ -921,7 +921,7 @@ const STORAGE_KEY='toner_kanban_state_v1';
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-08-04T16:50:00.000Z';
+const BUILD_VERSION='2026-08-04T17:05:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -3851,7 +3851,7 @@ let activityPeriod='30'; // Tage als String, oder 'all'
 let activityAgentFilter='all';
 let activityTypeFilter='all';
 let activityStatusFilter='all';
-const ACTIVITY_TYPE_OPTIONS=[['all','Alle'],['comment','Kommentare'],['activity','Aktivitäten']];
+const ACTIVITY_TYPE_OPTIONS=[['all','Alle'],['comment','Kommentare'],['activity','Aktivitäten'],['login','Logins']];
 function renderActivityFilterChips(){
   const agentEl=document.getElementById('activityFilterMenuAgents');
   if(agentEl){
@@ -4048,6 +4048,14 @@ function renderActivities(){
       entries.push({lead:l,text:a.text,date:a.date,type:a.type,author:a.author});
     });
   });
+
+  // Login-Eintraege aus login_log einmischen
+  if(activityTypeFilter==='all'||activityTypeFilter==='login'){
+    (window.__loginLogCache||[]).forEach(entry=>{
+      entries.push({lead:null,text:'hat sich angemeldet',date:entry.logged_in_at,type:'login',author:entry.agent_id,agentName:entry.agent_name});
+    });
+  }
+
   if(activityAgentFilter!=='all')entries=entries.filter(e=>e.author===activityAgentFilter);
   if(activityTypeFilter!=='all')entries=entries.filter(e=>e.type===activityTypeFilter);
   if(activityPeriod!=='all'){
@@ -4056,10 +4064,25 @@ function renderActivities(){
   }
   entries.sort((a,b)=>new Date(b.date)-new Date(a.date));
 
-  const chartHtml=renderActivityTrendChart(entries);
+  const chartHtml=renderActivityTrendChart(entries.filter(e=>e.type!=='login'));
   const protocolHtml=entries.length?entries.map(e=>{
     const ag=agentById(e.author);
-    const typeLabel=e.type==='comment'?'Kommentar':'Aktivität';
+    const typeLabel=e.type==='comment'?'Kommentar':e.type==='login'?'Login':'Aktivität';
+    const timeStr=e.date?' · '+new Date(e.date).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'})+' Uhr':'';
+    if(e.type==='login'){
+      return `<div class="activity-row" style="cursor:default">
+        <div class="activity-row-date"><span>${fmtWeekday(e.date)},</span><span>${fmtDate(e.date)}</span></div>
+        <div class="activity-row-avatar" style="background:${ag?COLOR_BG[ag.color]:COLOR_BG.gray};color:${ag?COLOR_TEXT[ag.color]:COLOR_TEXT.gray}">${ag?ini(ag.name):'?'}</div>
+        <div class="activity-row-body">
+          <div class="activity-row-head">
+            <span class="activity-row-author">${ag?esc(ag.name):esc(e.agentName||'Unbekannt')}</span>
+            <span class="activity-type-badge" style="background:var(--purple-bg);color:var(--purple-dark)">Login</span>
+            <span class="activity-row-text">hat sich angemeldet</span>
+          </div>
+          <div class="activity-row-sub">${fmtWeekday(e.date)}, ${fmtDate(e.date)}${timeStr}</div>
+        </div>
+      </div>`;
+    }
     return `<div class="activity-row" onclick="openLeadModal(${e.lead.id})">
       <div class="activity-row-date"><span>${fmtWeekday(e.date)},</span><span>${fmtDate(e.date)}</span></div>
       <div class="activity-row-avatar" style="background:${ag?COLOR_BG[ag.color]:COLOR_BG.gray};color:${ag?COLOR_TEXT[ag.color]:COLOR_TEXT.gray}">${ag?ini(ag.name):'?'}</div>
@@ -4069,7 +4092,7 @@ function renderActivities(){
           <span class="activity-type-badge activity-type-${e.type}">${typeLabel}</span>
           <span class="activity-row-text">${esc(e.text)}</span>
         </div>
-        <div class="activity-row-sub">${esc(e.lead.company)}${e.lead.customerNumber?' · '+esc(e.lead.customerNumber):''} · ${fmtWeekday(e.date)}, ${fmtDate(e.date)}</div>
+        <div class="activity-row-sub">${esc(e.lead.company)}${e.lead.customerNumber?' · '+esc(e.lead.customerNumber):''} · ${fmtWeekday(e.date)}, ${fmtDate(e.date)}${timeStr}</div>
       </div>
     </div>`;
   }).join(''):'<p style="font-size:12px;color:var(--text3)">Keine Einträge im gewählten Zeitraum/Filter gefunden.</p>';
@@ -7401,10 +7424,13 @@ async function bootstrapApp(){
   // (Ursache eines echten Datenverlust-Vorfalls am 12.07.2026).
   try{
     await sbInitialSync();
-    sbInitialSyncDone=true; // ab jetzt darf scheduleSbPush() Uploads starten
+    sbInitialSyncDone=true;
+    // Login-Log fuer Aktivitaeten-Ansicht laden (letzte 90 Tage)
+    fetchWithTimeout(`${SUPABASE_URL}/rest/v1/login_log?order=logged_in_at.desc&limit=500`,{headers:getSbHeaders()},8000)
+      .then(r=>r.ok?r.json():null).then(rows=>{if(rows)window.__loginLogCache=rows;}).catch(()=>{});
   }catch(e){
     console.warn('Initialer Sync beim Start fehlgeschlagen (wird automatisch per Hintergrund-Abgleich erneut versucht):',e);
-    sbInitialSyncDone=true; // auch bei Fehler freigeben, sonst bleibt Push dauerhaft gesperrt
+    sbInitialSyncDone=true;
   }
   if(pendingLoginWizard){
     pendingLoginWizard=false;
@@ -7836,19 +7862,17 @@ function showApp(isFreshLogin){
     openLoginWizard();
   }
   if(isFreshLogin){
-    // Login-Protokoll: asynchron im Hintergrund, damit der Start nicht blockiert wird
     setTimeout(()=>{
       const me=agentById(currentUser);
+      const entry={agent_id:currentUser,agent_name:me?me.name:'Unbekannt',user_agent:navigator.userAgent.slice(0,200),logged_in_at:nowISO()};
       fetchWithTimeout(`${SUPABASE_URL}/rest/v1/login_log`,{
         method:'POST',
         headers:Object.assign({},getSbHeaders(),{'Prefer':'return=minimal'}),
-        body:JSON.stringify({
-          agent_id:currentUser,
-          agent_name:me?me.name:'Unbekannt',
-          user_agent:navigator.userAgent.slice(0,200),
-          logged_in_at:nowISO()
-        })
+        body:JSON.stringify(entry)
       },5000).catch(e=>console.warn('Login-Log fehlgeschlagen:',e));
+      // Sofort in Cache einfuegen damit Aktivitaeten-Ansicht es direkt zeigt
+      if(!window.__loginLogCache)window.__loginLogCache=[];
+      window.__loginLogCache.unshift(entry);
     },2000);
   }
 }
