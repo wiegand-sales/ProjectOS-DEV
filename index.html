@@ -921,7 +921,7 @@ const STORAGE_KEY='toner_kanban_state_v1';
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-08-04T15:10:00.000Z';
+const BUILD_VERSION='2026-08-04T15:45:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -1828,8 +1828,18 @@ function hasPendingLeadChanges(){
     return !b||!deepEqual(l,b.data);
   });
 }
+// Flag: verhindert dass scheduleSbPush() einen Upload startet bevor der initiale
+// Sync den aktuellen Server-Stand geladen hat. Ohne diesen Schutz koennte ein
+// veralteter localStorage-Stand in die DB geschrieben werden, bevor der frische
+// Server-Stand angekommen ist (genau das hat heute den Datenverlust verursacht).
+let sbInitialSyncDone=false;
 function scheduleSbPush(){
   markPendingPush();
+  if(!sbInitialSyncDone){
+    // Initialer Sync noch nicht abgeschlossen - Push wird ignoriert.
+    // syncMerge()/syncLeadsLayer() am Ende von sbInitialSync() uebernehmen das.
+    return;
+  }
   clearTimeout(sbPushTimer);
   // 3s statt vorher 1,5s Verzoegerung: mehrere schnelle Aenderungen (z.B. mehrere
   // Formularfelder direkt hintereinander) werden dadurch haeufiger zu EINEM einzigen
@@ -7387,8 +7397,10 @@ async function bootstrapApp(){
   // (Ursache eines echten Datenverlust-Vorfalls am 12.07.2026).
   try{
     await sbInitialSync();
+    sbInitialSyncDone=true; // ab jetzt darf scheduleSbPush() Uploads starten
   }catch(e){
     console.warn('Initialer Sync beim Start fehlgeschlagen (wird automatisch per Hintergrund-Abgleich erneut versucht):',e);
+    sbInitialSyncDone=true; // auch bei Fehler freigeben, sonst bleibt Push dauerhaft gesperrt
   }
   if(pendingLoginWizard){
     pendingLoginWizard=false;
