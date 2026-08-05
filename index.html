@@ -932,7 +932,7 @@ const STORAGE_KEY='toner_kanban_state_v1';
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-08-05T11:35:00.000Z';
+const BUILD_VERSION='2026-08-05T11:45:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -6897,13 +6897,13 @@ function createNotifyRule(){
   saveState();
   renderSettings();
 }
-function deleteAllLeads(){
+async function deleteAllLeads(){
   if(!requireAdmin('alle Leads löschen'))return;
   if(leads.length===0){alert('Es sind bereits keine Leads vorhanden.');return;}
   if(!confirm(`Wirklich ALLE ${leads.length} Leads unwiderruflich löschen?\n\nDie Listen/Spalten, Labels, Mitarbeiter und Projekt-Einstellungen bleiben erhalten - nur die Kundendaten selbst werden entfernt.\n\nTipp: Es wird automatisch vorher ein Backup heruntergeladen.`))return;
   const typed=prompt('Zur Sicherheit: Bitte tippe LÖSCHEN (in Großbuchstaben) ein, um zu bestätigen:');
   if(typed!=='LÖSCHEN'){alert('Abgebrochen - Eingabe stimmte nicht überein. Es wurde nichts gelöscht.');return;}
-  exportFullBackup();
+  await exportFullBackup(); // Vollständiges Backup inkl. Aktivitäten BEVOR gelöscht wird
   leads=[];
   // _actCache vollständig leeren
   Object.keys(_actCache).forEach(k=>delete _actCache[k]);
@@ -6919,12 +6919,27 @@ function deleteAllLeads(){
   }
   alert('Alle Leads wurden gelöscht. Ein Backup der vorherigen Daten wurde als JSON-Datei heruntergeladen.');
 }
-function exportFullBackup(isAutomatic){
+async function exportFullBackup(isAutomatic){
+  // Aktivitäten aus lead_activities laden (vollständiges Backup)
+  let activities=[];
+  if(isSbSessionValid()){
+    try{
+      // Alle Aktivitäten paginiert laden (max. 10.000 pro Anfrage reicht für jetzt)
+      const res=await fetchWithTimeout(
+        `${SUPABASE_URL}/rest/v1/lead_activities?order=id.asc&limit=10000`,
+        {headers:getSbHeaders()},15000
+      );
+      if(res.ok) activities=await res.json();
+    }catch(e){
+      console.warn('lead_activities für Backup konnten nicht geladen werden:',e);
+    }
+  }
   const backup={
     exportedAt:nowISO(),
     leads,COLUMNS,LABELS,AGENTS,ARTICLES,PROJECT,
     nextId,nextLabelId,nextPrinterId,nextColId,nextAgentId,nextArticleId,nextMilestoneId,nextRiskId,nextNotifyRuleId,
-    _note:'Aktivitäten und Kommentare sind NICHT in diesem Backup enthalten - sie liegen separat in der Supabase-Tabelle lead_activities und sind über das Supabase-Dashboard exportierbar.'
+    lead_activities:activities,
+    _note:`Vollständiges Backup inkl. ${activities.length} Aktivitäten/Kommentare aus lead_activities. Stand: ${nowISO()}`
   };
   const blob=new Blob([JSON.stringify(backup,null,2)],{type:'application/json'});
   const url=URL.createObjectURL(blob);
@@ -6940,15 +6955,12 @@ function exportFullBackup(isAutomatic){
 function maybeRunClientAutoBackup(){
   const intervalMinutes=PROJECT.autoBackupIntervalMinutes;
   if(!intervalMinutes||intervalMinutes<=0)return;
-  // NEU: laeuft nur noch bei Mitarbeitern, die in der Mitarbeiter-Uebersicht dafuer
-  // markiert wurden (a.localBackupResponsible). Sonst wuerde JEDES Teammitglied mit
-  // offenem Tab die Datei parallel herunterladen, statt nur die zustaendige(n) Person(en).
   const me=currentAgent();
   if(!me||!me.localBackupResponsible)return;
   const last=PROJECT.lastAutoBackupAt?new Date(PROJECT.lastAutoBackupAt):null;
   const now=new Date();
   if(last&&(now-last)<intervalMinutes*60*1000)return;
-  exportFullBackup(true);
+  exportFullBackup(true); // async - läuft im Hintergrund
   PROJECT.lastAutoBackupAt=now.toISOString();
   saveState();
 }
