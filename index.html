@@ -921,7 +921,7 @@ const STORAGE_KEY='toner_kanban_state_v1';
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-08-05T08:30:00.000Z';
+const BUILD_VERSION='2026-08-05T09:00:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -2149,7 +2149,7 @@ function runDataIntegrityCheck(){
     foundAnything=true;
     msg+=`\n⚠ ${dupCustNos.length} Kundennummer(n) sind mehrfach vergeben – das muss manuell geprüft werden (nicht automatisch behebbar, da die Datensätze unterschiedliche Inhalte haben könnten):\n\n`;
     dupCustNos.slice(0,15).forEach(([cn,arr])=>{
-      msg+=`Kundennummer ${cn}: ${arr.map(l=>`"${l.company}"`).join(', ')}\n`;
+      msg+=`Kundennummer ${cn}: ${arr.map(l=>`"${l.company.replace(/"/g,'\'').replace(/[<>]/g,'?')}"`).join(', ')}\n`;
     });
     if(dupCustNos.length>15)msg+=`… und ${dupCustNos.length-15} weitere\n`;
     msg+='\nBitte die betroffenen Leads öffnen, den richtigen behalten und den überflüssigen über "Löschen" entfernen.';
@@ -4070,7 +4070,26 @@ function renderActivities(){
   let leadCardsHtml='';
   if(q){
     if(matchingLeads.length){
-      leadCardsHtml=matchingLeads.map(l=>{
+      // Statuswechsel-Counts asynchron aus lead_activities laden
+      const leadIds=matchingLeads.map(l=>l.id);
+      fetchStatusChangeCountsFromDb(leadIds).then(statusCountMap=>{
+        if(currentView!=='activities')return;
+        const cards=matchingLeads.map(l=>{
+          const fuChanges=(l.followupHistory||[]).length;
+          const statusChanges=statusCountMap[String(l.id)]||0;
+          return `<div class="info-section" style="cursor:pointer" onclick="openLeadModal(${l.id})">
+            <div class="section-hdr" style="margin-top:0">${esc(l.company)} <span style="font-weight:400;color:var(--text3);font-size:11px">${esc(l.customerNumber||'')}</span></div>
+            <div class="impact-row"><span>Follow-up-Datum geändert</span><strong style="color:var(--purple)">${fuChanges}×</strong></div>
+            <div class="impact-row"><span>Statuswechsel</span><strong style="color:var(--teal-dark)">${statusChanges}×</strong></div>
+            <div class="impact-row"><span>Aktueller Status</span><strong>${colById(l.status)?colById(l.status).name:'–'}</strong></div>
+          </div>`;
+        }).join('');
+        // Karten-Bereich im aktuellen Content aktualisieren
+        const cardsEl=document.getElementById('activityLeadCards');
+        if(cardsEl)cardsEl.innerHTML=cards;
+      });
+      // Erstanzeige mit JSON-Fallback (wird durch async oben überschrieben sobald DB antwortet)
+      leadCardsHtml=`<div id="activityLeadCards">${matchingLeads.map(l=>{
         const fuChanges=(l.followupHistory||[]).length;
         const statusChanges=(l.activity||[]).filter(a=>a.type==='activity'&&a.text.indexOf('Status geändert:')===0).length;
         return `<div class="info-section" style="cursor:pointer" onclick="openLeadModal(${l.id})">
@@ -4079,7 +4098,7 @@ function renderActivities(){
           <div class="impact-row"><span>Statuswechsel</span><strong style="color:var(--teal-dark)">${statusChanges}×</strong></div>
           <div class="impact-row"><span>Aktueller Status</span><strong>${colById(l.status)?colById(l.status).name:'–'}</strong></div>
         </div>`;
-      }).join('');
+      }).join('')}</div>`;
     }else{
       leadCardsHtml='<div class="info-section"><p style="font-size:12px;color:var(--text3)">Kein Kunde mit diesem Namen oder dieser Kundennummer gefunden.</p></div>';
     }
@@ -4143,6 +4162,27 @@ function renderActivities(){
   });
 }
 
+// Lädt Statuswechsel-Anzahl je Lead aus lead_activities für die Kundenkarte
+async function fetchStatusChangeCountsFromDb(leadIds){
+  const counts={};
+  if(!isSbSessionValid()||!leadIds.length)return counts;
+  try{
+    const ids=leadIds.map(id=>`"${id}"`).join(',');
+    const res=await fetchWithTimeout(
+      `${SUPABASE_URL}/rest/v1/lead_activities?lead_id=in.(${ids})&type=eq.activity&text=like.Status%20ge%C3%A4ndert%3A*&select=lead_id`,
+      {headers:getSbHeaders()},8000
+    );
+    if(!res.ok)return counts;
+    const rows=await res.json();
+    rows.forEach(r=>{
+      const k=String(r.lead_id);
+      counts[k]=(counts[k]||0)+1;
+    });
+  }catch(e){
+    console.warn('fetchStatusChangeCountsFromDb fehlgeschlagen:',e);
+  }
+  return counts;
+}
 // Lädt alle Aktivitäten aus lead_activities für die Aktivitäten-Ansicht.
 // Mit aktivem Filter wird paginiert geladen, ohne Filter alles auf einmal.
 async function fetchAllActivitiesForView(q, matchingLeads){
