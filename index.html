@@ -921,7 +921,7 @@ const STORAGE_KEY='toner_kanban_state_v1';
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-08-05T09:15:00.000Z';
+const BUILD_VERSION='2026-08-05T10:00:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -4189,7 +4189,7 @@ async function fetchAllActivitiesForView(q, matchingLeads){
   let entries=[];
   try{
     // Zeitraum-Filter als DB-Query bauen
-    let urlParams='order=date.desc&limit=2000';
+    let urlParams='order=date.desc&limit=5000';
     if(activityPeriod!=='all'){
       const periodStart=new Date(TODAY);
       periodStart.setDate(periodStart.getDate()-(parseInt(activityPeriod)-1));
@@ -5212,7 +5212,7 @@ async function fetchActivitiesFromDb(leadId){
   if(!isSbSessionValid())return null;
   try{
     const res=await fetchWithTimeout(
-      `${SUPABASE_URL}/rest/v1/lead_activities?lead_id=eq.${leadId}&order=date.desc&limit=500`,
+      `${SUPABASE_URL}/rest/v1/lead_activities?lead_id=eq.${leadId}&order=date.desc&limit=1000`,
       {headers:getSbHeaders()},8000
     );
     if(!res.ok)return null;
@@ -6521,15 +6521,45 @@ function saveEditComment(id){
   const item=draftLead.activity.find(a=>a.id===id&&a.type==='comment');
   if(item){item.text=newText;item.edited=true;}
   editingCommentId=null;
+  delete _actCache[editingLeadId]; // Cache invalidieren
   autoPersistIfEditing();
   renderLeadModal();
+  // In lead_activities aktualisieren (beide mögliche ID-Formen versuchen)
+  if(isSbSessionValid()){
+    const updateBody=JSON.stringify({text:newText});
+    // Direkt per DB-id
+    fetchWithTimeout(
+      `${SUPABASE_URL}/rest/v1/lead_activities?id=eq.${id}&lead_id=eq.${editingLeadId}`,
+      {method:'PATCH',headers:Object.assign({},getSbHeaders(),{'Prefer':'return=minimal'}),body:updateBody},5000
+    ).catch(()=>{});
+    // Fallback via extra-Feld (Migration)
+    fetchWithTimeout(
+      `${SUPABASE_URL}/rest/v1/lead_activities?lead_id=eq.${editingLeadId}&extra=cs.${encodeURIComponent(JSON.stringify({id}))}`,
+      {method:'PATCH',headers:Object.assign({},getSbHeaders(),{'Prefer':'return=minimal'}),body:updateBody},5000
+    ).catch(()=>{});
+  }
 }
 function deleteComment(id){
   if(!requireAdmin('Kommentare löschen'))return;
   if(!confirm('Diesen Kommentar wirklich unwiderruflich löschen?'))return;
   draftLead.activity=draftLead.activity.filter(a=>!(a.id===id&&a.type==='comment'));
+  delete _actCache[editingLeadId]; // Cache invalidieren
   autoPersistIfEditing();
   renderLeadModal();
+  // Aus lead_activities löschen - DB-ID kann bigint sein, daher über extra-Feld suchen
+  // Da die Migration extra:{id:originalId} gespeichert hat, können wir nach beiden suchen
+  if(isSbSessionValid()){
+    // Versuche zuerst direkt per id (wenn DB-Eintrag)
+    fetchWithTimeout(
+      `${SUPABASE_URL}/rest/v1/lead_activities?lead_id=eq.${editingLeadId}&extra=cs.${encodeURIComponent(JSON.stringify({id}))}`,
+      {method:'DELETE',headers:getSbHeaders()},5000
+    ).catch(()=>{});
+    // Fallback: direkt per id wenn es eine bigint-ID ist
+    fetchWithTimeout(
+      `${SUPABASE_URL}/rest/v1/lead_activities?id=eq.${id}&lead_id=eq.${editingLeadId}`,
+      {method:'DELETE',headers:getSbHeaders()},5000
+    ).catch(()=>{});
+  }
 }
 
 // Save / Delete
@@ -6711,9 +6741,18 @@ function deleteLead(){
   if(!requireAdmin('einen Lead löschen'))return;
   const l=leads.find(x=>x.id===editingLeadId);
   if(!confirm(`Lead "${l?l.company:''}" wirklich unwiderruflich löschen?`))return;
+  const deletedId=editingLeadId;
   leads=leads.filter(x=>x.id!==editingLeadId);
+  delete _actCache[deletedId];
   saveState();
   closeModal('leadModal');refreshCurrentView();
+  // Aktivitäten aus lead_activities löschen (async im Hintergrund)
+  if(isSbSessionValid()){
+    fetchWithTimeout(
+      `${SUPABASE_URL}/rest/v1/lead_activities?lead_id=eq.${deletedId}`,
+      {method:'DELETE',headers:getSbHeaders()},8000
+    ).catch(e=>console.warn('lead_activities cleanup nach deleteLead fehlgeschlagen:',e));
+  }
 }
 
 // ── CSV EXPORT ──
@@ -6808,9 +6847,18 @@ function deleteAllLeads(){
   if(typed!=='LÖSCHEN'){alert('Abgebrochen - Eingabe stimmte nicht überein. Es wurde nichts gelöscht.');return;}
   exportFullBackup();
   leads=[];
+  // _actCache vollständig leeren
+  Object.keys(_actCache).forEach(k=>delete _actCache[k]);
   saveState();
   renderBoard();
   renderSettings();
+  // Alle Aktivitäten aus lead_activities löschen (async im Hintergrund)
+  if(isSbSessionValid()){
+    fetchWithTimeout(
+      `${SUPABASE_URL}/rest/v1/lead_activities?id=gt.0`,
+      {method:'DELETE',headers:getSbHeaders()},15000
+    ).catch(e=>console.warn('lead_activities cleanup nach deleteAllLeads fehlgeschlagen:',e));
+  }
   alert('Alle Leads wurden gelöscht. Ein Backup der vorherigen Daten wurde als JSON-Datei heruntergeladen.');
 }
 function exportFullBackup(isAutomatic){
