@@ -921,7 +921,7 @@ const STORAGE_KEY='toner_kanban_state_v1';
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-08-05T06:30:00.000Z';
+const BUILD_VERSION='2026-08-05T08:00:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -989,6 +989,14 @@ async function sbLogout(){
   }catch(e){
     console.warn('Letzter Sync-Versuch vor dem Abmelden fehlgeschlagen:',e);
   }
+  // Alle laufenden Intervals stoppen damit sie nach dem Reload nicht weiterlaufen
+  // und mit veralteter Session Fehler produzieren
+  clearInterval(window.__sbPollInterval);
+  clearInterval(window.__versionCheckInterval);
+  clearInterval(window.__autoBackupInterval);
+  clearTimeout(sbPushTimer);
+  sbPushTimer=null;
+  sbInitialSyncDone=false;
   sbSession=null;
   persistSbSession();
   location.reload();
@@ -1457,6 +1465,8 @@ async function syncLeadsLayer(){
       const fetchedRows=await pullLeadRowsByIds(idsToFetch);
       fetchedRows.forEach(r=>{
         const idx=leads.findIndex(l=>String(l.id)===String(r.id));
+        // Cache invalidieren - Kollege hat etwas geaendert, naechstes Oeffnen laedt frisch
+        delete _actCache[r.id];
         if(idx>=0){
           const localActivity=leads[idx].activity||[];
           const remoteActivity=r.data.activity||[];
@@ -4029,7 +4039,7 @@ function renderActivities(){
   const q=(document.getElementById('activitySearch').value||'').toLowerCase().trim();
   const matchingLeads=q?leads.filter(l=>l.company.toLowerCase().includes(q)||(l.customerNumber||'').toLowerCase().includes(q)):[];
 
-  // Kunden-Übersichtskarten bei Treffer: zeigt u.a. wie oft das Follow-up-Datum geändert wurde
+  // Kunden-Übersichtskarten bei Treffer
   let leadCardsHtml='';
   if(q){
     if(matchingLeads.length){
@@ -4048,75 +4058,128 @@ function renderActivities(){
     }
   }
 
-  // Basis-Leadmenge: Suche + Status-Filter
-  let relevantLeads=q?matchingLeads:leads;
-  if(activityStatusFilter!=='all')relevantLeads=relevantLeads.filter(l=>l.status===activityStatusFilter);
+  // Aktivitaeten aus lead_activities laden (alle Leads), dann filtern und rendern
+  // Wir laden asynchron - der View erscheint sofort mit einem Lade-Indikator
+  const contentEl=document.getElementById('activitiesContent');
+  contentEl.innerHTML=`
+    ${q?`<div class="${matchingLeads.length===1?'':'dash-grid'}" style="margin-bottom:16px">${leadCardsHtml}</div>`:''}
+    <div class="info-section" style="text-align:center;padding:32px;color:var(--text3);font-size:13px">
+      <i class="ti ti-refresh" style="font-size:20px;display:block;margin-bottom:8px"></i>Aktivitäten werden geladen…
+    </div>`;
 
-  // Alle Eintraege sammeln, dann Mitarbeiter-/Typ-/Zeitraum-Filter anwenden
-  let entries=[];
-  relevantLeads.forEach(l=>{
-    (l.activity||[]).forEach(a=>{
-      entries.push({lead:l,text:a.text,date:a.date,type:a.type,author:a.author});
-    });
-  });
+  fetchAllActivitiesForView(q,matchingLeads).then(entries=>{
+    if(currentView!=='activities')return; // View zwischenzeitlich gewechselt
 
-  // Login-Eintraege aus login_log einmischen
-  if(activityTypeFilter==='all'||activityTypeFilter==='login'){
-    (window.__loginLogCache||[]).forEach(entry=>{
-      entries.push({lead:null,text:'hat sich angemeldet',date:entry.logged_in_at,type:'login',author:entry.agent_id,agentName:entry.agent_name});
-    });
-  }
-
-  if(activityAgentFilter!=='all')entries=entries.filter(e=>e.author===activityAgentFilter);
-  if(activityTypeFilter!=='all')entries=entries.filter(e=>e.type===activityTypeFilter);
-  if(activityPeriod!=='all'){
-    const periodStart=new Date(TODAY);periodStart.setDate(periodStart.getDate()-(parseInt(activityPeriod)-1));
-    entries=entries.filter(e=>new Date(e.date)>=periodStart);
-  }
-  entries.sort((a,b)=>new Date(b.date)-new Date(a.date));
-
-  const chartHtml=renderActivityTrendChart(entries.filter(e=>e.type!=='login'));
-  const protocolHtml=entries.length?entries.map(e=>{
-    const ag=agentById(e.author);
-    const typeLabel=e.type==='comment'?'Kommentar':e.type==='login'?'Login':'Aktivität';
-    const timeStr=e.date?' · '+new Date(e.date).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'})+' Uhr':'';
-    if(e.type==='login'){
-      return `<div class="activity-row" style="cursor:default">
+    const chartHtml=renderActivityTrendChart(entries.filter(e=>e.type!=='login'));
+    const protocolHtml=entries.length?entries.map(e=>{
+      const ag=agentById(e.author);
+      const typeLabel=e.type==='comment'?'Kommentar':e.type==='login'?'Login':'Aktivität';
+      const timeStr=e.date?' · '+new Date(e.date).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'})+' Uhr':'';
+      if(e.type==='login'){
+        return `<div class="activity-row" style="cursor:default">
+          <div class="activity-row-date"><span>${fmtWeekday(e.date)},</span><span>${fmtDate(e.date)}</span></div>
+          <div class="activity-row-avatar" style="background:${ag?COLOR_BG[ag.color]:COLOR_BG.gray};color:${ag?COLOR_TEXT[ag.color]:COLOR_TEXT.gray}">${ag?ini(ag.name):'?'}</div>
+          <div class="activity-row-body">
+            <div class="activity-row-head">
+              <span class="activity-row-author">${ag?esc(ag.name):esc(e.agentName||'Unbekannt')}</span>
+              <span class="activity-type-badge" style="background:var(--purple-bg);color:var(--purple-dark)">Login</span>
+              <span class="activity-row-text">hat sich angemeldet</span>
+            </div>
+            <div class="activity-row-sub">${fmtWeekday(e.date)}, ${fmtDate(e.date)}${timeStr}</div>
+          </div>
+        </div>`;
+      }
+      if(!e.lead)return'';
+      return `<div class="activity-row" onclick="openLeadModal(${e.lead.id})">
         <div class="activity-row-date"><span>${fmtWeekday(e.date)},</span><span>${fmtDate(e.date)}</span></div>
         <div class="activity-row-avatar" style="background:${ag?COLOR_BG[ag.color]:COLOR_BG.gray};color:${ag?COLOR_TEXT[ag.color]:COLOR_TEXT.gray}">${ag?ini(ag.name):'?'}</div>
         <div class="activity-row-body">
           <div class="activity-row-head">
-            <span class="activity-row-author">${ag?esc(ag.name):esc(e.agentName||'Unbekannt')}</span>
-            <span class="activity-type-badge" style="background:var(--purple-bg);color:var(--purple-dark)">Login</span>
-            <span class="activity-row-text">hat sich angemeldet</span>
+            <span class="activity-row-author">${ag?esc(ag.name):'Unbekannt'}</span>
+            <span class="activity-type-badge activity-type-${e.type}">${typeLabel}</span>
+            <span class="activity-row-text">${esc(e.text)}</span>
           </div>
-          <div class="activity-row-sub">${fmtWeekday(e.date)}, ${fmtDate(e.date)}${timeStr}</div>
+          <div class="activity-row-sub">${esc(e.lead.company)}${e.lead.customerNumber?' · '+esc(e.lead.customerNumber):''} · ${fmtWeekday(e.date)}, ${fmtDate(e.date)}${timeStr}</div>
         </div>
       </div>`;
-    }
-    return `<div class="activity-row" onclick="openLeadModal(${e.lead.id})">
-      <div class="activity-row-date"><span>${fmtWeekday(e.date)},</span><span>${fmtDate(e.date)}</span></div>
-      <div class="activity-row-avatar" style="background:${ag?COLOR_BG[ag.color]:COLOR_BG.gray};color:${ag?COLOR_TEXT[ag.color]:COLOR_TEXT.gray}">${ag?ini(ag.name):'?'}</div>
-      <div class="activity-row-body">
-        <div class="activity-row-head">
-          <span class="activity-row-author">${ag?esc(ag.name):'Unbekannt'}</span>
-          <span class="activity-type-badge activity-type-${e.type}">${typeLabel}</span>
-          <span class="activity-row-text">${esc(e.text)}</span>
-        </div>
-        <div class="activity-row-sub">${esc(e.lead.company)}${e.lead.customerNumber?' · '+esc(e.lead.customerNumber):''} · ${fmtWeekday(e.date)}, ${fmtDate(e.date)}${timeStr}</div>
-      </div>
-    </div>`;
-  }).join(''):'<p style="font-size:12px;color:var(--text3)">Keine Einträge im gewählten Zeitraum/Filter gefunden.</p>';
+    }).join(''):'<p style="font-size:12px;color:var(--text3)">Keine Einträge im gewählten Zeitraum/Filter gefunden.</p>';
 
-  document.getElementById('activitiesContent').innerHTML=`
-    ${q?`<div class="${matchingLeads.length===1?'':'dash-grid'}" style="margin-bottom:16px">${leadCardsHtml}</div>`:''}
-    <div class="info-section">
-      ${chartHtml}
-    </div>
-    <div class="info-section">
-      <div class="section-hdr" style="margin-top:0">Verlauf ${q?`für "${q}"`:'(alle Kunden)'} <span style="font-weight:400;color:var(--text3);font-size:11px">${entries.length} Einträge</span></div>
-      ${protocolHtml}
-    </div>`;
+    contentEl.innerHTML=`
+      ${q?`<div class="${matchingLeads.length===1?'':'dash-grid'}" style="margin-bottom:16px">${leadCardsHtml}</div>`:''}
+      <div class="info-section">
+        ${chartHtml}
+      </div>
+      <div class="info-section">
+        <div class="section-hdr" style="margin-top:0">Verlauf ${q?`für "${q}"`:'(alle Kunden)'} <span style="font-weight:400;color:var(--text3);font-size:11px">${entries.length} Einträge</span></div>
+        ${protocolHtml}
+      </div>`;
+  });
+}
+
+// Lädt alle Aktivitäten aus lead_activities für die Aktivitäten-Ansicht.
+// Mit aktivem Filter wird paginiert geladen, ohne Filter alles auf einmal.
+async function fetchAllActivitiesForView(q, matchingLeads){
+  let entries=[];
+  try{
+    // Zeitraum-Filter als DB-Query bauen
+    let urlParams='order=date.desc&limit=2000';
+    if(activityPeriod!=='all'){
+      const periodStart=new Date(TODAY);
+      periodStart.setDate(periodStart.getDate()-(parseInt(activityPeriod)-1));
+      urlParams+=`&date=gte.${periodStart.toISOString().slice(0,10)}`;
+    }
+    if(activityAgentFilter!=='all') urlParams+=`&author=eq.${activityAgentFilter}`;
+    if(activityTypeFilter!=='all'&&activityTypeFilter!=='login') urlParams+=`&type=eq.${activityTypeFilter}`;
+    // Bei Suche: nur Leads aus der Suchergebnis-Liste
+    if(q&&matchingLeads.length){
+      const ids=matchingLeads.map(l=>`"${l.id}"`).join(',');
+      urlParams+=`&lead_id=in.(${ids})`;
+    } else if(q&&!matchingLeads.length){
+      return []; // Suche ohne Treffer
+    }
+
+    if(activityTypeFilter!=='login'){
+      const res=await fetchWithTimeout(
+        `${SUPABASE_URL}/rest/v1/lead_activities?${urlParams}`,
+        {headers:getSbHeaders()},15000
+      );
+      if(res.ok){
+        const rows=await res.json();
+        rows.forEach(r=>{
+          const lead=leads.find(l=>String(l.id)===String(r.lead_id));
+          if(!lead)return; // Lead gelöscht
+          if(activityStatusFilter!=='all'&&lead.status!==activityStatusFilter)return;
+          entries.push({lead,text:r.text,date:r.date,type:r.type,author:r.author});
+        });
+      }
+    }
+  }catch(e){
+    console.warn('fetchAllActivitiesForView fehlgeschlagen, Fallback auf JSON:',e);
+    // Fallback: aus JSON laden wenn DB nicht erreichbar
+    const relevantLeads=q?matchingLeads:leads;
+    relevantLeads.forEach(l=>{
+      if(activityStatusFilter!=='all'&&l.status!==activityStatusFilter)return;
+      (l.activity||[]).forEach(a=>{
+        entries.push({lead:l,text:a.text,date:a.date,type:a.type,author:a.author});
+      });
+    });
+  }
+
+  // Login-Eintraege einmischen
+  if(activityTypeFilter==='all'||activityTypeFilter==='login'){
+    (window.__loginLogCache||[]).forEach(entry=>{
+      if(activityAgentFilter!=='all'&&entry.agent_id!==activityAgentFilter)return;
+      if(activityPeriod!=='all'){
+        const periodStart=new Date(TODAY);
+        periodStart.setDate(periodStart.getDate()-(parseInt(activityPeriod)-1));
+        if(new Date(entry.logged_in_at)<periodStart)return;
+      }
+      entries.push({lead:null,text:'hat sich angemeldet',date:entry.logged_in_at,type:'login',author:entry.agent_id,agentName:entry.agent_name});
+    });
+  }
+
+  entries.sort((a,b)=>new Date(b.date)-new Date(a.date));
+  return entries;
 }
 
 let settingsTab='team';
@@ -5164,25 +5227,17 @@ function openLeadModal(id){
   // Asynchron im Hintergrund - Modal erscheint sofort, Aktivitaeten werden nachgeladen.
   if(id){
     fetchActivitiesFromDb(id).then(dbActs=>{
-      if(!dbActs)return; // Fehler beim Laden - JSON-Stand behalten
-      if(editingLeadId!==id)return; // Lead zwischenzeitlich geschlossen
-      // Seit der Migration sind alle Aktivitaeten in lead_activities.
-      // JSON-Eintraege nur als Fallback fuer Eintraege die NICHT in der DB sind
-      // (erkennbar daran dass ihre ID nicht in der DB vorkommt).
-      // Wichtig: DB-IDs koennen bigint sein (aus der DB), JSON-IDs sind meist timestamps.
-      // Wir vergleichen als String um Typ-Unterschiede zu vermeiden.
+      if(!dbActs)return;
+      if(editingLeadId!==id)return;
+      if(!dbActs.length){
+        // DB leer (noch keine Migration für diesen Lead) - JSON-Stand behalten
+        return;
+      }
+      // DB ist die einzige Wahrheit für Aktivitäten seit der Migration (04.08.2026).
+      // JSON-Fallback nur für Einträge mit IDs die in der DB nicht vorkommen
+      // (sehr alte Einträge vor der Migration die eine andere ID-Struktur haben).
       const dbIds=new Set(dbActs.map(a=>String(a.id)));
-      // Nur JSON-Eintraege behalten die wirklich nicht in der DB sind
-      // UND deren ID nicht als Zahl in der DB vorkommt (Migration hat die extra-ID genutzt)
-      const jsonOnly=(draftLead.activity||[]).filter(a=>{
-        const sid=String(a.id);
-        // Wenn die ID direkt in der DB ist: Duplikat, weglassen
-        if(dbIds.has(sid))return false;
-        // Wenn die DB leer ist: alle JSON-Eintraege behalten (offline-Fall)
-        if(!dbActs.length)return true;
-        // Sonst: nur behalten wenn kein DB-Eintrag mit demselben Datum+Text+Author existiert
-        return !dbActs.some(d=>d.date===a.date&&d.text===a.text&&d.author===a.author);
-      });
+      const jsonOnly=(draftLead.activity||[]).filter(a=>!dbIds.has(String(a.id)));
       const merged=[...dbActs,...jsonOnly].sort((a,b)=>new Date(b.date)-new Date(a.date));
       draftLead.activity=merged;
       renderLeadModal();
@@ -6001,7 +6056,7 @@ async function handleFileUpload(e){
     try{
       const storagePath=await uploadAttachmentToStorage(leadId,fileId,file);
       draftLead.files.push({id:fileId,name:file.name,size:file.size,storagePath,uploadedBy:currentUser,uploadedAt:nowISO()});
-      const _act1={id:Date.now()+Math.random(),type:'activity',author:currentUser,text:`Datei hochgeladen: ${file.name}`,date:nowISO()};draftLead.activity.unshift(_act1);pushActivityToDb(editingLeadId,_act1);
+      const _act1={id:Date.now()+Math.random(),type:'activity',author:currentUser,text:`Datei hochgeladen: ${file.name}`,date:nowISO()};draftLead.activity.unshift(_act1);pushActivityToDb(editingLeadId||draftLead.id,_act1);
     }catch(err){
       alert(`Datei "${file.name}" konnte nicht hochgeladen werden: ${err.message}`);
     }
@@ -6014,7 +6069,7 @@ function removeFile(id){
   const f=(draftLead.files||[]).find(x=>x.id===id);
   draftLead.files=draftLead.files.filter(f=>f.id!==id);
   if(f){
-    const _act2={id:Date.now()+Math.random(),type:'activity',author:currentUser,text:`Datei entfernt: ${f.name}`,date:nowISO()};draftLead.activity.unshift(_act2);pushActivityToDb(editingLeadId,_act2);
+    const _act2={id:Date.now()+Math.random(),type:'activity',author:currentUser,text:`Datei entfernt: ${f.name}`,date:nowISO()};draftLead.activity.unshift(_act2);pushActivityToDb(editingLeadId||draftLead.id,_act2);
     if(f.storagePath){
       fetch(`${SUPABASE_URL}/storage/v1/object/lead-attachments/${encodeStoragePath(f.storagePath)}`,{method:'DELETE',headers:getSbHeaders()}).catch(()=>{});
     }
@@ -6202,7 +6257,7 @@ function addTask(){
   }
   clearTaskFormError();
   draftLead.tasks.push({id:genId(),text,dueDate:dueEl.value,done:false,createdBy:currentUser,createdAt:nowISO(),assigneeId:pendingTaskAssigneeId||null});
-  const _act3={id:Date.now()+Math.random(),type:'activity',author:currentUser,text:`Aufgabe hinzugefügt: ${text}`,date:nowISO()};draftLead.activity.unshift(_act3);pushActivityToDb(editingLeadId,_act3);
+  const _act3={id:Date.now()+Math.random(),type:'activity',author:currentUser,text:`Aufgabe hinzugefügt: ${text}`,date:nowISO()};draftLead.activity.unshift(_act3);pushActivityToDb(editingLeadId||draftLead.id,_act3);
   textEl.value='';
   dueEl.value='';
   pendingTaskAssigneeId=null;
@@ -6215,7 +6270,7 @@ function toggleTask(id){
   const t=draftLead.tasks.find(x=>x.id===id);
   if(t){
     t.done=!t.done;
-    const _act4={id:Date.now()+Math.random(),type:'activity',author:currentUser,text:`Aufgabe ${t.done?'erledigt':'wieder geöffnet'}: ${t.text}`,date:nowISO()};draftLead.activity.unshift(_act4);pushActivityToDb(editingLeadId,_act4);
+    const _act4={id:Date.now()+Math.random(),type:'activity',author:currentUser,text:`Aufgabe ${t.done?'erledigt':'wieder geöffnet'}: ${t.text}`,date:nowISO()};draftLead.activity.unshift(_act4);pushActivityToDb(editingLeadId||draftLead.id,_act4);
   }
   autoPersistIfEditing();
   renderLeadModal();
@@ -6223,7 +6278,7 @@ function toggleTask(id){
 function deleteTask(id){
   const t=draftLead.tasks.find(x=>x.id===id);
   draftLead.tasks=draftLead.tasks.filter(x=>x.id!==id);
-  if(t){const _act5={id:Date.now()+Math.random(),type:'activity',author:currentUser,text:`Aufgabe entfernt: ${t.text}`,date:nowISO()};draftLead.activity.unshift(_act5);pushActivityToDb(editingLeadId,_act5);}
+  if(t){const _act5={id:Date.now()+Math.random(),type:'activity',author:currentUser,text:`Aufgabe entfernt: ${t.text}`,date:nowISO()};draftLead.activity.unshift(_act5);pushActivityToDb(editingLeadId||draftLead.id,_act5);}
   autoPersistIfEditing();
   renderLeadModal();
 }
@@ -6232,7 +6287,7 @@ function deleteTask(id){
 function deleteChecklist(){
   const count=(draftLead.checklist||[]).length;
   draftLead.checklist=[];
-  if(count>0){const _act6={id:Date.now()+Math.random(),type:'activity',author:currentUser,text:`Checkliste komplett gelöscht (${count} Punkte)`,date:nowISO()};draftLead.activity.unshift(_act6);pushActivityToDb(editingLeadId,_act6);}
+  if(count>0){const _act6={id:Date.now()+Math.random(),type:'activity',author:currentUser,text:`Checkliste komplett gelöscht (${count} Punkte)`,date:nowISO()};draftLead.activity.unshift(_act6);pushActivityToDb(editingLeadId||draftLead.id,_act6);}
   autoPersistIfEditing();
   renderLeadModal();
 }
@@ -6244,7 +6299,7 @@ function toggleDraftLabel(id){
   const lb=labelById(id);
   const added=i===-1;
   if(i>-1)draftLead.labelIds.splice(i,1);else draftLead.labelIds.push(id);
-  const _act7={id:Date.now()+Math.random(),type:'activity',author:currentUser,text:`Label "${lb?lb.name:''}" ${added?'hinzugefügt':'entfernt'}`,date:nowISO()};draftLead.activity.unshift(_act7);pushActivityToDb(editingLeadId,_act7);
+  const _act7={id:Date.now()+Math.random(),type:'activity',author:currentUser,text:`Label "${lb?lb.name:''}" ${added?'hinzugefügt':'entfernt'}`,date:nowISO()};draftLead.activity.unshift(_act7);pushActivityToDb(editingLeadId||draftLead.id,_act7);
   autoPersistIfEditing();
   renderLeadModal();
 }
@@ -6305,7 +6360,7 @@ function toggleDraftMember(id){
   const ag=agentById(id);
   const added=i===-1;
   if(i>-1)draftLead.members.splice(i,1);else draftLead.members.push(id);
-  const _act8={id:Date.now()+Math.random(),type:'activity',author:currentUser,text:`Mitglied "${ag?ag.name:''}" ${added?'hinzugefügt':'entfernt'}`,date:nowISO()};draftLead.activity.unshift(_act8);pushActivityToDb(editingLeadId,_act8);
+  const _act8={id:Date.now()+Math.random(),type:'activity',author:currentUser,text:`Mitglied "${ag?ag.name:''}" ${added?'hinzugefügt':'entfernt'}`,date:nowISO()};draftLead.activity.unshift(_act8);pushActivityToDb(editingLeadId||draftLead.id,_act8);
   autoPersistIfEditing();
   renderLeadModal();
 }
@@ -6316,7 +6371,7 @@ function addChecklistItem(){
   const text=inp.value.trim();
   if(!text)return;
   draftLead.checklist.push({id:Date.now(),text,done:false});
-  const _act9={id:Date.now()+Math.random(),type:'activity',author:currentUser,text:`Checklisten-Punkt hinzugefügt: ${text}`,date:nowISO()};draftLead.activity.unshift(_act9);pushActivityToDb(editingLeadId,_act9);
+  const _act9={id:Date.now()+Math.random(),type:'activity',author:currentUser,text:`Checklisten-Punkt hinzugefügt: ${text}`,date:nowISO()};draftLead.activity.unshift(_act9);pushActivityToDb(editingLeadId||draftLead.id,_act9);
   autoPersistIfEditing();
   renderLeadModal();
 }
@@ -6324,7 +6379,7 @@ function toggleCheckItem(id){
   const item=draftLead.checklist.find(c=>c.id===id);
   if(item){
     item.done=!item.done;
-    const _act10={id:Date.now()+Math.random(),type:'activity',author:currentUser,text:`Checklisten-Punkt ${item.done?'erledigt':'wieder geöffnet'}: ${item.text}`,date:nowISO()};draftLead.activity.unshift(_act10);pushActivityToDb(editingLeadId,_act10);
+    const _act10={id:Date.now()+Math.random(),type:'activity',author:currentUser,text:`Checklisten-Punkt ${item.done?'erledigt':'wieder geöffnet'}: ${item.text}`,date:nowISO()};draftLead.activity.unshift(_act10);pushActivityToDb(editingLeadId||draftLead.id,_act10);
   }
   autoPersistIfEditing();
   renderLeadModal();
@@ -6332,7 +6387,7 @@ function toggleCheckItem(id){
 function deleteCheckItem(id){
   const item=draftLead.checklist.find(c=>c.id===id);
   draftLead.checklist=draftLead.checklist.filter(c=>c.id!==id);
-  if(item){const _act11={id:Date.now()+Math.random(),type:'activity',author:currentUser,text:`Checklisten-Punkt entfernt: ${item.text}`,date:nowISO()};draftLead.activity.unshift(_act11);pushActivityToDb(editingLeadId,_act11);}
+  if(item){const _act11={id:Date.now()+Math.random(),type:'activity',author:currentUser,text:`Checklisten-Punkt entfernt: ${item.text}`,date:nowISO()};draftLead.activity.unshift(_act11);pushActivityToDb(editingLeadId||draftLead.id,_act11);}
   autoPersistIfEditing();
   renderLeadModal();
 }
@@ -6348,7 +6403,7 @@ function addComment(){
   const date=customDate?customDate+'T'+(new Date().toTimeString().slice(0,8)):nowISO();
   const act={id:Date.now(),type:'comment',author:currentUser,text,date,backdated:!!customDate};
   draftLead.activity.unshift(act);
-  pushActivityToDb(editingLeadId,act);
+  pushActivityToDb(editingLeadId||draftLead.id,act);
   draftCommentText='';
   autoPersistIfEditing();
   renderLeadModal();
@@ -6366,13 +6421,13 @@ function markNotReached(){
   const oldFollowup=draftLead.followup;
   const act1={id:Date.now(),type:'comment',author:currentUser,text:'Nicht erreicht ... erneut probieren',date:nowISO()};
   draftLead.activity.unshift(act1);
-  pushActivityToDb(editingLeadId,act1);
+  pushActivityToDb(editingLeadId||draftLead.id,act1);
   if(oldFollowup!==newFollowup){
     draftLead.followup=newFollowup;
     draftLead.followupHistory=[...(draftLead.followupHistory||[]),{date:newFollowup,setAt:nowISO()}];
     const act2={id:Date.now()+1,type:'activity',author:currentUser,text:`Follow-up-Datum geändert: "${fmtDate(oldFollowup)||'–'}" → "${fmtDate(newFollowup)}"`,date:nowISO()};
     draftLead.activity.unshift(act2);
-    pushActivityToDb(editingLeadId,act2);
+    pushActivityToDb(editingLeadId||draftLead.id,act2);
   }
   autoPersistIfEditing();
   renderLeadModal();
@@ -6530,7 +6585,7 @@ function saveLead(keepOpen){
       }
     }
     if(original.status!==draftLead.status){
-      const _act12={id:Date.now()+1,type:'activity',author:currentUser,text:`Status geändert: ${colById(original.status).name} → ${colById(draftLead.status).name}`,date:nowISO()};draftLead.activity.unshift(_act12);pushActivityToDb(editingLeadId,_act12);
+      const _act12={id:Date.now()+1,type:'activity',author:currentUser,text:`Status geändert: ${colById(original.status).name} → ${colById(draftLead.status).name}`,date:nowISO()};draftLead.activity.unshift(_act12);pushActivityToDb(editingLeadId||draftLead.id,_act12);
       trackClosedStage(draftLead,original.status,draftLead.status);trackStatusSince(draftLead,original.status,draftLead.status);maybeSendListNotification(draftLead,original.status,draftLead.status);
     }
     // Unabhaengig davon, ob der Status GENAU in diesem Speichervorgang wechselt: stellt
@@ -6540,15 +6595,15 @@ function saveLead(keepOpen){
     if(colById(draftLead.status)&&colById(draftLead.status).outcome==='lost'&&(draftLead.lossComment||'').trim()){
       const lossCommentText=`Verlust-Grund (${draftLead.lossReason}): ${draftLead.lossComment.trim()}`;
       if(!draftLead.activity.some(a=>a.type==='comment'&&a.text===lossCommentText)){
-        const _act13={id:Date.now()+3,type:'comment',author:currentUser,text:lossCommentText,date:nowISO()};draftLead.activity.unshift(_act13);pushActivityToDb(editingLeadId,_act13);
+        const _act13={id:Date.now()+3,type:'comment',author:currentUser,text:lossCommentText,date:nowISO()};draftLead.activity.unshift(_act13);pushActivityToDb(editingLeadId||draftLead.id,_act13);
       }
     }
     if(original.followup!==draftLead.followup&&draftLead.followup){
       draftLead.followupHistory=[...(draftLead.followupHistory||[]),{date:draftLead.followup,setAt:nowISO()}];
-      const _act14={id:Date.now()+2,type:'activity',author:currentUser,text:`Follow-up-Datum geändert: "${fmtDate(original.followup)||'–'}" → "${fmtDate(draftLead.followup)}"`,date:nowISO()};draftLead.activity.unshift(_act14);pushActivityToDb(editingLeadId,_act14);
+      const _act14={id:Date.now()+2,type:'activity',author:currentUser,text:`Follow-up-Datum geändert: "${fmtDate(original.followup)||'–'}" → "${fmtDate(draftLead.followup)}"`,date:nowISO()};draftLead.activity.unshift(_act14);pushActivityToDb(editingLeadId||draftLead.id,_act14);
     }
     logFieldChanges(original,draftLead).forEach((text,i)=>{
-      const _act15={id:Date.now()+10+i,type:'activity',author:currentUser,text,date:nowISO()};draftLead.activity.unshift(_act15);pushActivityToDb(editingLeadId,_act15);
+      const _act15={id:Date.now()+10+i,type:'activity',author:currentUser,text,date:nowISO()};draftLead.activity.unshift(_act15);pushActivityToDb(editingLeadId||draftLead.id,_act15);
     });
     // Aktivitaeten werden ab jetzt NUR noch in lead_activities gespeichert (separate Tabelle).
     // Im Lead-JSON werden sie nicht mehr persistiert - damit kein saveLead() mehr die
@@ -7333,6 +7388,7 @@ function closeModal(id){
     if(editingLeadId&&!modalReadOnly)releaseLeadLock(editingLeadId);
     modalReadOnly=false;
     modalLockInfo=null;
+    draftCommentText=''; // Angefangenen Kommentar nicht in den nächsten Lead übernehmen
   }
 }
 // Schliessen bei Klick auf den Hintergrund: es reicht NICHT, dass der Klick dort endet -
@@ -7458,9 +7514,9 @@ async function bootstrapApp(){
     pendingLoginWizard=false;
     openLoginWizard();
   }
-  setTimeout(()=>{sbPoll();setInterval(sbPoll,5000);},Math.random()*5000);
-  setInterval(checkForNewVersion,60000);
-  setInterval(maybeRunClientAutoBackup,60000);
+  setTimeout(()=>{sbPoll();window.__sbPollInterval=setInterval(sbPoll,5000);},Math.random()*5000);
+  window.__versionCheckInterval=setInterval(checkForNewVersion,60000);
+  window.__autoBackupInterval=setInterval(maybeRunClientAutoBackup,60000);
   // Ein Tab, der lange im Hintergrund lag (z.B. eine Nacht offen), soll beim Zurueckkehren
   // sofort geprueft werden - genau die Situation, in der veralteter Code am ehesten
   // unbemerkt weiterlaeuft und Daten anderer, aktuellerer Sitzungen ueberschreiben koennte.
