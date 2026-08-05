@@ -816,6 +816,17 @@ label{font-size:12px;font-weight:500;color:var(--text2);display:block;margin-bot
   </div>
 </div>
 
+<div class="modal-overlay hidden" id="backupModal">
+  <div class="modal-box" style="max-width:620px;width:100%">
+    <div class="modal-header" style="background:linear-gradient(160deg,#0c3b40 0%,#164e54 45%,#1d6169 100%)">
+      <span style="color:#fff;font-weight:700;font-size:15px"><i class="ti ti-history"></i> Verfügbare Backups</span>
+      <button onclick="closeModal('backupModal')" style="background:none;border:none;color:rgba(255,255,255,.7);font-size:20px;cursor:pointer;padding:0 4px">×</button>
+    </div>
+    <div style="padding:20px">
+      <div id="backupModalContent" style="min-height:120px"></div>
+    </div>
+  </div>
+</div>
 <div class="modal-overlay hidden" id="leadModal">
   <div class="modal-lg" id="leadModalInner"></div>
 </div>
@@ -921,7 +932,7 @@ const STORAGE_KEY='toner_kanban_state_v1';
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-08-05T11:00:00.000Z';
+const BUILD_VERSION='2026-08-05T11:30:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -2090,21 +2101,50 @@ function findDuplicateCustomerNumbers(){
 // ── BACKUP-UEBERSICHT & WIEDERHERSTELLUNG (Admin) ──
 async function listAvailableBackups(){
   if(!requireAdmin('Backups verwalten'))return;
+  openModal('backupModal');
+  const content=document.getElementById('backupModalContent');
+  content.innerHTML=`<div style="text-align:center;padding:32px;color:var(--text3)"><i class="ti ti-refresh" style="font-size:20px;display:block;margin-bottom:8px"></i>Backups werden geladen…</div>`;
   try{
+    // Backups laden
     const res=await fetch(`${SUPABASE_URL}/rest/v1/app_state?id=like.backup_*&select=id,updated_at,data&order=id.desc`,{headers:getSbHeaders()});
-    if(!res.ok){alert('Backups konnten nicht geladen werden: HTTP '+res.status);return;}
+    if(!res.ok){content.innerHTML=`<p style="color:var(--red)">Backups konnten nicht geladen werden: HTTP ${res.status}</p>`;return;}
     const rows=await res.json();
-    if(!rows.length){alert('Es sind noch keine automatischen Backups vorhanden (das erste läuft beim naechsten taeglichen Login).');return;}
-    const list=rows.map(r=>{
+    if(!rows.length){content.innerHTML=`<p style="font-size:13px;color:var(--text2)">Noch keine automatischen Backups vorhanden.</p>`;return;}
+    // Aktivitätsanzahl aus lead_activities laden
+    const actRes=await fetch(`${SUPABASE_URL}/rest/v1/lead_activities?select=created_at`,{headers:getSbHeaders()});
+    const allActs=actRes.ok?(await actRes.json()):[];
+    // Für jedes Backup: Anzahl Aktivitäten die zum Backup-Zeitpunkt schon existierten
+    const rowsHtml=rows.map(r=>{
       const dateStr=r.id.replace('backup_','');
       const leadCount=(r.data&&r.data.leads)?r.data.leads.length:0;
-      return `${dateStr} — ${leadCount} Leads (gesichert um ${fmtDateTime(r.updated_at)})`;
-    }).join('\n');
-    const answer=prompt(`Verfügbare Backups (neuestes zuerst):\n\n${list}\n\nAktuell im System: ${leads.length} Leads.\n\nGib das Datum (JJJJ-MM-TT) ein, das du dir ansehen/wiederherstellen möchtest - oder auf Abbrechen klicken, um nichts zu tun:`);
-    if(!answer)return;
-    await previewAndRestoreBackup(answer.trim());
+      const backupTime=new Date(r.updated_at);
+      const actCount=allActs.filter(a=>new Date(a.created_at)<=backupTime).length;
+      const timeLabel=fmtDateTime(r.updated_at);
+      return `<div style="display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:10px;background:#f7f7f5;margin-bottom:8px;cursor:pointer;transition:background .15s" 
+        onmouseover="this.style.background='var(--purple-bg)'" 
+        onmouseout="this.style.background='#f7f7f5'"
+        onclick="closeModal('backupModal');previewAndRestoreBackup('${dateStr}')">
+        <div style="flex:1">
+          <div style="font-size:13px;font-weight:600;color:var(--text)">${timeLabel}</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:2px">${dateStr}</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:12px;font-weight:700;color:var(--purple-dark)">${leadCount} Leads</div>
+          <div style="font-size:11px;color:var(--text3)">${actCount} Aktivitäten</div>
+        </div>
+        <i class="ti ti-chevron-right" style="color:var(--text3);font-size:16px"></i>
+      </div>`;
+    }).join('');
+    content.innerHTML=`
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+        <div style="font-size:12px;color:var(--text2)">Aktuell: <strong>${leads.length} Leads</strong> · Klick auf ein Backup zum Wiederherstellen</div>
+      </div>
+      ${rowsHtml}
+      <div style="margin-top:12px;padding:10px 14px;border-radius:8px;background:rgba(209,130,10,.08);border:1px solid rgba(209,130,10,.2)">
+        <div style="font-size:11px;color:var(--amber)"><i class="ti ti-info-circle"></i> Aktivitäten und Kommentare werden beim Restore <strong>nicht</strong> zurückgesetzt – sie bleiben in lead_activities erhalten.</div>
+      </div>`;
   }catch(e){
-    alert('Fehler beim Laden der Backups: '+e.message);
+    content.innerHTML=`<p style="color:var(--red)">Fehler beim Laden: ${esc(e.message)}</p>`;
   }
 }
 async function previewAndRestoreBackup(dateStr){
@@ -7539,6 +7579,7 @@ function closeModal(id){
 let leadModalMouseDownOnOverlay=false;
 document.getElementById('leadModal').addEventListener('mousedown',e=>{leadModalMouseDownOnOverlay=(e.target.id==='leadModal');});
 document.getElementById('leadModal').addEventListener('click',e=>{if(e.target.id==='leadModal'&&leadModalMouseDownOnOverlay)closeModal('leadModal');});
+document.getElementById('backupModal').addEventListener('click',e=>{if(e.target.id==='backupModal')closeModal('backupModal');});
 let agentModalMouseDownOnOverlay=false;
 document.getElementById('agentModal').addEventListener('mousedown',e=>{agentModalMouseDownOnOverlay=(e.target.id==='agentModal');});
 document.getElementById('agentModal').addEventListener('click',e=>{if(e.target.id==='agentModal'&&agentModalMouseDownOnOverlay)closeAgentModal();});
