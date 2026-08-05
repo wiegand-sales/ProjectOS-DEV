@@ -921,7 +921,7 @@ const STORAGE_KEY='toner_kanban_state_v1';
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-08-05T10:20:00.000Z';
+const BUILD_VERSION='2026-08-05T10:30:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -4024,25 +4024,33 @@ function renderActivityTrendChart(entries){
     return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="3" fill="var(--purple)" style="pointer-events:none"/>`;
   }).join('');
   // Animation wird per JS nach dem Rendern gestartet (getTotalLength() gibt die echte
-  // Pixel-Länge zurück - unabhängig von preserveAspectRatio und SVG-Skalierung)
+  // Pixel-Länge zurück - unabhängig von preserveAspectRatio und SVG-Skalierung).
+  // setTimeout(0) statt requestAnimationFrame: der HTML-String wird erst NACH dem
+  // return in den DOM eingefügt, rAF läuft zu früh. setTimeout(0) wartet einen
+  // kompletten Render-Zyklus ab.
   if(useAnimation){
-    requestAnimationFrame(()=>{
+    setTimeout(()=>{
       const svg=document.getElementById(chartId);
       if(!svg)return;
       const path=svg.querySelector('.act-line-draw');
       const area=svg.querySelector('.act-area-fade');
       if(!path)return;
       const len=path.getTotalLength();
+      if(!len)return;
       path.style.strokeDasharray=len;
       path.style.strokeDashoffset=len;
-      path.style.transition='stroke-dashoffset 1s ease-out';
-      if(area){area.style.opacity='0';area.style.transition='opacity 0.5s ease-out 0.7s';}
-      // Ein Frame warten damit der Browser den Initialzustand rendert, dann animieren
+      // Transition erst NACH dem Setzen des Initialzustands aktivieren
       requestAnimationFrame(()=>{
-        path.style.strokeDashoffset='0';
-        if(area)area.style.opacity='1';
+        requestAnimationFrame(()=>{
+          path.style.transition='stroke-dashoffset 1s ease-out';
+          path.style.strokeDashoffset='0';
+          if(area){
+            area.style.transition='opacity 0.5s ease-out 0.7s';
+            area.style.opacity='1';
+          }
+        });
       });
-    });
+    },0);
   }
   return `
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">
@@ -4111,14 +4119,18 @@ function renderActivities(){
     }
   }
 
-  // Aktivitaeten aus lead_activities laden (alle Leads), dann filtern und rendern
-  // Wir laden asynchron - der View erscheint sofort mit einem Lade-Indikator
+  // Aktivitaeten aus lead_activities laden (alle Leads), dann filtern und rendern.
+  // Lade-Indikator nur wenn der Bereich noch komplett leer ist (erster Aufruf),
+  // beim Zeitraum-Wechsel alten Inhalt behalten damit kein Flackern entsteht.
   const contentEl=document.getElementById('activitiesContent');
-  contentEl.innerHTML=`
-    ${q?`<div class="${matchingLeads.length===1?'':'dash-grid'}" style="margin-bottom:16px">${leadCardsHtml}</div>`:''}
-    <div class="info-section" style="text-align:center;padding:32px;color:var(--text3);font-size:13px">
-      <i class="ti ti-refresh" style="font-size:20px;display:block;margin-bottom:8px"></i>Aktivitäten werden geladen…
-    </div>`;
+  const isFirstLoad=!contentEl.querySelector('.info-section');
+  if(isFirstLoad||q){
+    contentEl.innerHTML=`
+      ${q?`<div class="${matchingLeads.length===1?'':'dash-grid'}" style="margin-bottom:16px">${leadCardsHtml}</div>`:''}
+      <div class="info-section" style="text-align:center;padding:32px;color:var(--text3);font-size:13px">
+        <i class="ti ti-refresh" style="font-size:20px;display:block;margin-bottom:8px"></i>Aktivitäten werden geladen…
+      </div>`;
+  }
 
   fetchAllActivitiesForView(q,matchingLeads).then(entries=>{
     if(currentView!=='activities')return; // View zwischenzeitlich gewechselt
