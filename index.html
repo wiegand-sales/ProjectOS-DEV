@@ -932,7 +932,7 @@ const STORAGE_KEY='toner_kanban_state_v1';
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-08-05T12:20:00.000Z';
+const BUILD_VERSION='2026-08-05T12:25:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -7227,7 +7227,8 @@ function resetCsvFields(){
 }
 function exportCSV(){
   const fields=getCsvFields().filter(f=>f.exportActive&&FIELD_REGISTRY[f.key]);
-  const headers=fields.map(f=>f.csvName);
+  // Kurze Spaltenüberschriften ohne Gruppenname - übersichtlicher in Excel
+  const headers=fields.map(f=>FIELD_REGISTRY[f.key].label);
   const rows=leads.map(l=>fields.map(f=>FIELD_REGISTRY[f.key].get(l)));
   // Tab als Trennzeichen: kommt in keinem Feld vor (weder Adressen noch Namen),
   // funktioniert mit Doppelklick UND mit dem Excel Import-Assistenten zuverlässig.
