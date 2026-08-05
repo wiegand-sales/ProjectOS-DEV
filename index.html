@@ -921,7 +921,7 @@ const STORAGE_KEY='toner_kanban_state_v1';
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-08-04T18:25:00.000Z';
+const BUILD_VERSION='2026-08-05T06:30:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -5164,17 +5164,28 @@ function openLeadModal(id){
   // Asynchron im Hintergrund - Modal erscheint sofort, Aktivitaeten werden nachgeladen.
   if(id){
     fetchActivitiesFromDb(id).then(dbActs=>{
-      if(!dbActs||!dbActs.length)return;
-      if(editingLeadId!==id)return; // Lead wurde zwischenzeitlich geschlossen
-      // DB-Aktivitaeten sind die Wahrheit, JSON-Eintraege nur als Fallback fuer
-      // alte Aktivitaeten die noch nicht in der DB sind (vor der Migration)
+      if(!dbActs)return; // Fehler beim Laden - JSON-Stand behalten
+      if(editingLeadId!==id)return; // Lead zwischenzeitlich geschlossen
+      // Seit der Migration sind alle Aktivitaeten in lead_activities.
+      // JSON-Eintraege nur als Fallback fuer Eintraege die NICHT in der DB sind
+      // (erkennbar daran dass ihre ID nicht in der DB vorkommt).
+      // Wichtig: DB-IDs koennen bigint sein (aus der DB), JSON-IDs sind meist timestamps.
+      // Wir vergleichen als String um Typ-Unterschiede zu vermeiden.
       const dbIds=new Set(dbActs.map(a=>String(a.id)));
-      const jsonOnly=(draftLead.activity||[]).filter(a=>!dbIds.has(String(a.id)));
+      // Nur JSON-Eintraege behalten die wirklich nicht in der DB sind
+      // UND deren ID nicht als Zahl in der DB vorkommt (Migration hat die extra-ID genutzt)
+      const jsonOnly=(draftLead.activity||[]).filter(a=>{
+        const sid=String(a.id);
+        // Wenn die ID direkt in der DB ist: Duplikat, weglassen
+        if(dbIds.has(sid))return false;
+        // Wenn die DB leer ist: alle JSON-Eintraege behalten (offline-Fall)
+        if(!dbActs.length)return true;
+        // Sonst: nur behalten wenn kein DB-Eintrag mit demselben Datum+Text+Author existiert
+        return !dbActs.some(d=>d.date===a.date&&d.text===a.text&&d.author===a.author);
+      });
       const merged=[...dbActs,...jsonOnly].sort((a,b)=>new Date(b.date)-new Date(a.date));
-      if(JSON.stringify(merged)!==JSON.stringify(draftLead.activity)){
-        draftLead.activity=merged;
-        renderLeadModal();
-      }
+      draftLead.activity=merged;
+      renderLeadModal();
     });
   }
 }
