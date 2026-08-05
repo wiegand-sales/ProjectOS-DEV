@@ -921,7 +921,7 @@ const STORAGE_KEY='toner_kanban_state_v1';
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-08-05T10:30:00.000Z';
+const BUILD_VERSION='2026-08-05T11:00:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -2115,7 +2115,7 @@ async function previewAndRestoreBackup(dateStr){
     if(!rows.length){alert(`Kein Backup für "${dateStr}" gefunden. Bitte exaktes Format aus der Liste oben verwenden (z.B. 2026-07-09_14).`);return;}
     const backupData=rows[0].data;
     const leadCount=(backupData.leads||[]).length;
-    if(!confirm(`Backup vom ${dateStr} enthält ${leadCount} Lead(s).\nAktuell im System: ${leads.length} Lead(s).\n\nWirklich diesen Stand wiederherstellen?\n\nACHTUNG: Das überschreibt den aktuellen Stand für ALLE im Team. Alles, was seit diesem Backup neu eingetragen wurde, geht dabei verloren. Nicht rückgängig zu machen (außer über ein anderes Backup).`))return;
+    if(!confirm(`Backup vom ${dateStr} enthält ${leadCount} Lead(s).\nAktuell im System: ${leads.length} Lead(s).\n\nWirklich diesen Stand wiederherstellen?\n\nACHTUNG: Das überschreibt den aktuellen Stand für ALLE im Team. Alles, was seit diesem Backup neu eingetragen wurde, geht dabei verloren. Nicht rückgängig zu machen (außer über ein anderes Backup).\n\nHINWEIS: Kommentare und Aktivitäten (in lead_activities) bleiben beim Restore erhalten und werden NICHT zurückgesetzt.`))return;
     applyStateData(JSON.parse(JSON.stringify(backupData)));
     // WICHTIG: applyStateData() kuemmert sich seit dem Umbau bewusst NICHT mehr um
     // Leads (die leben jetzt in eigenen Datenbank-Zeilen). Die Leads aus dem Backup
@@ -6102,6 +6102,9 @@ function encodeStoragePath(path){
   return path.split('/').map(encodeURIComponent).join('/');
 }
 async function uploadAttachmentToStorage(leadId,fileId,file){
+  if(file.size>MAX_ATTACHMENT_SIZE){
+    throw new Error(`Datei zu groß (${formatBytes(file.size)}, max. ${formatBytes(MAX_ATTACHMENT_SIZE)})`);
+  }
   const safeName=file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
   const path=`${leadId}/${fileId}_${safeName}`;
   const res=await fetch(`${SUPABASE_URL}/storage/v1/object/lead-attachments/${encodeStoragePath(path)}`,{
@@ -6880,7 +6883,8 @@ function exportFullBackup(isAutomatic){
   const backup={
     exportedAt:nowISO(),
     leads,COLUMNS,LABELS,AGENTS,ARTICLES,PROJECT,
-    nextId,nextLabelId,nextPrinterId,nextColId,nextAgentId,nextArticleId,nextMilestoneId,nextRiskId,nextNotifyRuleId
+    nextId,nextLabelId,nextPrinterId,nextColId,nextAgentId,nextArticleId,nextMilestoneId,nextRiskId,nextNotifyRuleId,
+    _note:'Aktivitäten und Kommentare sind NICHT in diesem Backup enthalten - sie liegen separat in der Supabase-Tabelle lead_activities und sind über das Supabase-Dashboard exportierbar.'
   };
   const blob=new Blob([JSON.stringify(backup,null,2)],{type:'application/json'});
   const url=URL.createObjectURL(blob);
@@ -7358,7 +7362,9 @@ function importCSVFile(file){
             });
             if(changedFields.length){
               existingMatch.activity=existingMatch.activity||[];
-              existingMatch.activity.unshift({id:Date.now()+Math.random(),type:'activity',author:currentUser,text:`Per CSV-Import aktualisiert: ${changedFields.join(', ')}`,date:nowISO()});
+              const _csvUpdAct={id:Date.now()+Math.random(),type:'activity',author:currentUser,text:`Per CSV-Import aktualisiert: ${changedFields.join(', ')}`,date:nowISO()};
+              existingMatch.activity.unshift(_csvUpdAct);
+              pushActivityToDb(existingMatch.id,_csvUpdAct);
               updated++;
               return;
             }
@@ -7387,9 +7393,12 @@ function importCSVFile(file){
         });
         nl.status=firstColId;
         nl.statusSince=TODAY;
-        nl.activity=[{id:Date.now()+Math.random(),type:'activity',author:currentUser,text:'Lead per CSV-Import angelegt',date:nowISO()}];
+        const _csvAct={id:Date.now()+Math.random(),type:'activity',author:currentUser,text:'Lead per CSV-Import angelegt',date:nowISO()};
+        nl.activity=[_csvAct];
         if(nl.followup)nl.followupHistory=[{date:nl.followup,setAt:nowISO()}];
         leads.push(nl);
+        // Aktivität in lead_activities schreiben (async, nach leads.push damit nl.id gesetzt ist)
+        pushActivityToDb(nl.id,_csvAct);
         added++;
       });
       saveState();
