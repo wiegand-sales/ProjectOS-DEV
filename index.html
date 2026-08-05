@@ -921,7 +921,7 @@ const STORAGE_KEY='toner_kanban_state_v1';
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-08-05T09:00:00.000Z';
+const BUILD_VERSION='2026-08-05T09:15:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -6680,6 +6680,7 @@ function saveLead(keepOpen){
     draftLead.activity=[];
     Object.assign(original,draftLead);
     original.activity=activityBackup; // im Arbeitsspeicher behalten (fuer Anzeige), nicht in DB
+    draftLead.activity=activityBackup; // draftLead ebenfalls wiederherstellen fuer renderLeadModal()
   }else{
     draftLead.id=genId();
     if(draftLead.followup){
