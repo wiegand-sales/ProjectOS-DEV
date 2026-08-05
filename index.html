@@ -921,7 +921,7 @@ const STORAGE_KEY='toner_kanban_state_v1';
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-08-05T08:00:00.000Z';
+const BUILD_VERSION='2026-08-05T08:30:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -3038,6 +3038,28 @@ function customerOriginMapHtml(dl){
   </div>`;
 }
 
+// Cache fuer Dashboard-Aktivitaets-Counts aus lead_activities DB
+// Wird beim App-Start und nach jeder neuen Aktivitaet aktualisiert
+let _dashActCountCache=null; // {date: count}
+async function refreshDashActCountCache(){
+  if(!isSbSessionValid())return;
+  try{
+    const since=new Date(TODAY);since.setDate(since.getDate()-29);
+    const res=await fetchWithTimeout(
+      `${SUPABASE_URL}/rest/v1/lead_activities?date=gte.${since.toISOString().slice(0,10)}&select=date,lead_id`,
+      {headers:getSbHeaders()},8000
+    );
+    if(!res.ok)return;
+    const rows=await res.json();
+    const counts={};
+    rows.forEach(r=>{
+      const key=(r.date||'').slice(0,10);
+      if(key)counts[key]=(counts[key]||0)+1;
+    });
+    _dashActCountCache=counts;
+    if(currentView==='dashboard')renderDashboard();
+  }catch(e){console.warn('refreshDashActCountCache fehlgeschlagen:',e);}
+}
 function dashboardActivityChartHtml(dl){
   const days=30;
   const buckets=[];
@@ -3045,14 +3067,19 @@ function dashboardActivityChartHtml(dl){
     const d=new Date(TODAY);d.setDate(d.getDate()-i);
     buckets.push({date:d,key:d.toISOString().slice(0,10),count:0});
   }
-  const bucketMap={};
-  buckets.forEach(b=>bucketMap[b.key]=b);
-  dl.forEach(l=>{
-    (l.activity||[]).forEach(a=>{
-      const key=(a.date||'').slice(0,10);
-      if(bucketMap[key])bucketMap[key].count++;
+  // DB-Cache bevorzugen wenn vorhanden, sonst JSON-Fallback
+  if(_dashActCountCache){
+    buckets.forEach(b=>{b.count=_dashActCountCache[b.key]||0;});
+  }else{
+    const bucketMap={};
+    buckets.forEach(b=>bucketMap[b.key]=b);
+    dl.forEach(l=>{
+      (l.activity||[]).forEach(a=>{
+        const key=(a.date||'').slice(0,10);
+        if(bucketMap[key])bucketMap[key].count++;
+      });
     });
-  });
+  }
   const w=1400,h=200,padL=10,padR=10,padT=14,padB=10;
   const plotW=w-padL-padR,plotH=h-padT-padB;
   const maxVal=Math.max(1,...buckets.map(b=>b.count));
@@ -5118,7 +5145,8 @@ function onColDragEnd(e){
 // Aktivitäten eines anderen Nutzers überschreiben kann.
 async function pushActivityToDb(leadId, activityObj){
   if(!isSbSessionValid())return;
-  delete _actCache[leadId]; // Cache invalidieren damit beim nächsten Öffnen neu geladen wird
+  delete _actCache[leadId]; // Lead-Aktivitäten-Cache invalidieren
+  _dashActCountCache=null;  // Dashboard-Chart-Cache invalidieren
   try{
     await fetchWithTimeout(`${SUPABASE_URL}/rest/v1/lead_activities`,{
       method:'POST',
@@ -7506,6 +7534,8 @@ async function bootstrapApp(){
     // Login-Log fuer Aktivitaeten-Ansicht laden (letzte 90 Tage)
     fetchWithTimeout(`${SUPABASE_URL}/rest/v1/login_log?order=logged_in_at.desc&limit=500`,{headers:getSbHeaders()},8000)
       .then(r=>r.ok?r.json():null).then(rows=>{if(rows)window.__loginLogCache=rows;}).catch(()=>{});
+    // Dashboard-Aktivitaets-Counts aus lead_activities voraufladen
+    refreshDashActCountCache();
   }catch(e){
     console.warn('Initialer Sync beim Start fehlgeschlagen (wird automatisch per Hintergrund-Abgleich erneut versucht):',e);
     sbInitialSyncDone=true;
