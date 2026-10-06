@@ -930,7 +930,16 @@ const STORAGE_KEY='toner_kanban_state_v1'; // ALT - wird nur noch geloescht, nie
 // zusammengefuehrt (Vorfall 06.10.2026: Mitarbeiterin, Label, Artikel-Katalog, Rollen und
 // Farben sprangen auf einen alten Stand zurueck). Leads wurden beim Laden ohnehin nie aus
 // diesem Speicher uebernommen - daher speichern wir jetzt nur noch die kleinen Einstellungen.
-const SETTINGS_STORAGE_KEY='toner_kanban_settings_v2';
+// v3: v2 konnte (Vorfall 06.10.2026 abends) Beispiel-Einstellungen enthalten, wenn der Start
+// ohne Datenbankverbindung lief und trotzdem gespeichert wurde - v2 wird daher verworfen.
+const SETTINGS_STORAGE_KEY='toner_kanban_settings_v3';
+// Speichert die Einstellungen im Browser - aber NIEMALS, bevor dieser Tab mindestens einmal den
+// echten Stand aus der Cloud uebernommen hat. Sonst koennten Beispiel-/Standardwerte (z.B. bei
+// fehlender Verbindung beim Start) im Browser landen und spaeter als "eigene Aenderung" gelten.
+function persistLocalSettings(){
+  if(settingsFirstSyncSinceLoad&&!localSettingsTrusted)return;
+  try{localStorage.setItem(SETTINGS_STORAGE_KEY,JSON.stringify(buildSettingsPayload()));}catch(e){console.warn('Lokales Speichern fehlgeschlagen:',e);}
+}
 // Erster Einstellungs-Abgleich nach dem Laden: Cloud gilt als Wahrheit, ausser es gibt echte,
 // noch nicht hochgeladene Aenderungen UND der lokale Stand stammt aus dem neuen, verlaesslichen
 // Zwischenspeicher (gleiches Prinzip wie bei den Leads).
@@ -944,7 +953,7 @@ let localSettingsTrusted=false;
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-10-06T17:00:00.000Z';
+const BUILD_VERSION='2026-10-06T18:00:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -1498,7 +1507,7 @@ async function syncLeadsLayer(){
       repairDuplicateLeadIds();
       repairSwappedCompanyCustomerNumber();
       saveLeadsBaseline(newBaseline);
-      try{localStorage.setItem(SETTINGS_STORAGE_KEY,JSON.stringify(buildSettingsPayload()));}catch(e){}
+      persistLocalSettings();
       refreshCurrentView();
       isFirstLeadsSyncSinceLoad=false;
       return;
@@ -1654,7 +1663,7 @@ async function syncLeadsLayer(){
     // selbst etwas geaendert hat. Wurden nur Aenderungen von KOLLEGEN uebernommen, blieb
     // der lokale Cache sonst veraltet, waehrend die Baseline schon weiter war - genau das
     // fuehrte beim naechsten Neuladen/Anmelden zu einem falschen "alles geloescht"-Alarm.
-    try{localStorage.setItem(SETTINGS_STORAGE_KEY,JSON.stringify(buildSettingsPayload()));}catch(e){}
+    persistLocalSettings();
   }catch(e){
     console.warn('Lead-Synchronisierung fehlgeschlagen:',e);
   }finally{
@@ -1821,7 +1830,7 @@ async function syncMerge(retryCount){
       const firstRemote=remote.data||{};
       applyStateData(JSON.parse(JSON.stringify(firstRemote)));
       saveSyncBaseline(JSON.parse(JSON.stringify(firstRemote)),remote.updated_at);
-      try{localStorage.setItem(SETTINGS_STORAGE_KEY,JSON.stringify(buildSettingsPayload()));}catch(e){}
+      persistLocalSettings();
       clearPendingPush();
       setSbStatus('online');
       refreshCurrentView();
@@ -1856,7 +1865,7 @@ async function syncMerge(retryCount){
     if(!sbBaselineData){
       applyStateData(remoteData);
       saveSyncBaseline(JSON.parse(JSON.stringify(remoteData)),remote.updated_at);
-      try{localStorage.setItem(SETTINGS_STORAGE_KEY,JSON.stringify(buildSettingsPayload()));}catch(e){}
+      persistLocalSettings();
       clearPendingPush();
       setSbStatus('online');
       refreshCurrentView();
@@ -1874,7 +1883,7 @@ async function syncMerge(retryCount){
       // Nur die Cloud hat sich weiterbewegt (jemand anderes hat gespeichert) -> übernehmen
       applyStateData(remoteData);
       saveSyncBaseline(JSON.parse(JSON.stringify(remoteData)),remote.updated_at);
-      try{localStorage.setItem(SETTINGS_STORAGE_KEY,JSON.stringify(buildSettingsPayload()));}catch(e){}
+      persistLocalSettings();
       clearPendingPush();
       setSbStatus('online');
       refreshCurrentView();
@@ -1905,7 +1914,7 @@ async function syncMerge(retryCount){
     // Beide Seiten haben sich seit der Baseline veraendert -> zusammenfuehren statt verwerfen
     const merged=mergeStateData(baseline,localSnapshot,remoteForCompare);
     applyStateData(merged);
-    try{localStorage.setItem(SETTINGS_STORAGE_KEY,JSON.stringify(buildSettingsPayload()));}catch(e){}
+    persistLocalSettings();
     refreshCurrentView();
     const ok2=await pushState(merged,remote.updated_at);
     if(ok2==='AUTH_EXPIRED')return;
@@ -2024,14 +2033,12 @@ async function sbPoll(){
 }
 
 function saveState(){
-  try{
-    localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(buildSettingsPayload()));
-  }catch(e){ console.warn('Speichern fehlgeschlagen:', e); }
+  persistLocalSettings();
   scheduleSbPush();
 }
 function loadState(){
   try{
-    try{localStorage.removeItem(STORAGE_KEY);}catch(e){} // alten, veralteten Riesen-Stand entsorgen
+    try{localStorage.removeItem(STORAGE_KEY);localStorage.removeItem('toner_kanban_settings_v2');}catch(e){} // alte, unzuverlaessige Staende entsorgen
     const raw=localStorage.getItem(SETTINGS_STORAGE_KEY);
     if(!raw)return false;
     const data=JSON.parse(raw);
