@@ -923,7 +923,19 @@ let nextRiskId=3;
 let nextNotifyRuleId=4;
 
 // ── PERSISTENZ (localStorage – Zwischenlösung bis Supabase angebunden ist) ──
-const STORAGE_KEY='toner_kanban_state_v1';
+const STORAGE_KEY='toner_kanban_state_v1'; // ALT - wird nur noch geloescht, nie mehr gelesen
+// Der alte Zwischenspeicher enthielt ALLE Leads (inzwischen >7 MB). Das passte nicht mehr in
+// den Browser-Speicher (~5 MB), Schreiben scheiterte still und es blieb ein uralter Stand
+// liegen. Nach einem Neuladen wurde dieser alte Stand als "lokale Aenderung" mit der Cloud
+// zusammengefuehrt (Vorfall 06.10.2026: Mitarbeiterin, Label, Artikel-Katalog, Rollen und
+// Farben sprangen auf einen alten Stand zurueck). Leads wurden beim Laden ohnehin nie aus
+// diesem Speicher uebernommen - daher speichern wir jetzt nur noch die kleinen Einstellungen.
+const SETTINGS_STORAGE_KEY='toner_kanban_settings_v2';
+// Erster Einstellungs-Abgleich nach dem Laden: Cloud gilt als Wahrheit, ausser es gibt echte,
+// noch nicht hochgeladene Aenderungen UND der lokale Stand stammt aus dem neuen, verlaesslichen
+// Zwischenspeicher (gleiches Prinzip wie bei den Leads).
+let settingsFirstSyncSinceLoad=true;
+let localSettingsTrusted=false;
 
 // ── SUPABASE CLOUD-SYNC ──
 // Gemeinsame Datenbank fuer das ganze Team. localStorage bleibt als schneller
@@ -932,7 +944,7 @@ const STORAGE_KEY='toner_kanban_state_v1';
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-10-06T15:30:00.000Z';
+const BUILD_VERSION='2026-10-06T17:00:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -1486,7 +1498,7 @@ async function syncLeadsLayer(){
       repairDuplicateLeadIds();
       repairSwappedCompanyCustomerNumber();
       saveLeadsBaseline(newBaseline);
-      try{localStorage.setItem(STORAGE_KEY,JSON.stringify(buildStatePayload()));}catch(e){}
+      try{localStorage.setItem(SETTINGS_STORAGE_KEY,JSON.stringify(buildSettingsPayload()));}catch(e){}
       refreshCurrentView();
       isFirstLeadsSyncSinceLoad=false;
       return;
@@ -1642,7 +1654,7 @@ async function syncLeadsLayer(){
     // selbst etwas geaendert hat. Wurden nur Aenderungen von KOLLEGEN uebernommen, blieb
     // der lokale Cache sonst veraltet, waehrend die Baseline schon weiter war - genau das
     // fuehrte beim naechsten Neuladen/Anmelden zu einem falschen "alles geloescht"-Alarm.
-    try{localStorage.setItem(STORAGE_KEY,JSON.stringify(buildStatePayload()));}catch(e){}
+    try{localStorage.setItem(SETTINGS_STORAGE_KEY,JSON.stringify(buildSettingsPayload()));}catch(e){}
   }catch(e){
     console.warn('Lead-Synchronisierung fehlgeschlagen:',e);
   }finally{
@@ -1791,7 +1803,7 @@ async function syncMerge(retryCount){
     // kann der teure volle Datenabruf komplett entfallen - spart bei jedem der
     // haeufigen 5-Sekunden-Abgleiche, bei denen ohnehin nichts passiert ist, die
     // uebertragene Datenmenge (Egress) fast vollstaendig ein.
-    if(sbBaselineData&&!hasPendingPush()){
+    if(sbBaselineData&&!hasPendingPush()&&!settingsFirstSyncSinceLoad){
       const peekedAt=await sbPeekUpdatedAt();
       if(peekedAt!==null&&peekedAt===sbBaselineUpdatedAt){
         setSbStatus('online');
@@ -1804,6 +1816,18 @@ async function syncMerge(retryCount){
       await pushState(buildSettingsPayload());
       return;
     }
+    if(settingsFirstSyncSinceLoad&&(!hasPendingPush()||!localSettingsTrusted)){
+      settingsFirstSyncSinceLoad=false;
+      const firstRemote=remote.data||{};
+      applyStateData(JSON.parse(JSON.stringify(firstRemote)));
+      saveSyncBaseline(JSON.parse(JSON.stringify(firstRemote)),remote.updated_at);
+      try{localStorage.setItem(SETTINGS_STORAGE_KEY,JSON.stringify(buildSettingsPayload()));}catch(e){}
+      clearPendingPush();
+      setSbStatus('online');
+      refreshCurrentView();
+      return;
+    }
+    settingsFirstSyncSinceLoad=false;
     maybeRunDailyBackup();
     const localSnapshot=buildSettingsPayload();
     const remoteData=remote.data||{};
@@ -1832,7 +1856,7 @@ async function syncMerge(retryCount){
     if(!sbBaselineData){
       applyStateData(remoteData);
       saveSyncBaseline(JSON.parse(JSON.stringify(remoteData)),remote.updated_at);
-      try{localStorage.setItem(STORAGE_KEY,JSON.stringify(buildStatePayload()));}catch(e){}
+      try{localStorage.setItem(SETTINGS_STORAGE_KEY,JSON.stringify(buildSettingsPayload()));}catch(e){}
       clearPendingPush();
       setSbStatus('online');
       refreshCurrentView();
@@ -1850,7 +1874,7 @@ async function syncMerge(retryCount){
       // Nur die Cloud hat sich weiterbewegt (jemand anderes hat gespeichert) -> übernehmen
       applyStateData(remoteData);
       saveSyncBaseline(JSON.parse(JSON.stringify(remoteData)),remote.updated_at);
-      try{localStorage.setItem(STORAGE_KEY,JSON.stringify(buildStatePayload()));}catch(e){}
+      try{localStorage.setItem(SETTINGS_STORAGE_KEY,JSON.stringify(buildSettingsPayload()));}catch(e){}
       clearPendingPush();
       setSbStatus('online');
       refreshCurrentView();
@@ -1881,7 +1905,7 @@ async function syncMerge(retryCount){
     // Beide Seiten haben sich seit der Baseline veraendert -> zusammenfuehren statt verwerfen
     const merged=mergeStateData(baseline,localSnapshot,remoteForCompare);
     applyStateData(merged);
-    try{localStorage.setItem(STORAGE_KEY,JSON.stringify(buildStatePayload()));}catch(e){}
+    try{localStorage.setItem(SETTINGS_STORAGE_KEY,JSON.stringify(buildSettingsPayload()));}catch(e){}
     refreshCurrentView();
     const ok2=await pushState(merged,remote.updated_at);
     if(ok2==='AUTH_EXPIRED')return;
@@ -2001,16 +2025,18 @@ async function sbPoll(){
 
 function saveState(){
   try{
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(buildStatePayload()));
+    localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(buildSettingsPayload()));
   }catch(e){ console.warn('Speichern fehlgeschlagen:', e); }
   scheduleSbPush();
 }
 function loadState(){
   try{
-    const raw=localStorage.getItem(STORAGE_KEY);
+    try{localStorage.removeItem(STORAGE_KEY);}catch(e){} // alten, veralteten Riesen-Stand entsorgen
+    const raw=localStorage.getItem(SETTINGS_STORAGE_KEY);
     if(!raw)return false;
     const data=JSON.parse(raw);
     applyStateData(data);
+    localSettingsTrusted=true;
     return true;
   }catch(e){ console.warn('Laden fehlgeschlagen:', e); return false; }
 }
