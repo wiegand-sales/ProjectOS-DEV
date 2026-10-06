@@ -932,7 +932,7 @@ const STORAGE_KEY='toner_kanban_state_v1';
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-08-05T12:25:00.000Z';
+const BUILD_VERSION='2026-10-06T15:00:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -6903,7 +6903,13 @@ async function deleteAllLeads(){
   if(!confirm(`Wirklich ALLE ${leads.length} Leads unwiderruflich löschen?\n\nDie Listen/Spalten, Labels, Mitarbeiter und Projekt-Einstellungen bleiben erhalten - nur die Kundendaten selbst werden entfernt.\n\nTipp: Es wird automatisch vorher ein Backup heruntergeladen.`))return;
   const typed=prompt('Zur Sicherheit: Bitte tippe LÖSCHEN (in Großbuchstaben) ein, um zu bestätigen:');
   if(typed!=='LÖSCHEN'){alert('Abgebrochen - Eingabe stimmte nicht überein. Es wurde nichts gelöscht.');return;}
-  await exportFullBackup(); // Vollständiges Backup inkl. Aktivitäten BEVOR gelöscht wird
+  // Vollständiges Backup inkl. Aktivitäten BEVOR gelöscht wird. Ist es unvollständig,
+  // wird NICHT gelöscht - sonst wären die Kommentare danach unwiederbringlich weg.
+  const backupComplete=await exportFullBackup();
+  if(!backupComplete){
+    alert('Löschen abgebrochen: Das Sicherheits-Backup konnte die Kommentare nicht vollständig sichern. Es wurde NICHTS gelöscht. Bitte neu anmelden und erneut versuchen.');
+    return;
+  }
   leads=[];
   // _actCache vollständig leeren
   Object.keys(_actCache).forEach(k=>delete _actCache[k]);
@@ -6919,38 +6925,82 @@ async function deleteAllLeads(){
   }
   alert('Alle Leads wurden gelöscht. Ein Backup der vorherigen Daten wurde als JSON-Datei heruntergeladen.');
 }
-async function exportFullBackup(isAutomatic){
-  // Aktivitäten aus lead_activities laden (vollständiges Backup)
-  let activities=[];
-  if(isSbSessionValid()){
-    try{
-      // Alle Aktivitäten paginiert laden (max. 10.000 pro Anfrage reicht für jetzt)
-      const res=await fetchWithTimeout(
-        `${SUPABASE_URL}/rest/v1/lead_activities?order=id.asc&limit=10000`,
-        {headers:getSbHeaders()},15000
-      );
-      if(res.ok) activities=await res.json();
-    }catch(e){
-      console.warn('lead_activities für Backup konnten nicht geladen werden:',e);
-    }
+// Laedt ALLE Eintraege aus lead_activities seitenweise (je 1.000 Stueck - Supabase
+// liefert pro Anfrage ohnehin hoechstens so viele aus). Jede Seite bekommt 30s Zeit und
+// einen zweiten Versuch. Rueckgabe: {rows, total, error} - error ist null, wenn wirklich
+// alle Eintraege geladen wurden. Frueher wurde hier ein einziger Abruf mit limit=10000
+// gemacht und jeder Fehler (z.B. abgelaufene Anmeldung) still verschluckt - das Backup
+// enthielt dann 0 Kommentare aus der Tabelle, nannte sich aber trotzdem "vollstaendig".
+async function loadAllLeadActivitiesForBackup(){
+  if(!isSbSessionValid()){
+    return {rows:[],total:null,error:'Anmeldung abgelaufen - Kommentartabelle konnte nicht geladen werden (bitte neu anmelden und Backup wiederholen)'};
   }
+  const PAGE=1000;
+  const rows=[];
+  let total=null;
+  for(let page=0;page<500;page++){
+    const from=page*PAGE,to=from+PAGE-1;
+    const headers=Object.assign({},getSbHeaders(),{'Range-Unit':'items','Range':`${from}-${to}`});
+    if(page===0)headers['Prefer']='count=exact';
+    let res=null,lastErr='';
+    for(let attempt=0;attempt<2&&!res;attempt++){
+      try{
+        const r=await fetchWithTimeout(`${SUPABASE_URL}/rest/v1/lead_activities?order=id.asc`,{headers},30000);
+        if(r.ok||r.status===206||r.status===416)res=r;
+        else lastErr='HTTP '+r.status;
+      }catch(e){lastErr=e.message||String(e);}
+    }
+    if(!res)return {rows,total,error:`Abbruch beim Laden ab Eintrag ${from}: ${lastErr}`};
+    if(res.status===416)break; // Bereich liegt hinter dem letzten Eintrag - fertig
+    const cr=res.headers.get('Content-Range');
+    if(cr&&cr.indexOf('/')>=0){
+      const t=parseInt(cr.split('/')[1],10);
+      if(!isNaN(t))total=t;
+    }
+    const batch=await res.json();
+    if(!Array.isArray(batch))return {rows,total,error:'Unerwartete Antwort der Datenbank'};
+    for(const b of batch)rows.push(b);
+    if(batch.length<PAGE)break;
+    if(total!==null&&rows.length>=total)break;
+  }
+  if(total!==null&&rows.length<total){
+    return {rows,total,error:`Nur ${rows.length} von ${total} Eintraegen geladen`};
+  }
+  return {rows,total:total!==null?total:rows.length,error:null};
+}
+// Gibt true zurueck, wenn die Kommentartabelle vollstaendig im Backup steckt.
+async function exportFullBackup(isAutomatic){
+  const act=await loadAllLeadActivitiesForBackup();
+  const activities=act.rows;
+  const complete=!act.error;
+  if(!complete)console.warn('Backup: Kommentartabelle unvollstaendig -',act.error);
+  const embeddedCount=leads.reduce((n,l)=>n+((l&&Array.isArray(l.activity))?l.activity.length:0),0);
+  const stamp=nowISO();
   const backup={
-    exportedAt:nowISO(),
+    exportedAt:stamp,
     leads,COLUMNS,LABELS,AGENTS,ARTICLES,PROJECT,
     nextId,nextLabelId,nextPrinterId,nextColId,nextAgentId,nextArticleId,nextMilestoneId,nextRiskId,nextNotifyRuleId,
     lead_activities:activities,
-    _note:`Vollständiges Backup inkl. ${activities.length} Aktivitäten/Kommentare aus lead_activities. Stand: ${nowISO()}`
+    lead_activities_complete:complete,
+    lead_activities_total:act.total,
+    _note:complete
+      ?`Vollständiges Backup inkl. ${activities.length} von ${act.total} Aktivitäten/Kommentaren aus lead_activities (zusätzlich ${embeddedCount} Einträge im Lead-Verlauf eingebettet). Stand: ${stamp}`
+      :`ACHTUNG - Kommentartabelle UNVOLLSTÄNDIG: ${act.error}. Enthalten: ${activities.length} Einträge aus lead_activities${act.total!==null?` von ${act.total}`:''}. Der im Lead-Verlauf eingebettete Stand (${embeddedCount} Einträge) ist trotzdem enthalten. Stand: ${stamp}`
   };
   const blob=new Blob([JSON.stringify(backup,null,2)],{type:'application/json'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');
   a.href=url;
   const timeSuffix=isAutomatic?'_'+new Date().toTimeString().slice(0,5).replace(':','-'):'';
-  a.download=`salesos_backup_${TODAY}${timeSuffix}.json`;
+  a.download=`salesos_backup_${TODAY}${timeSuffix}${complete?'':'_UNVOLLSTAENDIG'}.json`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
+  if(!complete&&!isAutomatic){
+    alert(`Backup wurde gespeichert, ist aber UNVOLLSTÄNDIG:\n\n${act.error}\n\nLeads, Einstellungen und der eingebettete Verlauf sind enthalten. Bitte ggf. neu anmelden und das Backup wiederholen.`);
+  }
+  return complete;
 }
 function maybeRunClientAutoBackup(){
   const intervalMinutes=PROJECT.autoBackupIntervalMinutes;
