@@ -932,7 +932,7 @@ const STORAGE_KEY='toner_kanban_state_v1';
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-10-06T15:00:00.000Z';
+const BUILD_VERSION='2026-10-06T15:30:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -1005,6 +1005,7 @@ async function sbLogout(){
   clearInterval(window.__sbPollInterval);
   clearInterval(window.__versionCheckInterval);
   clearInterval(window.__autoBackupInterval);
+  clearInterval(window.__sbRefreshInterval);
   clearTimeout(sbPushTimer);
   sbPushTimer=null;
   sbInitialSyncDone=false;
@@ -1014,6 +1015,75 @@ async function sbLogout(){
 }
 function isSbSessionValid(){
   return !!(sbSession&&sbSession.access_token&&sbSession.expires_at>Date.now());
+}
+// ===== Automatische Sitzungs-Erneuerung =====
+// Bisher wurde das Anmelde-Token (Supabase: standardmaessig 1 Stunde gueltig) nie
+// erneuert. Danach galt die Sitzung als ungueltig: Sync stoppte mit "bitte erneut
+// anmelden", und das lokale Backup uebersprang still die Kommentartabelle.
+// Jetzt wird das Token kurz vor Ablauf mit dem Refresh-Token automatisch erneuert.
+// Refresh-Tokens sind bei Supabase Einmal-Tokens: hat ein ANDERER Tab desselben
+// Browsers schon erneuert, wird dessen neue Sitzung aus dem Speicher uebernommen,
+// statt das bereits verbrauchte Token erneut zu benutzen.
+let sbRefreshPromise=null;
+let sbLastRefreshOkAt=0;
+function adoptNewerStoredSbSession(){
+  try{
+    const raw=localStorage.getItem(SB_SESSION_KEY);
+    const stored=raw?JSON.parse(raw):null;
+    if(stored&&stored.access_token&&sbSession&&stored.refresh_token&&
+       stored.refresh_token!==sbSession.refresh_token&&
+       (stored.expires_at||0)>(sbSession.expires_at||0)&&
+       stored.expires_at-Date.now()>60*1000){
+      sbSession=stored;
+      return true;
+    }
+  }catch(e){}
+  return false;
+}
+async function sbRefreshSession(){
+  if(sbRefreshPromise)return sbRefreshPromise;
+  sbRefreshPromise=(async()=>{
+    try{
+      if(adoptNewerStoredSbSession()){sbLastRefreshOkAt=Date.now();return true;}
+      if(!sbSession||!sbSession.refresh_token)return false;
+      const res=await fetchWithTimeout(`${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`,{
+        method:'POST',
+        headers:{'apikey':SUPABASE_KEY,'Content-Type':'application/json'},
+        body:JSON.stringify({refresh_token:sbSession.refresh_token})
+      },15000);
+      if(!res.ok){
+        // Kann passieren, wenn ein anderer Tab genau gleichzeitig erneuert hat -
+        // dann dessen Ergebnis uebernehmen.
+        if(adoptNewerStoredSbSession()){sbLastRefreshOkAt=Date.now();return true;}
+        console.warn('Sitzungs-Erneuerung abgelehnt: HTTP '+res.status);
+        return false;
+      }
+      const body=await res.json();
+      if(!body||!body.access_token)return false;
+      sbSession={
+        access_token:body.access_token,
+        refresh_token:body.refresh_token||sbSession.refresh_token,
+        expires_at:Date.now()+((body.expires_in||3600)*1000),
+        email:sbSession.email
+      };
+      persistSbSession();
+      sbLastRefreshOkAt=Date.now();
+      return true;
+    }catch(e){
+      console.warn('Sitzungs-Erneuerung fehlgeschlagen:',e);
+      return false;
+    }finally{
+      sbRefreshPromise=null;
+    }
+  })();
+  return sbRefreshPromise;
+}
+// Laeuft jede Minute und beim Zurueckkehren in den Tab (z.B. nach Laptop-Ruhezustand):
+// erneuert, sobald das Token in weniger als 5 Minuten ablaeuft (oder schon abgelaufen ist).
+async function maybeRefreshSbSession(){
+  if(!sbSession||!sbSession.refresh_token)return;
+  if((sbSession.expires_at||0)-Date.now()>5*60*1000)return;
+  await sbRefreshSession();
 }
 let sbStatus='connecting';   // connecting | online | offline
 let sbStatusDetail='';
@@ -1873,7 +1943,25 @@ function scheduleSbPush(){
   // das konnte sich mit dem parallel laufenden 5-Sekunden-Hintergrundabgleich ueberschneiden.
   sbPushTimer=setTimeout(async()=>{sbPushTimer=null;await syncMerge();await syncLeadsLayer();},3000);
 }
+let sbAuthExpiredHandling=false;
 function handleSbAuthExpired(){
+  if(sbAuthExpiredHandling)return;
+  // Zuerst still erneuern versuchen. Wurde erst vor weniger als 60s erfolgreich erneuert
+  // und kommt trotzdem wieder eine Ablehnung, liegt es NICHT am Ablauf (sondern z.B. an
+  // fehlenden Rechten) - dann wie bisher den Login zeigen, statt endlos zu erneuern.
+  if(sbSession&&sbSession.refresh_token&&(Date.now()-sbLastRefreshOkAt)>60*1000){
+    sbAuthExpiredHandling=true;
+    sbRefreshSession().then(ok=>{
+      sbAuthExpiredHandling=false;
+      if(!ok)showSbSessionExpired();
+      // Bei Erfolg: nichts weiter noetig - ausstehende Aenderungen bleiben als "pending"
+      // markiert und werden beim naechsten Abgleich (spaetestens nach 5s) hochgeladen.
+    });
+    return;
+  }
+  showSbSessionExpired();
+}
+function showSbSessionExpired(){
   sbSession=null;
   persistSbSession();
   setSbStatus('offline','Sitzung abgelaufen – bitte erneut anmelden.');
@@ -2106,19 +2194,16 @@ async function listAvailableBackups(){
   content.innerHTML=`<div style="text-align:center;padding:32px;color:var(--text3)"><i class="ti ti-refresh" style="font-size:20px;display:block;margin-bottom:8px"></i>Backups werden geladen…</div>`;
   try{
     // Backups laden
-    const res=await fetch(`${SUPABASE_URL}/rest/v1/app_state?id=like.backup_*&select=id,updated_at,data&order=id.desc`,{headers:getSbHeaders()});
+    // Nur Kennung + Zeitpunkt laden. Frueher kam hier jede Komplettkopie (je ~4 MB) mit -
+    // bei ~20 Backups ueber 80 MB auf einmal, eine der groessten Einzellasten fuer die DB.
+    // Die Lead-Anzahl eines Backups wird beim Anklicken (Wiederherstellen-Dialog) angezeigt.
+    const res=await fetchWithTimeout(`${SUPABASE_URL}/rest/v1/app_state?id=like.backup_*&select=id,updated_at&order=id.desc`,{headers:getSbHeaders()},20000);
     if(!res.ok){content.innerHTML=`<p style="color:var(--red)">Backups konnten nicht geladen werden: HTTP ${res.status}</p>`;return;}
     const rows=await res.json();
     if(!rows.length){content.innerHTML=`<p style="font-size:13px;color:var(--text2)">Noch keine automatischen Backups vorhanden.</p>`;return;}
-    // Aktivitätsanzahl aus lead_activities laden
-    const actRes=await fetch(`${SUPABASE_URL}/rest/v1/lead_activities?select=created_at`,{headers:getSbHeaders()});
-    const allActs=actRes.ok?(await actRes.json()):[];
     // Für jedes Backup: Anzahl Aktivitäten die zum Backup-Zeitpunkt schon existierten
     const rowsHtml=rows.map(r=>{
       const dateStr=r.id.replace('backup_','');
-      const leadCount=(r.data&&r.data.leads)?r.data.leads.length:0;
-      const backupTime=new Date(r.updated_at);
-      const actCount=allActs.filter(a=>new Date(a.created_at)<=backupTime).length;
       const timeLabel=fmtDateTime(r.updated_at);
       return `<div style="display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:10px;background:#f7f7f5;margin-bottom:8px;cursor:pointer;transition:background .15s" 
         onmouseover="this.style.background='var(--purple-bg)'" 
@@ -2129,8 +2214,7 @@ async function listAvailableBackups(){
           <div style="font-size:11px;color:var(--text3);margin-top:2px">${dateStr}</div>
         </div>
         <div style="text-align:right">
-          <div style="font-size:12px;font-weight:700;color:var(--purple-dark)">${leadCount} Leads</div>
-          <div style="font-size:11px;color:var(--text3)">${actCount} Aktivitäten</div>
+          <div style="font-size:11px;color:var(--text3)">Details beim Öffnen</div>
         </div>
         <i class="ti ti-chevron-right" style="color:var(--text3);font-size:16px"></i>
       </div>`;
@@ -7766,10 +7850,11 @@ async function bootstrapApp(){
   setTimeout(()=>{sbPoll();window.__sbPollInterval=setInterval(sbPoll,5000);},Math.random()*5000);
   window.__versionCheckInterval=setInterval(checkForNewVersion,60000);
   window.__autoBackupInterval=setInterval(maybeRunClientAutoBackup,60000);
+  window.__sbRefreshInterval=setInterval(maybeRefreshSbSession,60000);
   // Ein Tab, der lange im Hintergrund lag (z.B. eine Nacht offen), soll beim Zurueckkehren
   // sofort geprueft werden - genau die Situation, in der veralteter Code am ehesten
   // unbemerkt weiterlaeuft und Daten anderer, aktuellerer Sitzungen ueberschreiben koennte.
-  document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkForNewVersion();});
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden){maybeRefreshSbSession();checkForNewVersion();}});
   // Falls die Seite geschlossen/verlassen wird, waehrend eine Aenderung noch
   // auf den Upload wartet: sofortigen Versuch mit keepalive starten, damit die
   // Aenderung nicht nur lokal, sondern auch in der Cloud landet.
@@ -8265,11 +8350,16 @@ async function attemptLogin(){
 }
 
 loadSbSession();
-if(isSbSessionValid()){
-  showApp();
-}else{
-  showLoginScreen();
-}
+(async()=>{
+  if(!isSbSessionValid()&&sbSession&&sbSession.refresh_token){
+    await sbRefreshSession();
+  }
+  if(isSbSessionValid()){
+    showApp();
+  }else{
+    showLoginScreen();
+  }
+})();
 </script>
 
 <div class="staging-bottombar" style="background:#7c1fa0">TESTDATENBANK — komplett eigene, getrennte Datenbank — <a href="https://wiegand-sales.github.io/ProjectOS/" target="_blank">&rarr; Live</a></div>
