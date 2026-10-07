@@ -953,7 +953,7 @@ let localSettingsTrusted=false;
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-10-06T18:00:00.000Z';
+const BUILD_VERSION='2026-10-07T14:00:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -1061,11 +1061,25 @@ function adoptNewerStoredSbSession(){
   }catch(e){}
   return false;
 }
+// Tabuebergreifende Sperre: Immer nur EIN Tab dieses Browsers darf gleichzeitig erneuern.
+// Supabase laesst jeden Refresh-Token nur einmal zu (Doppelnutzung nur 10s toleriert, danach
+// wird die GESAMTE Sitzung gesperrt). Erneuerten zwei Tabs gleichzeitig (z.B. nach dem
+// Aufwachen aus dem Ruhezustand) und kam eine Anfrage verspaetet an, flogen beide Tabs raus
+// (Vorfall 07.10.2026, zwei offene Tabs). Mit der Sperre wartet der zweite Tab und uebernimmt
+// danach einfach die frisch erneuerte Sitzung des ersten aus dem gemeinsamen Speicher.
+function withSbRefreshLock(fn){
+  try{
+    if(typeof navigator!=='undefined'&&navigator.locks&&typeof navigator.locks.request==='function'){
+      return navigator.locks.request('projectos-sb-refresh',{mode:'exclusive'},fn);
+    }
+  }catch(e){}
+  return fn();
+}
 async function sbRefreshSession(){
   if(sbRefreshPromise)return sbRefreshPromise;
-  sbRefreshPromise=(async()=>{
+  sbRefreshPromise=withSbRefreshLock(async()=>{
     try{
-      if(adoptNewerStoredSbSession()){sbLastRefreshOkAt=Date.now();return true;}
+      if(adoptNewerStoredSbSession()){sbLastRefreshOkAt=Date.now();sbAuthFailsAfterRefresh=0;return true;}
       if(!sbSession||!sbSession.refresh_token)return false;
       const res=await fetchWithTimeout(`${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`,{
         method:'POST',
@@ -1075,7 +1089,7 @@ async function sbRefreshSession(){
       if(!res.ok){
         // Kann passieren, wenn ein anderer Tab genau gleichzeitig erneuert hat -
         // dann dessen Ergebnis uebernehmen.
-        if(adoptNewerStoredSbSession()){sbLastRefreshOkAt=Date.now();return true;}
+        if(adoptNewerStoredSbSession()){sbLastRefreshOkAt=Date.now();sbAuthFailsAfterRefresh=0;return true;}
         console.warn('Sitzungs-Erneuerung abgelehnt: HTTP '+res.status);
         return false;
       }
@@ -1089,6 +1103,7 @@ async function sbRefreshSession(){
       };
       persistSbSession();
       sbLastRefreshOkAt=Date.now();
+      sbAuthFailsAfterRefresh=0;
       return true;
     }catch(e){
       console.warn('Sitzungs-Erneuerung fehlgeschlagen:',e);
@@ -1096,7 +1111,7 @@ async function sbRefreshSession(){
     }finally{
       sbRefreshPromise=null;
     }
-  })();
+  });
   return sbRefreshPromise;
 }
 // Laeuft jede Minute und beim Zurueckkehren in den Tab (z.B. nach Laptop-Ruhezustand):
@@ -1977,12 +1992,23 @@ function scheduleSbPush(){
   sbPushTimer=setTimeout(async()=>{sbPushTimer=null;await syncMerge();await syncLeadsLayer();},3000);
 }
 let sbAuthExpiredHandling=false;
+// Zaehlt Ablehnungen, die KURZ NACH einer erfolgreichen Erneuerung eintreffen. Einzelne davon
+// sind meist Nachzuegler: Anfragen, die noch mit dem alten Token losgeschickt wurden und deren
+// Antwort erst nach der Erneuerung ankommt - die duerfen niemanden abmelden. Erst wiederholte
+// Ablehnungen trotz frischer Anmeldung bedeuten ein echtes Problem (z.B. fehlende Rechte).
+let sbAuthFailsAfterRefresh=0;
 function handleSbAuthExpired(){
   if(sbAuthExpiredHandling)return;
   // Zuerst still erneuern versuchen. Wurde erst vor weniger als 60s erfolgreich erneuert
   // und kommt trotzdem wieder eine Ablehnung, liegt es NICHT am Ablauf (sondern z.B. an
   // fehlenden Rechten) - dann wie bisher den Login zeigen, statt endlos zu erneuern.
-  if(sbSession&&sbSession.refresh_token&&(Date.now()-sbLastRefreshOkAt)>60*1000){
+  if(sbSession&&sbSession.refresh_token&&(Date.now()-sbLastRefreshOkAt)<=60*1000){
+    sbAuthFailsAfterRefresh++;
+    if(sbAuthFailsAfterRefresh<3)return; // Nachzuegler ignorieren
+    showSbSessionExpired();
+    return;
+  }
+  if(sbSession&&sbSession.refresh_token){
     sbAuthExpiredHandling=true;
     sbRefreshSession().then(ok=>{
       sbAuthExpiredHandling=false;
