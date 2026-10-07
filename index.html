@@ -7135,11 +7135,15 @@ async function exportFullBackup(isAutomatic){
   const a=document.createElement('a');
   a.href=url;
   const timeSuffix=isAutomatic?'_'+new Date().toTimeString().slice(0,5).replace(':','-'):'';
-  a.download=`salesos_backup_${TODAY}${timeSuffix}${complete?'':'_UNVOLLSTAENDIG'}.json`;
+  a.download=`projectos_backup_${TODAY}${timeSuffix}${complete?'':'_UNVOLLSTAENDIG'}.json`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
+  if(complete&&!isAutomatic){
+    // Sichtbare Bestaetigung beim manuellen Export - vorher stand das nur in der Datei (_note).
+    alert(`Backup gespeichert – vollständig.\n\n${leads.length} Leads\n${activities.length} von ${act.total} Kommentaren/Aktivitäten\n${AGENTS.length} Mitarbeiter, ${LABELS.length} Labels, ${ARTICLES.length} Artikel\n\nHinweis: Dateianhänge aus dem Dateispeicher sind nur als Verweis enthalten, nicht als Datei.`);
+  }
   if(!complete&&!isAutomatic){
     alert(`Backup wurde gespeichert, ist aber UNVOLLSTÄNDIG:\n\n${act.error}\n\nLeads, Einstellungen und der eingebettete Verlauf sind enthalten. Bitte ggf. neu anmelden und das Backup wiederholen.`);
   }
