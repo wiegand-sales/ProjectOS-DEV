@@ -953,7 +953,7 @@ let localSettingsTrusted=false;
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-10-07T14:00:00.000Z';
+const BUILD_VERSION='2026-10-07T17:00:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -1775,6 +1775,12 @@ function getDueBackupDate(){
   return `${get('year')}-${get('month')}-${get('day')}_${get('hour')}`;
 }
 async function maybeRunDailyBackup(){
+  // Seit 07.10.2026 erstellt die DATENBANK selbst stuendlich die Cloud-Backups (Funktion
+  // projectos_backup(), Tabelle app_backups, 12 Std. stuendlich + 14 Tage taeglich, inkl.
+  // Kommentare). Der Browser schreibt keine Backups mehr - das spart pro offenem Board einen
+  // grossen Upload pro Stunde, und ein fehlerhafter Browser kann keine Backups mehr loeschen
+  // (die Tabelle ist fuer das Board nur lesbar). Der alte Code unten bleibt vorerst stehen.
+  return;
   try{
     const dueDate=getDueBackupDate();
     if(PROJECT.lastBackupDate===dueDate)return;
@@ -2256,14 +2262,16 @@ async function listAvailableBackups(){
     // Nur Kennung + Zeitpunkt laden. Frueher kam hier jede Komplettkopie (je ~4 MB) mit -
     // bei ~20 Backups ueber 80 MB auf einmal, eine der groessten Einzellasten fuer die DB.
     // Die Lead-Anzahl eines Backups wird beim Anklicken (Wiederherstellen-Dialog) angezeigt.
-    const res=await fetchWithTimeout(`${SUPABASE_URL}/rest/v1/app_state?id=like.backup_*&select=id,updated_at&order=id.desc`,{headers:getSbHeaders()},20000);
+    // Backups liegen seit 07.10.2026 in einer eigenen Tabelle (app_backups). Geladen werden nur
+    // Kennung, Zeitpunkt und die mitgespeicherten Anzahlen - nie die grossen Kopien selbst.
+    const res=await fetchWithTimeout(`${SUPABASE_URL}/rest/v1/app_backups?select=id,created_at,lead_count,activity_count&order=created_at.desc`,{headers:getSbHeaders()},20000);
     if(!res.ok){content.innerHTML=`<p style="color:var(--red)">Backups konnten nicht geladen werden: HTTP ${res.status}</p>`;return;}
     const rows=await res.json();
     if(!rows.length){content.innerHTML=`<p style="font-size:13px;color:var(--text2)">Noch keine automatischen Backups vorhanden.</p>`;return;}
     // Für jedes Backup: Anzahl Aktivitäten die zum Backup-Zeitpunkt schon existierten
     const rowsHtml=rows.map(r=>{
-      const dateStr=r.id.replace('backup_','');
-      const timeLabel=fmtDateTime(r.updated_at);
+      const dateStr=r.id;
+      const timeLabel=fmtDateTime(r.created_at);
       return `<div style="display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:10px;background:#f7f7f5;margin-bottom:8px;cursor:pointer;transition:background .15s" 
         onmouseover="this.style.background='var(--purple-bg)'" 
         onmouseout="this.style.background='#f7f7f5'"
@@ -2273,7 +2281,8 @@ async function listAvailableBackups(){
           <div style="font-size:11px;color:var(--text3);margin-top:2px">${dateStr}</div>
         </div>
         <div style="text-align:right">
-          <div style="font-size:11px;color:var(--text3)">Details beim Öffnen</div>
+          <div style="font-size:12px;font-weight:700;color:var(--purple-dark)">${r.lead_count!=null?r.lead_count+' Leads':''}</div>
+          <div style="font-size:11px;color:var(--text3)">${r.activity_count!=null?r.activity_count+' Kommentare/Aktivitäten':'ohne Kommentare'}</div>
         </div>
         <i class="ti ti-chevron-right" style="color:var(--text3);font-size:16px"></i>
       </div>`;
@@ -2292,7 +2301,7 @@ async function listAvailableBackups(){
 }
 async function previewAndRestoreBackup(dateStr){
   try{
-    const res=await fetch(`${SUPABASE_URL}/rest/v1/app_state?id=eq.backup_${dateStr}&select=data,updated_at`,{headers:getSbHeaders()});
+    const res=await fetchWithTimeout(`${SUPABASE_URL}/rest/v1/app_backups?id=eq.${encodeURIComponent(dateStr)}&select=data,created_at`,{headers:getSbHeaders()},60000);
     if(!res.ok){alert('Backup konnte nicht geladen werden.');return;}
     const rows=await res.json();
     if(!rows.length){alert(`Kein Backup für "${dateStr}" gefunden. Bitte exaktes Format aus der Liste oben verwenden (z.B. 2026-07-09_14).`);return;}
