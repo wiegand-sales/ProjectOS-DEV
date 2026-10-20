@@ -959,7 +959,7 @@ let localSettingsTrusted=false;
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-10-20T20:30:00.000Z';
+const BUILD_VERSION='2026-10-20T21:00:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -2467,10 +2467,10 @@ function buildRestructuredColumns(){
   let unreached=cols.find(c=>c.outcome==='lost'&&/nicht erreicht/i.test(c.name||''));
   if(unreached)upd(unreached,{name:'Verloren: Nicht erreicht',board:A});
   else unreached=ensure('lost_akq_unreached',{name:'Verloren: Nicht erreicht',board:A,outcome:'lost',color:'red'});
-  upd(get('fu_feedback'),{name:'FollowUp: Angekommen',board:T,stage:'feedback'});
-  ensure('fu_tried',{name:'FollowUp: Ausprobiert',board:T,stage:'feedback',color:'teal'});
-  ensure('fu_impression',{name:'FollowUp: Eindruck',board:T,stage:'feedback',color:'teal'});
-  ensure('fu_need',{name:'FollowUp: Bedarf',board:T,stage:'feedback',color:'teal'});
+  upd(get('fu_feedback'),{name:'TP1',board:T,stage:'feedback'});
+  ensure('fu_tried',{name:'TP2',board:T,stage:'feedback',color:'teal'});
+  ensure('fu_impression',{name:'TP3',board:T,stage:'feedback',color:'teal'});
+  ensure('fu_need',{name:'TP4',board:T,stage:'feedback',color:'teal'});
   upd(get('am_offer'),{board:T});
   upd(get('fu_offer'),{board:T});
   upd(get('won'),{name:'Leads: Gewonnen',board:T});
