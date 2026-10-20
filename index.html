@@ -77,6 +77,15 @@ body{font-family:'Inter',sans-serif;background:linear-gradient(155deg,#f2f3f0 0%
 .cal-cell .dn{font-size:12px;font-weight:700;margin-bottom:4px}
 .cal-cell .cal-ev{position:static;display:block;margin-top:3px}
 .cal-more{font-size:11px;color:var(--text3);cursor:pointer;margin-top:3px}
+.fm-sec{display:flex;align-items:center;gap:8px;padding:8px 12px;margin:2px 4px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;color:var(--text)}
+.fm-sec:hover{background:var(--bg2,#f4f6f6)}
+.fm-sec.open{background:var(--purple-bg);color:var(--purple-dark)}
+.fm-sum{margin-left:auto;font-size:11px;font-weight:600;color:var(--text3);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fm-sec.active .fm-sum{color:var(--purple-dark)}
+.fm-sec.open .fm-chev{transform:rotate(90deg)}
+.fm-chev{transition:transform .15s;font-size:14px}
+.fm-body{display:none;padding:0 4px 4px 16px}
+.fm-body.open{display:block}
 .board-part-hint{flex:0 0 260px;align-self:flex-start;border:1.5px dashed var(--purple-dark);border-radius:var(--r-md);padding:16px;background:var(--purple-bg);font-size:13px;color:var(--purple-dark);display:flex;flex-direction:column;gap:10px;}
 .board-part-hint button{align-self:flex-start;}
 .nav-icon-badge{width:36px;height:36px;border-radius:9px;background:linear-gradient(180deg,#27808a 0%,#206A72 100%);box-shadow:0 6px 16px rgba(32,106,114,.3);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
@@ -747,14 +756,12 @@ label{font-size:12px;font-weight:500;color:var(--text2);display:block;margin-bot
           <div class="omni-addfilter-wrap">
             <button class="omnibar-btn" onclick="toggleFilterMenu(event)"><i class="ti ti-plus" style="font-size:12px"></i> Filter</button>
             <div class="filtermenu" id="filterMenu">
-              <h4>Mitarbeiter</h4>
-              <div id="filterMenuAgents"></div>
-              <hr>
-              <h4>Label</h4>
-              <div id="filterMenuLabels"></div>
-              <hr>
-              <h4>Verlustgrund</h4>
-              <div id="filterMenuLoss"></div>
+              <div class="fm-sec" id="fmSecAgents" onclick="toggleFilterSection('agents',event)"><i class="ti ti-user"></i><span>Mitarbeiter</span><span class="fm-sum" id="fmSumAgents"></span><i class="ti ti-chevron-right fm-chev"></i></div>
+              <div id="filterMenuAgents" class="fm-body"></div>
+              <div class="fm-sec" id="fmSecLabels" onclick="toggleFilterSection('labels',event)"><i class="ti ti-tag"></i><span>Label</span><span class="fm-sum" id="fmSumLabels"></span><i class="ti ti-chevron-right fm-chev"></i></div>
+              <div id="filterMenuLabels" class="fm-body"></div>
+              <div class="fm-sec" id="fmSecLoss" onclick="toggleFilterSection('loss',event)"><i class="ti ti-circle-x"></i><span>Verlustgrund</span><span class="fm-sum" id="fmSumLoss"></span><i class="ti ti-chevron-right fm-chev"></i></div>
+              <div id="filterMenuLoss" class="fm-body"></div>
             </div>
           </div>
           <div id="omniTokens" style="display:flex;gap:8px;align-items:center;flex-wrap:nowrap;overflow-x:auto;max-width:320px;flex-shrink:1;"></div>
@@ -999,7 +1006,7 @@ let localSettingsTrusted=false;
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-10-21T12:00:00.000Z';
+const BUILD_VERSION='2026-10-21T12:30:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -3110,6 +3117,7 @@ function renderOmniTokens(){
   labelFilterLabels().forEach(t=>{
     html+=`<div class="omni-token"><i class="ti ti-tag" style="font-size:12px"></i>${esc(t.label)}<i class="ti ti-x" onclick="toggleLabelFilter('${t.id}')"></i></div>`;
   });
+  updateFilterSectionSummaries();
   if(activeLossFilter){
     html+=`<div class="omni-token"><i class="ti ti-circle-x" style="font-size:12px"></i>Verlustgrund: ${esc(activeLossFilter==='__none__'?'Ohne Grund':activeLossFilter)}<i class="ti ti-x" onclick="setLossFilter('')"></i></div>`;
   }
@@ -3143,6 +3151,30 @@ function renderLossFilterMenu(){
   reasons.forEach(r=>{html+=item(r,r,counts[r]);});
   if(none)html+=item('__none__','Ohne Grund',none);
   el.innerHTML=html;
+}
+// Filter-Menue: drei einklappbare Bereiche, immer nur einer offen. Neben jedem Bereich steht
+// die aktuelle Auswahl, damit aktive Filter auch zugeklappt sichtbar sind.
+let filterSectionOpen='';
+function toggleFilterSection(key,e){
+  if(e)e.stopPropagation();
+  filterSectionOpen=filterSectionOpen===key?'':key;
+  applyFilterSections();
+}
+function applyFilterSections(){
+  [['agents','Agents'],['labels','Labels'],['loss','Loss']].forEach(([k,id])=>{
+    const sec=document.getElementById('fmSec'+id),body=document.getElementById('filterMenu'+id);
+    if(sec)sec.classList.toggle('open',filterSectionOpen===k);
+    if(body)body.classList.toggle('open',filterSectionOpen===k);
+  });
+}
+function updateFilterSectionSummaries(){
+  const set=(id,txt,active)=>{const el=document.getElementById('fmSum'+id);if(el)el.textContent=txt;const sec=document.getElementById('fmSec'+id);if(sec)sec.classList.toggle('active',!!active);};
+  const ag=activeAgentFilters.map(f=>f==='unassigned'?'Nicht zugeordnet':((agentById(f)||{}).name||'')).filter(Boolean);
+  set('Agents',ag.length?(ag.length===1?ag[0]:ag.length+' gewählt'):'Alle',ag.length);
+  const lb=activeLabelFilters.map(f=>f==='__none__'?'Ohne Label':((labelById(f)||{}).name||'')).filter(Boolean);
+  set('Labels',lb.length?(lb.length===1?lb[0]:lb.length+' gewählt'):'Alle',lb.length);
+  set('Loss',activeLossFilter?(activeLossFilter==='__none__'?'Ohne Grund':activeLossFilter):'Alle',activeLossFilter);
+  applyFilterSections();
 }
 function renderLabelChips(){
   const el=document.getElementById('filterMenuLabels');
