@@ -722,6 +722,9 @@ label{font-size:12px;font-weight:500;color:var(--text2);display:block;margin-bot
               <hr>
               <h4>Label</h4>
               <div id="filterMenuLabels"></div>
+              <hr>
+              <h4>Verlustgrund</h4>
+              <div id="filterMenuLoss"></div>
             </div>
           </div>
           <div id="omniTokens" style="display:flex;gap:8px;align-items:center;flex-wrap:nowrap;overflow-x:auto;max-width:320px;flex-shrink:1;"></div>
@@ -963,7 +966,7 @@ let localSettingsTrusted=false;
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-10-20T23:00:00.000Z';
+const BUILD_VERSION='2026-10-21T10:00:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -2826,7 +2829,7 @@ function leadMatchesSearch(l,q,phoneKeys){
     ||(l.customerNumber||'').toLowerCase().includes(q)||(l.email||'').toLowerCase().includes(q)
     ||(keys.length>0&&keys.some(k=>normPhone(l.phone).includes(k)));
 }
-function getFilteredLeads(){
+function getFilteredLeads(skipLossFilter){
   const q=(document.getElementById('searchInput').value||'').toLowerCase().trim();
   const qPhoneKeys=phoneQueryKeys(q);
   return leads.filter(l=>{
@@ -2842,6 +2845,10 @@ function getFilteredLeads(){
       if(!(wantsNone&&hasNoLabel)&&!matchesOther)return false;
     }
     if(q&&!leadMatchesSearch(l,q,qPhoneKeys))return false;
+    if(activeLossFilter&&!skipLossFilter&&isLostStatus(l.status)){
+      const r=(l.lossReason||'').trim();
+      if(activeLossFilter==='__none__'?r!=='':r!==activeLossFilter)return false;
+    }
     return true;
   });
 }
@@ -2919,6 +2926,9 @@ function renderOmniTokens(){
   labelFilterLabels().forEach(t=>{
     html+=`<div class="omni-token"><i class="ti ti-tag" style="font-size:12px"></i>${esc(t.label)}<i class="ti ti-x" onclick="toggleLabelFilter('${t.id}')"></i></div>`;
   });
+  if(activeLossFilter){
+    html+=`<div class="omni-token"><i class="ti ti-circle-x" style="font-size:12px"></i>Verlustgrund: ${esc(activeLossFilter==='__none__'?'Ohne Grund':activeLossFilter)}<i class="ti ti-x" onclick="setLossFilter('')"></i></div>`;
+  }
   el.innerHTML=html;
 }
 let filterMenuOpen=false;
@@ -2928,6 +2938,27 @@ function toggleFilterMenu(e){
   if(filterMenuOpen)overflowMenuOpen=false;
   document.getElementById('filterMenu').classList.toggle('show',filterMenuOpen);
   document.getElementById('overflowMenu').classList.remove('show');
+}
+// ── Filter nach Verlustgrund (wirkt NUR auf Verloren-Listen; alle anderen Listen bleiben vollstaendig) ──
+let activeLossFilter='';
+function isLostStatus(statusId){const c=colById(statusId);return !!(c&&c.outcome==='lost');}
+function setLossFilter(v){
+  activeLossFilter=v||'';
+  renderLossFilterMenu();renderOmniTokens();renderBoard();
+}
+function renderLossFilterMenu(){
+  const el=document.getElementById('filterMenuLoss');
+  if(!el)return;
+  const base=getFilteredLeads(true).filter(l=>isLostStatus(l.status)&&leadBoardPart(l)===currentBoardPart);
+  const counts={};let none=0;
+  base.forEach(l=>{const r=(l.lossReason||'').trim();if(r)counts[r]=(counts[r]||0)+1;else none++;});
+  if(!('Keine Rückmeldung' in counts))counts['Keine Rückmeldung']=0;
+  const reasons=Object.keys(counts).sort((a,b)=>counts[b]-counts[a]||a.localeCompare(b));
+  const item=(val,label,n)=>`<div class="filtermenu-item ${activeLossFilter===val?'active':''}" onclick="event.stopPropagation();setLossFilter('${val.replace(/'/g,"\\'")}')"${n===0&&val?' style="opacity:.55"':''}><span>${esc(label)}</span><span style="margin-left:auto;display:flex;align-items:center;gap:6px;color:var(--text3);font-size:12px">${n}${activeLossFilter===val?'<i class="ti ti-check"></i>':''}</span></div>`;
+  let html=item('','Alle Gründe',base.length);
+  reasons.forEach(r=>{html+=item(r,r,counts[r]);});
+  if(none)html+=item('__none__','Ohne Grund',none);
+  el.innerHTML=html;
 }
 function renderLabelChips(){
   const el=document.getElementById('filterMenuLabels');
@@ -3109,6 +3140,7 @@ function renderBoard(){
   }
   board.innerHTML = partHintHtml + colsHtml + addTileHtml;
   renderBoardSortMenu();
+  renderLossFilterMenu();
   {const t=document.getElementById('boardPartTitle');if(t)t.textContent=BOARD_PARTS[currentBoardPart];}
   renderBoardNav();
 
@@ -4916,7 +4948,6 @@ function renderSettings(){
         <div class="btn-row">
           <button class="btn" onclick="exportFullBackup()"><i class="ti ti-database-export"></i> Alle Daten als Backup exportieren (JSON)</button>
           <button class="btn" onclick="runDataIntegrityCheck()"><i class="ti ti-stethoscope"></i> Datenintegrität jetzt prüfen</button>
-          <button class="btn" onclick="runBoardRestructure()"><i class="ti ti-layout-columns"></i> Board-Umbau: SQL &amp; PQL</button>
           <button class="btn" onclick="listAvailableBackups()"><i class="ti ti-history"></i> Backups anzeigen / wiederherstellen</button>
           <button class="btn" onclick="migrateLegacyAttachmentsToStorage()"><i class="ti ti-file-upload"></i> Alte Anhänge in den Dateispeicher übertragen</button>
         </div>
@@ -5219,7 +5250,7 @@ function cardHtml(l,isFirst,isLast){
     </div>`}
     <div class="card-company">${esc(l.company)} ${agingHtml}</div>
     <div class="card-contact">${esc(l.contact)}${l.customerNumber?` · ${esc(l.customerNumber)}`:''}</div>
-    <div class="card-labels-slot">${labelsHtml}</div>
+    <div class="card-labels-slot">${labelsHtml}${(isLostStatus(l.status)&&l.lossReason)?`<span class="label-chip" style="background:#fcebeb;color:#a32d2d">${esc(l.lossReason)}</span>`:''}</div>
     <div class="card-badges-row">${metaBadges.join('')}</div>
     ${(!bulkMode&&l.status==='am_order'&&colById('fu_feedback'))?`<button class="card-handover" onclick="event.stopPropagation();handOverToPql(${l.id})" title="Nach „${esc(colById('fu_feedback').name)}“ im Board: PQL schieben"><i class="ti ti-arrow-right"></i> An PQL übergeben</button>`:''}
     <div class="card-spacer"></div>
@@ -5341,14 +5372,17 @@ function blocksLeavingFirstColumn(lead,newStatus){
 // "AM: Auftrag", "Verloren: Kein Interesse" (Board: SQL) oder in irgendeine Liste von Board: PQL.
 // NICHT bei Offen, Rueckruf, NE 1-4 und "Verloren: Nicht erreicht" - dort gab es kein Gespraech.
 // Fehlt das Datum, setzt das Board heute ein; im Lead jederzeit korrigierbar.
-function requiresFirstContact(statusId){
+function requiresFirstContact(statusId,lead){
   const c=colById(statusId);
   if(!c)return false;
   if(colBoard(c)==='vertrieb')return true;
-  return c.id==='am_order'||c.id==='lost_akq_interest';
+  if(c.id==='am_order')return true;
+  // Verloren im Board: SQL: Erstkontakt nur, wenn wirklich gesprochen wurde - also nicht bei "Nicht Erreichbar".
+  if(c.outcome==='lost')return !!(lead&&lead.lossReason&&lead.lossReason!=='Nicht Erreichbar');
+  return false;
 }
 function ensureFirstContactFor(lead,newStatus){
-  if(lead&&!lead.firstContact&&requiresFirstContact(newStatus)){lead.firstContact=TODAY;return true;}
+  if(lead&&!lead.firstContact&&requiresFirstContact(newStatus,lead)){lead.firstContact=TODAY;return true;}
   return false;
 }
 function warnMissingFirstContact(company){
@@ -6981,7 +7015,8 @@ function nextNotReachedStatus(statusId){
   if(cur.neLevel){
     const nxt=ne.find(c=>c.neLevel===cur.neLevel+1);
     if(nxt)return nxt.id;
-    const lost=COLUMNS.find(c=>c.outcome==='lost'&&colBoard(c)==='akquise'&&/nicht erreicht/i.test(c.name||''));
+    const lostCols=COLUMNS.filter(c=>c.outcome==='lost'&&colBoard(c)==='akquise');
+    const lost=lostCols.find(c=>/nicht erreicht/i.test(c.name||''))||lostCols[0];
     return lost?lost.id:null;
   }
   return null;
