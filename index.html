@@ -936,6 +936,13 @@ label{font-size:12px;font-weight:500;color:var(--text2);display:block;margin-bot
   <div class="modal-sm" id="agentModalInner"></div>
 </div>
 
+<div class="wizard-overlay hidden" id="apptReminderOverlay" style="z-index:300">
+  <div class="wizard-card" style="min-height:0">
+    <div class="wizard-body" id="apptReminderBody" style="padding:34px 30px 18px"></div>
+    <div class="wizard-footer"><div></div><button class="wizard-next-btn" onclick="closeApptReminder()">OK <i class="ti ti-check"></i></button></div>
+  </div>
+</div>
+
 <div class="wizard-overlay hidden" id="loginWizardOverlay">
   <div class="wizard-card">
     <button class="wizard-skip" onclick="closeLoginWizard()">Überspringen</button>
@@ -1054,7 +1061,7 @@ let localSettingsTrusted=false;
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-10-21T15:00:00.000Z';
+const BUILD_VERSION='2026-10-21T16:00:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -8965,12 +8972,13 @@ function wizardTeamTopForecastList(){
 let wizardPage=0;
 function wizardPageCount(){
   const me=agentById(currentUser);
-  return(me&&me.role==='am')?7:6;
+  return(me&&me.role==='am')?5:6;
 }
 function openLoginWizard(){
   const me=agentById(currentUser);
   if(!me)return;
   wizardPage=0;
+  if(me.role==='am')loadWizardYesterday();
   renderWizardPage();
   document.getElementById('loginWizardOverlay').classList.remove('hidden');
 }
@@ -8996,53 +9004,120 @@ function renderWizardPage(){
   if(me&&me.role==='am'){renderAmWizardPage(body);}
   else{renderAdminWizardPage(body);}
 }
+// ── Assistent fuer Account Manager (5 Seiten, Okt. 2026) ──
+// 1 Ueberfaellig (3 aelteste + Jetzt planen) · 2 Heute geplant · 3 Gestern (eigene Zahlen + Team)
+// 4 Offene Angebote (5 aelteste) · 5 Dir zugewiesen + Spruch des Tages
+let wizardYesterday=null;
+function wizardLastWorkday(){const d=new Date(TODAY+'T00:00:00');do{d.setDate(d.getDate()-1);}while(d.getDay()===0||d.getDay()===6);return d;}
+async function loadWizardYesterday(){
+  wizardYesterday={loading:true};
+  try{
+    const d=wizardLastWorkday();const from=calYmd(d);const nx=new Date(d);nx.setDate(nx.getDate()+1);const to=calYmd(nx);
+    const rows=await fetchAllRows(`lead_activities?select=lead_id,author,type,text,date&date=gte.${from}&date=lt.${to}&order=id.asc`,{timeoutMs:15000});
+    const amOrder=colById('am_order');const wonNames=COLUMNS.filter(c=>c.outcome==='won').map(c=>c.name);
+    const toAmOrder=r=>r.type==='activity'&&amOrder&&/^Status geändert:/.test(r.text||'')&&(r.text||'').endsWith('→ '+amOrder.name);
+    const toWon=r=>r.type==='activity'&&/^Status geändert:/.test(r.text||'')&&wonNames.some(n=>(r.text||'').endsWith('→ '+n));
+    const mine=new Set(wizardLeadScope().map(l=>String(l.id)));
+    wizardYesterday={date:from,
+      toner:rows.filter(r=>toAmOrder(r)&&r.author===currentUser).length,
+      tonerTeam:rows.filter(toAmOrder).length,
+      talks:rows.filter(r=>r.type==='comment'&&r.author===currentUser).length,
+      wins:[...new Set(rows.filter(r=>toWon(r)&&mine.has(String(r.lead_id))).map(r=>String(r.lead_id)))].map(id=>leads.find(l=>String(l.id)===id)).filter(Boolean)};
+  }catch(e){wizardYesterday={error:true};}
+  if(wizardPage===2&&!document.getElementById('loginWizardOverlay').classList.contains('hidden'))renderWizardPage();
+}
+// ── Erinnerung 5 Minuten vor einem eigenen Termin (Follow-up mit Uhrzeit) ──
+// Prueft alle 30 s. Jeder Termin erinnert genau einmal (Merker im Browser, je Lead + Terminzeit).
+const APPT_REMIND_MIN=5;
+function apptRemindedLoad(){try{return JSON.parse(localStorage.getItem('projectos_appt_reminded')||'{}');}catch(e){return {};}}
+function apptRemindedSave(m){try{const cut=Date.now()-2*86400000;Object.keys(m).forEach(k=>{if(m[k]<cut)delete m[k];});localStorage.setItem('projectos_appt_reminded',JSON.stringify(m));}catch(e){}}
+function dueApptReminders(nowDate){
+  const now=nowDate||new Date();const today=calYmd(now);const nowMin=now.getHours()*60+now.getMinutes()+now.getSeconds()/60;
+  const done=apptRemindedLoad();
+  return leads.filter(l=>!isClosedLead(l)&&(l.members||[]).includes(currentUser)).map(l=>({l,p:calParse(l.followup)}))
+    .filter(x=>x.p&&x.p.date===today&&x.p.min-nowMin>0&&x.p.min-nowMin<=APPT_REMIND_MIN&&!done[String(x.l.id)+'|'+x.l.followup])
+    .sort((a,b)=>a.p.min-b.p.min);
+}
+function checkApptReminders(nowDate){
+  if(!currentUser||!leads.length)return;
+  const due=dueApptReminders(nowDate);
+  if(!due.length)return;
+  const m=apptRemindedLoad();due.forEach(x=>{m[String(x.l.id)+'|'+x.l.followup]=Date.now();});apptRemindedSave(m);
+  const body=document.getElementById('apptReminderBody');if(!body)return;
+  const now=nowDate||new Date();const nowMin=now.getHours()*60+now.getMinutes();
+  const idArg=l=>typeof l.id==='number'?l.id:JSON.stringify(String(l.id)).replace(/"/g,'&quot;');
+  body.innerHTML=`<div class="wizard-icon"><i class="ti ti-bell-ringing"></i></div>
+    <div class="wizard-title">${due.length===1?`Termin in ${Math.max(1,Math.round(due[0].p.min-nowMin))} Minuten`:`${due.length} Termine in Kürze`}</div>
+    ${due.map(x=>{const c=colById(x.l.status);return wizardRow(`<span style="color:#9fe1cb;margin-right:8px">${x.p.time}</span>${esc(x.l.company)}`,esc([x.l.contact,x.l.phone,c?c.name:''].filter(Boolean).join(' · ')),'<i class="ti ti-arrow-right"></i>',`closeApptReminder();openLeadModal(${idArg(x.l)})`);}).join('')}
+    <div class="wizard-sub">Klick öffnet den Lead.</div>`;
+  document.getElementById('apptReminderOverlay').classList.remove('hidden');
+}
+function closeApptReminder(){document.getElementById('apptReminderOverlay').classList.add('hidden');}
+setInterval(()=>{try{checkApptReminders();}catch(e){}},30000);
+function wizardJumpToPlanning(){
+  closeLoginWizard();
+  calViewMode='week';calPlanPanel=true;calWeekStart=null;
+  try{localStorage.setItem('projectos_cal_view','week');localStorage.setItem('projectos_cal_plan','1');}catch(e){}
+  switchView('calendar');
+}
+function wizardRow(main,sub,right,onclick){
+  return `<div class="wizard-taskrow" ${onclick?`style="cursor:pointer" onclick="${onclick}"`:''}><div style="flex:1;min-width:0;text-align:left"><div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${main}</div>${sub?`<div style="font-size:11px;opacity:.7">${sub}</div>`:''}</div>${right?`<div style="font-weight:700;white-space:nowrap">${right}</div>`:''}</div>`;
+}
+function wizardOpenLead(id){closeLoginWizard();openLeadModal(id);}
 function renderAmWizardPage(body){
+  const scope=wizardLeadScope().filter(l=>!isClosedLead(l));
+  const colName=l=>{const c=colById(l.status);return c?c.name:'';};
+  const idArg=l=>typeof l.id==='number'?l.id:JSON.stringify(String(l.id)).replace(/"/g,'&quot;');
   if(wizardPage===0){
-    const n=wizardOverdueCount();
+    const od=scope.filter(l=>l.followup&&daysUntil(l.followup)<0).sort((a,b)=>daysUntil(a.followup)-daysUntil(b.followup));
+    const n=od.length;
     body.innerHTML=`
       <div class="wizard-icon"><i class="ti ti-alert-triangle"></i></div>
       <div class="wizard-stat" style="color:#ffb4a8">${n}</div>
-      <div class="wizard-title">${n===1?'Überfällige Aufgabe':'Überfällige Aufgaben'}</div>
-      <div class="wizard-sub">${n?`Du hast ${n} Follow-up${n===1?'':'s'}, deren Frist bereits verstrichen ${n===1?'ist':'sind'}. Am besten zuerst erledigen.`:'Alles im grünen Bereich – aktuell keine überfälligen Follow-ups.'}</div>`;
+      <div class="wizard-title">${n===1?'Überfälliges Follow-up':'Überfällige Follow-ups'}</div>
+      ${n?od.slice(0,3).map(l=>wizardRow(esc(l.company),`${esc(colName(l))} · seit ${Math.abs(daysUntil(l.followup))} Tagen`,'',`wizardOpenLead(${idArg(l)})`)).join('')
+        +`<button class="wizard-next-btn" style="margin-top:6px;background:transparent;color:#fff;border:1px solid rgba(255,255,255,.4)" onclick="wizardJumpToPlanning()">Jetzt planen <i class="ti ti-arrow-right"></i></button>`
+        :'<div class="wizard-sub">Alles im grünen Bereich – aktuell keine überfälligen Follow-ups.</div>'}`;
   }else if(wizardPage===1){
-    const c=wizardStageCounts();
+    const today=TODAY;
+    const timed=scope.map(l=>({l,p:calParse(l.followup)})).filter(x=>x.p&&x.p.date===today).sort((a,b)=>a.p.min-b.p.min);
+    const untimed=scope.filter(l=>l.followup&&!calParse(l.followup)&&(l.followup||'').slice(0,10)===today).length;
     body.innerHTML=`
-      <div class="wizard-title" style="margin-bottom:4px">Deine Follow-up-Pipeline</div>
-      <div class="wizard-sub" style="margin-bottom:6px">Leads, die gerade auf eine Rückmeldung warten</div>
-      <div class="wizard-stagerow">
-        <div class="wizard-stagebox"><strong>${c.qual}</strong><span>Qualifizierung</span></div>
-        <div class="wizard-stagebox"><strong>${c.feedback}</strong><span>Feedback</span></div>
-        <div class="wizard-stagebox"><strong>${c.offer}</strong><span>Angebot</span></div>
-      </div>`;
+      <div class="wizard-icon"><i class="ti ti-calendar-time"></i></div>
+      <div class="wizard-title" style="margin-bottom:8px">Heute geplant${timed.length?` · ${timed.length} ${timed.length===1?'Termin':'Termine'}`:''}</div>
+      ${timed.length?timed.slice(0,6).map(x=>wizardRow(`<span style="color:#9fe1cb;margin-right:8px">${x.p.time}</span>${esc(x.l.company)}`,esc(colName(x.l)),'',`wizardOpenLead(${idArg(x.l)})`)).join('')+(timed.length>6?`<div class="wizard-sub">+${timed.length-6} weitere im Kalender</div>`:'')
+        :'<div class="wizard-sub">Für heute sind noch keine Termine mit Uhrzeit geplant.</div>'}
+      ${untimed?`<button class="wizard-next-btn" style="margin-top:6px;background:transparent;color:#fff;border:1px solid rgba(255,255,255,.4)" onclick="wizardJumpToPlanning()">${untimed} ${untimed===1?'Wiedervorlage':'Wiedervorlagen'} noch ohne Uhrzeit <i class="ti ti-arrow-right"></i></button>`:''}`;
   }else if(wizardPage===2){
-    const items=wizardAssignedTasks();
+    const y=wizardYesterday;const d=wizardLastWorkday();
+    const label=`${['So','Mo','Di','Mi','Do','Fr','Sa'][d.getDay()]} ${String(d.getDate()).padStart(2,'0')}.${String(d.getMonth()+1).padStart(2,'0')}.`;
+    const v=k=>(!y||y.loading)?'…':(y.error?'–':y[k]);
     body.innerHTML=`
-      <div class="wizard-title" style="margin-bottom:10px">Dir zugewiesene Aufgaben</div>
-      ${items.length?items.map(x=>`<div class="wizard-taskrow"><i class="ti ti-checkbox"></i><div style="flex:1;min-width:0;text-align:left"><div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(x.task.text)}</div><div style="font-size:10.5px;color:rgba(255,255,255,.6)">${esc(x.lead.company)}${x.task.dueDate?' · '+fmtDate(x.task.dueDate):''}</div></div></div>`).join(''):'<div class="wizard-sub">Aktuell sind dir keine offenen Aufgaben zugewiesen.</div>'}`;
+      <div class="wizard-icon"><i class="ti ti-chart-arrows"></i></div>
+      <div class="wizard-title" style="margin-bottom:8px">${new Date(TODAY+'T00:00:00').getDay()===1?'Letzter Freitag':'Gestern'} · ${label}</div>
+      <div class="wizard-stagerow">
+        <div class="wizard-stagebox"><strong>${v('toner')}</strong><span>Free Toner zugesagt</span></div>
+        <div class="wizard-stagebox"><strong>${v('talks')}</strong><span>Gespräche</span></div>
+        <div class="wizard-stagebox"><strong>${y&&y.wins?y.wins.length:v('wins')}</strong><span>gewonnen</span></div>
+      </div>
+      ${y&&y.wins&&y.wins.length?y.wins.slice(0,3).map(l=>wizardRow(`<i class="ti ti-confetti" style="color:#fac775;margin-right:6px"></i>${esc(l.company)}`,'gewonnen',l.forecast?fmtEur(l.forecast):'',`wizardOpenLead(${idArg(l)})`)).join(''):''}
+      ${y&&!y.loading&&!y.error?`<div class="wizard-sub">Team gesamt: ${y.tonerTeam} Free-Toner-${y.tonerTeam===1?'Zusage':'Zusagen'}</div>`:''}`;
   }else if(wizardPage===3){
-    const wins=wizardRecentWins();
+    const offers=scope.filter(l=>l.status==='am_offer'||isStage(l.status,'offer')).sort((a,b)=>String(a.statusSince||'9999').localeCompare(String(b.statusSince||'9999')));
+    const sum=offers.reduce((s,l)=>s+(parseFloat(l.forecast)||0),0);
+    const age=l=>l.statusSince?Math.max(0,Math.round((new Date(TODAY+'T00:00:00')-new Date(String(l.statusSince).slice(0,10)+'T00:00:00'))/86400000)):null;
     body.innerHTML=`
-      <div class="wizard-icon"><i class="ti ti-trophy"></i></div>
-      <div class="wizard-title" style="margin-bottom:${wins.length?'10px':'0'}">Kürzlich gewonnene Leads</div>
-      ${wins.length?wins.map(l=>`<div class="wizard-taskrow"><i class="ti ti-confetti"></i><div style="flex:1;min-width:0;text-align:left"><div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(l.company)}</div><div style="font-size:10.5px;color:rgba(255,255,255,.6)">${l.forecast?fmtEur(l.forecast)+' · ':''}${fmtDate(l.closedAt)}</div></div></div>`).join(''):'<div class="wizard-sub">Diese Woche noch kein Abschluss verbucht – die nächste Chance wartet schon.</div>'}`;
-  }else if(wizardPage===4){
-    const sum=wizardOpenForecastSum();
-    body.innerHTML=`
-      <div class="wizard-icon"><i class="ti ti-coin"></i></div>
-      <div class="wizard-stat">${fmtEur(sum)||'0 €'}</div>
-      <div class="wizard-title">Offener Forecast-Wert</div>
-      <div class="wizard-sub">So viel potenzieller Umsatz steckt gerade in deiner aktiven Pipeline.</div>`;
-  }else if(wizardPage===5){
-    const top=wizardTopPriorityLead();
-    body.innerHTML=`
-      <div class="wizard-icon"><i class="ti ti-flag-3"></i></div>
-      <div class="wizard-title" style="margin-bottom:${top?'6px':'0'}">Top-Priorität heute</div>
-      ${top?`<div class="wizard-taskrow" style="cursor:pointer" onclick="closeLoginWizard();openLeadModal(${top.lead.id})"><i class="ti ti-arrow-right"></i><div style="flex:1;min-width:0;text-align:left"><div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(top.lead.company)}</div><div style="font-size:10.5px;color:rgba(255,255,255,.6)">${top.reason==='overdue'?`Follow-up seit ${Math.abs(daysUntil(top.lead.followup))} Tag${Math.abs(daysUntil(top.lead.followup))===1?'':'en'} überfällig`:`Höchster offener Forecast: ${fmtEur(top.lead.forecast)}`}</div></div></div><div class="wizard-sub" style="margin-top:10px">Klicke darauf, um direkt hineinzuspringen.</div>`:'<div class="wizard-sub">Aktuell nichts Dringendes – ein guter Moment für neue Kontakte.</div>'}`;
+      <div class="wizard-icon"><i class="ti ti-file-invoice"></i></div>
+      <div class="wizard-title" style="margin-bottom:8px">Offene Angebote${offers.length>5?' · die 5 ältesten':''}</div>
+      ${offers.length?offers.slice(0,5).map(l=>wizardRow(esc(l.company),`${esc(colName(l))}${age(l)!==null?` · seit ${age(l)} Tagen`:''}`,l.forecast?fmtEur(l.forecast):'',`wizardOpenLead(${idArg(l)})`)).join('')
+        +`<div class="wizard-sub">${offers.length} offene ${offers.length===1?'Angebot':'Angebote'} · ${fmtEur(sum)||'0 €'}</div>`
+        :'<div class="wizard-sub">Aktuell keine offenen Angebote.</div>'}`;
   }else{
+    const items=wizardAssignedTasks();
     const quote=pickNextMotivationQuote();
     body.innerHTML=`
-      <div class="wizard-icon"><i class="ti ti-bulb"></i></div>
-      <div class="wizard-quote">"${esc(quote)}"</div>`;
+      ${items.length?`<div class="wizard-title" style="margin-bottom:8px">Dir zugewiesen</div>`+items.map(x=>wizardRow(esc(x.task.text||x.task.title||'Aufgabe'),`${esc(x.lead.company)}${x.task.dueDate?' · '+fmtDate(x.task.dueDate):''}`,'',`wizardOpenLead(${idArg(x.lead)})`)).join(''):`<div class="wizard-icon"><i class="ti ti-bulb"></i></div>`}
+      <div class="wizard-quote" style="margin-top:10px">"${esc(quote)}"</div>`;
   }
 }
 function renderAdminWizardPage(body){
