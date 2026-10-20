@@ -959,7 +959,7 @@ let localSettingsTrusted=false;
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-10-20T19:00:00.000Z';
+const BUILD_VERSION='2026-10-20T19:30:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -2460,7 +2460,7 @@ function buildRestructuredColumns(){
   const ensure=(id,props)=>{let c=get(id);if(!c){c=Object.assign({id,color:'gray'},props);cols.push(c);log.push(`neu: „${props.name}“ (${BOARD_PARTS[props.board]})`);}else upd(c,props);return c;};
   const A='akquise',T='vertrieb';
   upd(get('open'),{name:'Leads: Offen',board:A});
-  upd(get('fu_qual'),{name:'Leads: Qualifizierung',board:A});
+  upd(get('fu_qual'),{name:'FollowUp: Rückruf',board:A});
   for(let n=1;n<=4;n++)ensure('fu_ne'+n,{name:'FollowUp: NE '+n,board:A,stage:'qual',neLevel:n,color:'amber'});
   upd(get('am_order'),{board:A});
   ensure('lost_akq_interest',{name:'Verloren: Kein Interesse',board:A,outcome:'lost',color:'red'});
