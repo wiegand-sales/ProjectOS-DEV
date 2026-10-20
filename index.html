@@ -123,6 +123,8 @@ body{font-family:'Inter',sans-serif;background:linear-gradient(155deg,#f2f3f0 0%
 .cal-it:hover{border-color:#206A72}
 .cal-it small{display:block;color:var(--text3);font-size:11px}
 .cal-it.od{box-shadow:inset 3px 0 0 #e24b4a}
+.omnibar-btn.on{background:var(--purple-bg);color:var(--purple-dark);border-color:var(--purple-dark)}
+.cal-person{height:34px;border:1px solid var(--border2,#dfe7e6);border-radius:var(--r-md,8px);padding:0 30px 0 10px;font-size:13px;font-weight:600;font-family:inherit;background:var(--bg,#fff);color:var(--text);cursor:pointer}
 .board-part-hint{flex:0 0 260px;align-self:flex-start;border:1.5px dashed var(--purple-dark);border-radius:var(--r-md);padding:16px;background:var(--purple-bg);font-size:13px;color:var(--purple-dark);display:flex;flex-direction:column;gap:10px;}
 .board-part-hint button{align-self:flex-start;}
 .nav-icon-badge{width:36px;height:36px;border-radius:9px;background:linear-gradient(180deg,#27808a 0%,#206A72 100%);box-shadow:0 6px 16px rgba(32,106,114,.3);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
@@ -877,6 +879,7 @@ label{font-size:12px;font-weight:500;color:var(--text2);display:block;margin-bot
           <i class="ti ti-search omni-search-icon"></i>
           <input type="text" class="omni-input" id="calendarSearch" placeholder="Suche" oninput="renderCalendar()">
           <div class="omni-spacer"></div>
+          <div id="calTopActions" style="display:flex;gap:8px;align-items:center;flex-shrink:0"></div>
         </div>
       </div>
       <div class="view-scroll" id="calendarContent"></div>
@@ -1061,7 +1064,7 @@ let localSettingsTrusted=false;
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-10-21T16:30:00.000Z';
+const BUILD_VERSION='2026-10-21T17:00:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -2792,7 +2795,7 @@ function renderCalendar(){
     const ws=new Date(calWeekStart+'T00:00:00');const we=new Date(ws);we.setDate(we.getDate()+4);
     label=`${ws.getDate()}. ${mShort[ws.getMonth()]} – ${we.getDate()}. ${mShort[we.getMonth()]} ${we.getFullYear()} (KW ${calIsoWeek(ws)})`;
   } else label=`${mFull[calMonth]} ${calYear}`;
-  const agentSel=isAdmin()?`<select onchange="calSetAgent(this.value)" style="height:34px;border:1px solid var(--border2,#dfe7e6);border-radius:var(--r-md,8px);padding:0 8px;font-size:12px">${activeAgents().map(a=>`<option value="${a.id}" ${calAgent===a.id?'selected':''}>${esc(a.name)}</option>`).join('')}<option value="all" ${calAgent==='all'?'selected':''}>Alle</option></select>`:'';
+  const agentSel=isAdmin()?`<select class="cal-person" onchange="calSetAgent(this.value)" title="Wessen Kalender">${activeAgents().map(a=>`<option value="${a.id}" ${calAgent===a.id?'selected':''}>${esc(a.name)}</option>`).join('')}<option value="all" ${calAgent==='all'?'selected':''}>Alle</option></select>`:'';
   let h=`<div class="cal-box"><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px">
     <button class="cal-btn ${calViewMode==='week'?'on':''}" onclick="setCalView('week')">Woche</button>
     <button class="cal-btn ${calViewMode==='month'?'on':''}" onclick="setCalView('month')">Monat</button>
@@ -2800,9 +2803,7 @@ function renderCalendar(){
     <button class="cal-btn sq" onclick="calNav(-1)" title="Zurück"><i class="ti ti-chevron-left"></i></button>
     <button class="cal-btn sq" onclick="calNav(1)" title="Weiter"><i class="ti ti-chevron-right"></i></button>
     <div style="position:relative"><div onclick="calToggleMini(event)" style="font-size:14px;font-weight:700;padding:6px 10px;border-radius:6px;cursor:pointer;display:flex;align-items:center;gap:5px" id="calLabel">${label} <i class="ti ti-chevron-down" style="font-size:13px;color:var(--text3)"></i></div>${calMiniOpen?(()=>{const curY=calViewMode==='week'?new Date(calWeekStart+'T00:00:00').getFullYear():calYear;const curM=calViewMode==='week'?new Date(calWeekStart+'T00:00:00').getMonth():calMonth;return `<div class="cal-mini" onclick="event.stopPropagation()"><div style="display:flex;align-items:center;justify-content:space-between"><button class="cal-btn sq" style="height:28px;width:28px" onclick="calMiniYearNav(-1,event)"><i class="ti ti-chevron-left"></i></button><b style="font-size:14px">${calMiniYear}</b><button class="cal-btn sq" style="height:28px;width:28px" onclick="calMiniYearNav(1,event)"><i class="ti ti-chevron-right"></i></button></div><div class="cal-mini-grid">${mShort.map((mn,i)=>`<button class="${calMiniYear===curY&&i===curM?'on':''}" onclick="calJumpMonth(${calMiniYear},${i},event)">${mn}</button>`).join('')}</div></div>`;})():''}</div>
-    <div style="flex:1"></div>${agentSel}
-    ${calViewMode==='week'?`<button class="cal-btn ${calPlanPanel?'on':''}" onclick="calTogglePlanPanel()" title="Seitenleiste ein-/ausblenden"><i class="ti ti-list-check"></i> Zu planen <b>${calPlanItems().length}</b></button>`:''}
-    <button class="cal-btn ap-primary" onclick="openCalAppt()"><i class="ti ti-plus"></i> Termin</button>
+    <div style="flex:1"></div>
     <div style="display:flex;gap:12px;font-size:11px;color:var(--text3);align-items:center">
       <span><span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:#0e6870"></span> Board: SQL</span>
       <span><span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:#ba7517"></span> Board: PQL</span>
@@ -2852,6 +2853,11 @@ function renderCalendar(){
   if(!evs.length)h+=`<div style="margin-top:12px;font-size:12px;color:var(--text3)">Keine Termine mit Uhrzeit. Termine erscheinen hier, sobald bei einem Follow-up eine Uhrzeit eingetragen ist.</div>`;
   h+=`</div>`;
   el.innerHTML=h;
+  // Personenauswahl, "Zu planen" und "+ Termin" sitzen rechts in der Suchleiste - wie im Board
+  const top=document.getElementById('calTopActions');
+  if(top)top.innerHTML=`${agentSel}
+    ${calViewMode==='week'?`<button class="omnibar-btn ${calPlanPanel?'on':''}" onclick="calTogglePlanPanel()" title="Seitenleiste ein-/ausblenden"><i class="ti ti-list-check"></i> Zu planen <b>${calPlanItems().length}</b></button>`:''}
+    <button class="omnibar-btn primary" onclick="openCalAppt()"><i class="ti ti-plus"></i> Termin</button>`;
 }
 // ── Termin planen (Fenster im Stil von Sales OS) ──
 // Setzt beim gewaehlten Lead das Follow-up auf Datum + Startzeit - dasselbe Feld wie im Lead-Fenster
