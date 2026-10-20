@@ -92,6 +92,27 @@ body{font-family:'Inter',sans-serif;background:linear-gradient(155deg,#f2f3f0 0%
 .fm-chev{transition:transform .15s;font-size:14px}
 .fm-body{display:none;padding:0 4px 4px 16px}
 .fm-body.open{display:block}
+.ap-head{background:#206A72;color:#fff;padding:14px 20px;font-size:16px;font-weight:700;display:flex;gap:8px;align-items:center}
+.ap-body{padding:4px 20px 8px;max-height:70vh;overflow-y:auto}
+.ap-sec{font-size:11px;font-weight:700;color:#206A72;text-transform:uppercase;letter-spacing:.04em;margin:16px 0 6px;display:flex;gap:6px;align-items:center}
+.ap-blk{border-left:2px solid #206A72;padding-left:14px}
+.ap-lbl{font-size:12px;font-weight:600;color:var(--text2);margin:8px 0 4px}
+.ap-lbl small{font-weight:400;color:var(--text3)}
+.ap-blk input,.ap-blk select,.ap-blk textarea{width:100%;box-sizing:border-box}
+.ap-body input:focus,.ap-body select:focus,.ap-body textarea:focus{border-color:#206A72;box-shadow:0 0 0 3px rgba(32,106,114,.15);outline:none}
+.ap-g3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.ap-res{border:1px solid var(--border2,#dfe7e6);border-radius:8px;margin-top:6px;overflow:hidden}
+.ap-row{display:flex;align-items:center;gap:8px;padding:8px 10px;font-size:13px;cursor:pointer;border-top:1px solid var(--border2,#dfe7e6)}
+.ap-row:first-child{border-top:0}
+.ap-row:hover{background:#f0f6f6}
+.ap-row small{display:block;color:var(--text3);font-size:11px}
+.ap-row.on{background:#e3f0f0;color:#0b4f55;box-shadow:inset 3px 0 0 #206A72}
+.ap-badge{margin-left:auto;font-size:11px;font-weight:600;color:var(--text3);white-space:nowrap}
+.ap-note{border-radius:8px;padding:7px 10px;font-size:12px;margin-top:8px;display:flex;gap:6px;align-items:flex-start}
+.ap-warn{background:#faeeda;color:#633806}
+.ap-info{background:#e3f0f0;color:#0b4f55}
+.ap-err{background:#fcebeb;color:#a32d2d}
+.ap-primary{background:#206A72!important;border-color:#206A72!important;color:#fff!important}
 .board-part-hint{flex:0 0 260px;align-self:flex-start;border:1.5px dashed var(--purple-dark);border-radius:var(--r-md);padding:16px;background:var(--purple-bg);font-size:13px;color:var(--purple-dark);display:flex;flex-direction:column;gap:10px;}
 .board-part-hint button{align-self:flex-start;}
 .nav-icon-badge{width:36px;height:36px;border-radius:9px;background:linear-gradient(180deg,#27808a 0%,#206A72 100%);box-shadow:0 6px 16px rgba(32,106,114,.3);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
@@ -897,6 +918,10 @@ label{font-size:12px;font-weight:500;color:var(--text2);display:block;margin-bot
   <div class="modal-lg" id="leadModalInner"></div>
 </div>
 
+<div class="modal-overlay hidden" id="calApptModal">
+  <div class="modal-sm" id="calApptModalInner" style="max-width:560px;width:100%;padding:0;overflow:hidden"></div>
+</div>
+
 <div class="modal-overlay hidden" id="agentModal">
   <div class="modal-sm" id="agentModalInner"></div>
 </div>
@@ -1019,7 +1044,7 @@ let localSettingsTrusted=false;
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-10-21T13:00:00.000Z';
+const BUILD_VERSION='2026-10-21T14:00:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -2710,6 +2735,7 @@ function renderCalendar(){
     <button class="cal-btn sq" onclick="calNav(1)" title="Weiter"><i class="ti ti-chevron-right"></i></button>
     <div style="position:relative"><div onclick="calToggleMini(event)" style="font-size:14px;font-weight:700;padding:6px 10px;border-radius:6px;cursor:pointer;display:flex;align-items:center;gap:5px" id="calLabel">${label} <i class="ti ti-chevron-down" style="font-size:13px;color:var(--text3)"></i></div>${calMiniOpen?(()=>{const curY=calViewMode==='week'?new Date(calWeekStart+'T00:00:00').getFullYear():calYear;const curM=calViewMode==='week'?new Date(calWeekStart+'T00:00:00').getMonth():calMonth;return `<div class="cal-mini" onclick="event.stopPropagation()"><div style="display:flex;align-items:center;justify-content:space-between"><button class="cal-btn sq" style="height:28px;width:28px" onclick="calMiniYearNav(-1,event)"><i class="ti ti-chevron-left"></i></button><b style="font-size:14px">${calMiniYear}</b><button class="cal-btn sq" style="height:28px;width:28px" onclick="calMiniYearNav(1,event)"><i class="ti ti-chevron-right"></i></button></div><div class="cal-mini-grid">${mShort.map((mn,i)=>`<button class="${calMiniYear===curY&&i===curM?'on':''}" onclick="calJumpMonth(${calMiniYear},${i},event)">${mn}</button>`).join('')}</div></div>`;})():''}</div>
     <div style="flex:1"></div>${agentSel}
+    <button class="cal-btn ap-primary" onclick="openCalAppt()"><i class="ti ti-plus"></i> Termin</button>
     <div style="display:flex;gap:12px;font-size:11px;color:var(--text3);align-items:center">
       <span><span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:#0e6870"></span> Board: SQL</span>
       <span><span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:#ba7517"></span> Board: PQL</span>
@@ -2734,7 +2760,7 @@ function renderCalendar(){
         return calEventHtml(e,`top:${top}px;height:${ht}px;left:calc(${w*e.lane}% + 2px);width:calc(${w}% - 4px);right:auto`);}).join('');
       if(d===todayStr){const n=new Date();const nm=n.getHours()*60+n.getMinutes();if(nm>=startH*60&&nm<=endH*60)inner+=`<div class="cal-now" style="top:${(nm-startH*60)/60*CAL_HOUR_PX}px"></div>`;}
       if(CAL_BOOK_FROM>startH)inner=`<div class="cal-closed" style="height:${(CAL_BOOK_FROM-startH)*CAL_HOUR_PX}px"></div>`+inner;
-      h+=`<div class="cal-day ${d===todayStr?'today':''}" style="height:${(endH-startH)*CAL_HOUR_PX}px" data-date="${d}" ondragover="calDragOver(event)" ondragleave="calDragLeave(event)" ondrop="calDropWeek(event,'${d}',${startH},${endH})">${inner}</div>`;
+      h+=`<div class="cal-day ${d===todayStr?'today':''}" style="height:${(endH-startH)*CAL_HOUR_PX}px" data-date="${d}" onclick="calSlotClick(event,'${d}',${startH})" ondragover="calDragOver(event)" ondragleave="calDragLeave(event)" ondrop="calDropWeek(event,'${d}',${startH},${endH})">${inner}</div>`;
     });
     h+=`</div></div>`;
   } else {
@@ -2757,6 +2783,115 @@ function renderCalendar(){
   if(!evs.length)h+=`<div style="margin-top:12px;font-size:12px;color:var(--text3)">Keine Termine mit Uhrzeit. Termine erscheinen hier, sobald bei einem Follow-up eine Uhrzeit eingetragen ist.</div>`;
   h+=`</div>`;
   el.innerHTML=h;
+}
+// ── Termin planen (Fenster im Stil von Sales OS) ──
+// Setzt beim gewaehlten Lead das Follow-up auf Datum + Startzeit - dasselbe Feld wie im Lead-Fenster
+// und auf der Board-Karte. Eine bestehende Wiedervorlage wird ersetzt und protokolliert.
+let calAppt=null;
+function calApptPerson(){return calAgent&&calAgent!=='all'?calAgent:currentUser;}
+function calTimeOptions(){const o=[];for(let m=CAL_BOOK_FROM*60;m<=CAL_DAY_END*60-CAL_SNAP;m+=CAL_SNAP)o.push(calFmt(m));return o;}
+function calSlotClick(e,dateStr,startH){
+  if(e.target!==e.currentTarget&&!(e.target.classList&&e.target.classList.contains('cal-closed')))return; // Klick auf einen Termin oeffnet den Lead
+  const r=e.currentTarget.getBoundingClientRect();
+  let min=startH*60+Math.floor(((e.clientY||0)-(r.top||0))/CAL_HOUR_PX*60/CAL_SNAP)*CAL_SNAP;
+  min=Math.max(CAL_BOOK_FROM*60,Math.min(CAL_DAY_END*60-CAL_SNAP,min));
+  openCalAppt(dateStr,calFmt(min));
+}
+function openCalAppt(dateStr,time){
+  calInit();
+  const today=calYmd(new Date());
+  let d=dateStr;
+  if(!d){const ws=calWeekStart;const we=calYmd(new Date(new Date(ws+'T00:00:00').getTime()+6*86400000));d=(calViewMode==='week'&&(today<ws||today>we))?ws:today;}
+  calAppt={leadId:null,date:d,time:time||'09:00',note:'',q:'',err:''};
+  renderCalAppt();
+  openModal('calApptModal');
+  setTimeout(()=>{const i=document.getElementById('apSearch');if(i)i.focus();},30);
+}
+function calApptResults(){
+  const q=(calAppt.q||'').toLowerCase().trim();
+  if(q.length<2)return [];
+  const pk=phoneQueryKeys(q);
+  return leads.filter(l=>!isClosedLead(l)&&leadMatchesSearch(l,q,pk)).slice(0,6);
+}
+function renderCalApptResults(){
+  const el=document.getElementById('apResults');if(!el)return;
+  const res=calApptResults();
+  const sel=calAppt.leadId?leads.find(l=>String(l.id)===String(calAppt.leadId)):null;
+  const list=sel&&!res.some(l=>l.id===sel.id)?[sel,...res]:res;
+  if(!list.length){el.innerHTML=(calAppt.q||'').trim().length>=2?`<div style="font-size:12px;color:var(--text3);padding:8px 2px">Kein offener Lead gefunden.</div>`:'';return;}
+  el.innerHTML=`<div class="ap-res">${list.map(l=>{const on=sel&&l.id===sel.id;return `<div class="ap-row ${on?'on':''}" onclick="calApptPick(${JSON.stringify(String(l.id)).replace(/"/g,'&quot;')})"><i class="ti ${on?'ti-circle-check':'ti-building'}"></i><div>${esc(l.company)}<small>${esc([l.contact,l.customerNumber,l.phone].filter(Boolean).join(' · '))}</small></div><span class="ap-badge">${BOARD_PARTS[leadBoardPart(l)]}</span></div>`;}).join('')}</div>`;
+}
+function calApptSearch(v){calAppt.q=v;renderCalApptResults();}
+function calApptPick(id){calAppt.leadId=id;calAppt.err='';renderCalAppt();}
+function calApptSet(k,v){calAppt[k]=v;if(k==='time'){const e=document.getElementById('apEnd');if(e)e.value=calFmt(calParseTime(v)+CAL_DUR);}}
+function calParseTime(t){const m=/^(\d{2}):(\d{2})/.exec(t||'');return m?(+m[1])*60+(+m[2]):CAL_BOOK_FROM*60;}
+function renderCalAppt(){
+  const el=document.getElementById('calApptModalInner');if(!el||!calAppt)return;
+  const sel=calAppt.leadId?leads.find(l=>String(l.id)===String(calAppt.leadId)):null;
+  const opts=calTimeOptions();if(!opts.includes(calAppt.time))opts.unshift(calAppt.time);
+  const person=calApptPerson();const pa=agentById(person);
+  let notes='';
+  if(sel&&sel.followup){const p=calParse(sel.followup);notes+=`<div class="ap-note ap-warn"><i class="ti ti-alert-triangle"></i><span>Bestehende Wiedervorlage am ${fmtDate(sel.followup)}${p?' um '+p.time:''} wird durch diesen Termin ersetzt.</span></div>`;}
+  if(sel&&!(sel.members||[]).includes(person))notes+=`<div class="ap-note ap-info"><i class="ti ti-user-plus"></i><span>${esc(pa?pa.name:'Die Person')} wird als Person zum Lead hinzugefügt, damit der Termin im Kalender erscheint.</span></div>`;
+  el.innerHTML=`<div class="ap-head"><i class="ti ti-calendar-plus"></i> Termin planen</div>
+  <div class="ap-body">
+    <div class="ap-sec"><i class="ti ti-user-search"></i> Wer</div>
+    <div class="ap-blk">
+      <div class="ap-lbl">Lead <small>(Firma, Kd-Nr., Ansprechpartner, Telefon, E-Mail)</small></div>
+      <input type="text" id="apSearch" placeholder="Suche" value="${esc(calAppt.q||'')}" oninput="calApptSearch(this.value)">
+      <div id="apResults"></div>
+    </div>
+    <div class="ap-sec"><i class="ti ti-clock"></i> Wann</div>
+    <div class="ap-blk">
+      <div class="ap-g3">
+        <div><div class="ap-lbl">Datum</div><input type="date" id="apDate" value="${calAppt.date}" onchange="calApptSet('date',this.value)"></div>
+        <div><div class="ap-lbl">Start</div><select id="apTime" onchange="calApptSet('time',this.value)">${opts.map(t=>`<option ${t===calAppt.time?'selected':''}>${t}</option>`).join('')}</select></div>
+        <div><div class="ap-lbl">Ende <small>(25 Min.)</small></div><input type="text" id="apEnd" value="${calFmt(calParseTime(calAppt.time)+CAL_DUR)}" readonly style="background:var(--bg2,#f4f6f6);color:var(--text3)"></div>
+      </div>
+      ${notes}
+    </div>
+    <div class="ap-sec"><i class="ti ti-notes"></i> Kontext</div>
+    <div class="ap-blk">
+      <div class="ap-lbl">Notiz zum Termin <small>(optional, wird als Kommentar im Lead gespeichert)</small></div>
+      <textarea id="apNote" rows="3" placeholder="Worum geht es im Gespräch?" oninput="calAppt.note=this.value">${esc(calAppt.note||'')}</textarea>
+    </div>
+    ${calAppt.err?`<div class="ap-note ap-err"><i class="ti ti-alert-circle"></i><span>${esc(calAppt.err)}</span></div>`:''}
+  </div>
+  <div class="modal-actions" style="justify-content:flex-start"><button class="btn" onclick="closeModal('calApptModal')">Abbrechen</button><button class="btn ap-primary" onclick="saveCalAppt()"><i class="ti ti-check"></i> Termin planen</button></div>`;
+  renderCalApptResults();
+}
+function saveCalAppt(){
+  if(!calAppt)return false;
+  const l=calAppt.leadId?leads.find(x=>String(x.id)===String(calAppt.leadId)):null;
+  if(!l){calAppt.err='Bitte zuerst einen Lead auswählen.';renderCalAppt();return false;}
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(calAppt.date||'')){calAppt.err='Bitte ein gültiges Datum wählen.';renderCalAppt();return false;}
+  const lock=getLeadLock(l.id);
+  if(lock&&lock.agentId!==currentUser){calAppt.err=`„${l.company}“ wird gerade von ${lock.agentName||'jemand anderem'} bearbeitet. Bitte später erneut versuchen.`;renderCalAppt();return false;}
+  const nv=`${calAppt.date}T${calAppt.time}`;
+  const old=calParse(l.followup);
+  if(!Array.isArray(l.activity))l.activity=[];
+  const person=calApptPerson();
+  if(!(l.members||[]).includes(person)){
+    l.members=[...(l.members||[]),person];
+    const pa=agentById(person);
+    const a0={id:Date.now()+Math.random(),type:'activity',author:currentUser,text:`Person hinzugefügt: ${pa?pa.name:person}`,date:nowISO()};l.activity.unshift(a0);pushActivityToDb(l.id,a0);
+  }
+  if(l.followup!==nv){
+    const prevFu=l.followup||'';
+    const oldTxt=old?`${fmtDate(old.date)} ${old.time}`:(prevFu?fmtDate(prevFu):'–');
+    l.followup=nv;
+    l.followupHistory=[...(l.followupHistory||[]),{date:nv,setAt:nowISO()}];
+    const a1={id:Date.now()+Math.random(),type:'activity',author:currentUser,text:`Follow-up-Termin geplant: „${oldTxt}“ → „${fmtDate(calAppt.date)} ${calAppt.time}“`,date:nowISO()};
+    l.activity.unshift(a1);pushActivityToDb(l.id,a1);
+  }
+  if((calAppt.note||'').trim()){
+    const a2={id:Date.now()+Math.random(),type:'comment',author:currentUser,text:`Termin ${fmtDate(calAppt.date)} ${calAppt.time}: ${calAppt.note.trim()}`,date:nowISO()};l.activity.unshift(a2);pushActivityToDb(l.id,a2);
+  }
+  saveState();
+  closeModal('calApptModal');
+  calAppt=null;
+  renderCalendar();
+  return true;
 }
 function renderBoardNav(){
   const fl=leads;
@@ -5474,7 +5609,8 @@ function cardHtml(l,isFirst,isLast){
     const d=daysUntil(l.followup);
     isOverdueFollowup=d<0;
     const cls=d<0?'due-overdue':(d<=2?'due-soon':'due-ok');
-    const dlabel=d<0?`${Math.abs(d)}T überfällig`:(d===0?'heute':fmtDate(l.followup));
+    const ftime=((l.followup||'').split('T')[1]||'').slice(0,5);
+    const dlabel=d<0?`${Math.abs(d)}T überfällig`:((d===0?'heute':fmtDate(l.followup))+(ftime?` · ${ftime}`:''));
     dueHtml=`<span class="due-badge ${cls}"><i class="ti ti-clock" style="font-size:11px"></i>${dlabel}</span>`;
   }
   const metaBadges=[];
