@@ -953,7 +953,7 @@ let localSettingsTrusted=false;
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-10-07T17:00:00.000Z';
+const BUILD_VERSION='2026-10-20T12:00:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -1353,11 +1353,36 @@ async function fetchWithTimeout(url,options,timeoutMs){
 // Holt NUR id+updated_at ALLER Leads - eine sehr billige Abfrage, die zeigt, welche
 // Leads sich seit der letzten bekannten Baseline ueberhaupt veraendert haben, OHNE die
 // (potenziell grossen) Lead-Daten selbst zu uebertragen.
+// Supabase liefert pro Abfrage hoechstens 1.000 Zeilen. Bis 20.10.2026 wurden Leads und
+// Aktivitaeten in EINER Abfrage geladen - ab dem 1.001. Lead fielen die neuesten still aus dem
+// Board (neue Leads verschwanden nach dem Speichern, Board zeigte "1.000 Leads"). Alle
+// Massenabfragen laufen deshalb seitenweise ueber diese Funktion. Scheitert eine Seite, wird
+// ein Fehler geworfen - NIE ein unvollstaendiges Ergebnis zurueckgegeben, sonst wuerden die
+// fehlenden Leads im Abgleich als "entfernt" behandelt.
+async function fetchAllRows(path,opts){
+  opts=opts||{};
+  const PAGE=1000;
+  const maxRows=opts.maxRows||Infinity;
+  const timeoutMs=opts.timeoutMs||20000;
+  const rows=[];
+  for(let from=0;from<maxRows;){
+    const to=Math.min(from+PAGE,maxRows)-1;
+    const headers=Object.assign({},getSbHeaders(),{'Range-Unit':'items','Range':`${from}-${to}`});
+    const res=await fetchWithTimeout(`${SUPABASE_URL}/rest/v1/${path}`,{headers},timeoutMs);
+    if(res.status===416)break; // Bereich liegt hinter dem letzten Eintrag
+    if(res.status===401||res.status===403){handleSbAuthExpired();throw new Error('Sitzung abgelaufen oder Zugriff verweigert');}
+    if(!res.ok)throw new Error('HTTP '+res.status+' – '+(await res.text()).slice(0,200));
+    const batch=await res.json();
+    if(!Array.isArray(batch))throw new Error('Unerwartete Antwort der Datenbank');
+    for(const r of batch)rows.push(r);
+    if(batch.length<to-from+1)break; // letzte Seite
+    from+=batch.length;
+  }
+  return rows;
+}
+function chunkList(list,size){const out=[];for(let i=0;i<list.length;i+=size)out.push(list.slice(i,i+size));return out;}
 async function peekLeadTimestamps(){
-  const res=await fetchWithTimeout(`${SUPABASE_URL}/rest/v1/sales_leads?select=id,updated_at`,{headers:getSbHeaders()});
-  if(res.status===401||res.status===403){handleSbAuthExpired();throw new Error('Sitzung abgelaufen oder Zugriff verweigert');}
-  if(!res.ok)throw new Error('HTTP '+res.status+' – '+(await res.text()).slice(0,200));
-  const rows=await res.json();
+  const rows=await fetchAllRows('sales_leads?select=id,updated_at&order=id.asc');
   const map={};
   rows.forEach(r=>{map[r.id]=r.updated_at;});
   return map;
@@ -1367,16 +1392,16 @@ async function peekLeadTimestamps(){
 // ALLE 1000 Leads komplett neu herunterzuladen, wenn nur einer sich geaendert hat.
 async function pullLeadRowsByIds(ids){
   if(!ids.length)return[];
-  const res=await fetchWithTimeout(`${SUPABASE_URL}/rest/v1/sales_leads?select=id,data,updated_at&id=in.(${ids.join(',')})`,{headers:getSbHeaders()});
-  if(res.status===401||res.status===403){handleSbAuthExpired();throw new Error('Sitzung abgelaufen oder Zugriff verweigert');}
-  if(!res.ok)throw new Error('HTTP '+res.status+' – '+(await res.text()).slice(0,200));
-  return await res.json();
+  // In Paketen zu 100 IDs - sonst wird die Adresse bei vielen Aenderungen zu lang.
+  const out=[];
+  for(const part of chunkList(ids,100)){
+    const rows=await fetchAllRows(`sales_leads?select=id,data,updated_at&id=in.(${part.join(',')})&order=id.asc`);
+    for(const r of rows)out.push(r);
+  }
+  return out;
 }
 async function pullAllLeadRows(){
-  const res=await fetchWithTimeout(`${SUPABASE_URL}/rest/v1/sales_leads?select=id,data,updated_at`,{headers:getSbHeaders()});
-  if(res.status===401||res.status===403){handleSbAuthExpired();throw new Error('Sitzung abgelaufen oder Zugriff verweigert');}
-  if(!res.ok)throw new Error('HTTP '+res.status+' – '+(await res.text()).slice(0,200));
-  return await res.json();
+  return await fetchAllRows('sales_leads?select=id,data,updated_at&order=id.asc',{timeoutMs:30000});
 }
 // Schreibt EINEN einzelnen Lead. Bedingtes Update (optimistisches Locking) genau wie bei
 // pushState(): schlaegt fehl, wenn ein anderes Geraet diesen EINEN Lead zwischenzeitlich
@@ -3237,12 +3262,7 @@ async function refreshDashActCountCache(){
   if(!isSbSessionValid())return;
   try{
     const since=new Date(TODAY);since.setDate(since.getDate()-29);
-    const res=await fetchWithTimeout(
-      `${SUPABASE_URL}/rest/v1/lead_activities?date=gte.${since.toISOString().slice(0,10)}&select=date,lead_id`,
-      {headers:getSbHeaders()},8000
-    );
-    if(!res.ok)return;
-    const rows=await res.json();
+    const rows=await fetchAllRows(`lead_activities?date=gte.${since.toISOString().slice(0,10)}&select=date,lead_id&order=id.asc`,{timeoutMs:15000});
     const counts={};
     rows.forEach(r=>{
       const key=(r.date||'').slice(0,10);
@@ -4378,13 +4398,12 @@ async function fetchStatusChangeCountsFromDb(leadIds){
   const counts={};
   if(!isSbSessionValid()||!leadIds.length)return counts;
   try{
-    const ids=leadIds.map(id=>`"${id}"`).join(',');
-    const res=await fetchWithTimeout(
-      `${SUPABASE_URL}/rest/v1/lead_activities?lead_id=in.(${ids})&type=eq.activity&text=like.Status%20ge%C3%A4ndert%3A*&select=lead_id`,
-      {headers:getSbHeaders()},8000
-    );
-    if(!res.ok)return counts;
-    const rows=await res.json();
+    const rows=[];
+    for(const part of chunkList(leadIds,100)){
+      const ids=part.map(id=>`"${id}"`).join(',');
+      const r=await fetchAllRows(`lead_activities?lead_id=in.(${ids})&type=eq.activity&text=like.Status%20ge%C3%A4ndert%3A*&select=lead_id&order=id.asc`,{timeoutMs:15000});
+      for(const x of r)rows.push(x);
+    }
     rows.forEach(r=>{
       const k=String(r.lead_id);
       counts[k]=(counts[k]||0)+1;
@@ -4400,7 +4419,7 @@ async function fetchAllActivitiesForView(q, matchingLeads){
   let entries=[];
   try{
     // Zeitraum-Filter als DB-Query bauen
-    let urlParams='order=date.desc&limit=5000';
+    let urlParams='order=date.desc,id.desc'; // max. 5.000 Eintraege, seitenweise geladen
     if(activityPeriod!=='all'){
       const periodStart=new Date(TODAY);
       periodStart.setDate(periodStart.getDate()-(parseInt(activityPeriod)-1));
@@ -4417,12 +4436,8 @@ async function fetchAllActivitiesForView(q, matchingLeads){
     }
 
     if(activityTypeFilter!=='login'){
-      const res=await fetchWithTimeout(
-        `${SUPABASE_URL}/rest/v1/lead_activities?${urlParams}`,
-        {headers:getSbHeaders()},15000
-      );
-      if(res.ok){
-        const rows=await res.json();
+      {
+        const rows=await fetchAllRows(`lead_activities?${urlParams}`,{maxRows:5000,timeoutMs:15000});
         rows.forEach(r=>{
           const lead=leads.find(l=>String(l.id)===String(r.lead_id));
           if(!lead)return; // Lead gelöscht
@@ -6872,6 +6887,12 @@ function saveLead(keepOpen){
     }
   }
   clearModalError();
+  if(editingLeadId&&!leads.find(x=>x.id===editingLeadId)){
+    // Der bearbeitete Lead ist im Board gerade nicht (mehr) geladen. Frueher stuerzte das
+    // Speichern hier still ab. Jetzt: klare Meldung statt Absturz, nichts wird doppelt angelegt.
+    showModalError('Dieser Lead ist im Board gerade nicht geladen. Bitte Fenster schließen, Seite neu laden und den Lead über die Suche öffnen – er ist bereits gespeichert.');
+    return;
+  }
   if(editingLeadId){
     const original=leads.find(x=>x.id===editingLeadId);
     if(original.status!==draftLead.status&&blocksLeavingFirstColumn(original,draftLead.status)){
