@@ -777,7 +777,7 @@ label{font-size:12px;font-weight:500;color:var(--text2);display:block;margin-bot
       <div class="topbar-unified">
         <div class="omnibar-flex">
           <i class="ti ti-search omni-search-icon"></i>
-          <input type="text" class="omni-input" id="tasksSearch" placeholder="Firma, Kd-Nr. suchen…" oninput="renderTasksView()">
+          <input type="text" class="omni-input" id="tasksSearch" placeholder="Suche" oninput="renderTasksView()">
           <div class="omni-addfilter-wrap">
             <button class="omnibar-btn" onclick="toggleTasksFilterMenu(event)"><i class="ti ti-plus" style="font-size:12px"></i> Filter</button>
             <div class="filtermenu" id="tasksFilterMenu">
@@ -961,7 +961,7 @@ let localSettingsTrusted=false;
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-10-20T22:15:00.000Z';
+const BUILD_VERSION='2026-10-20T22:30:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -2785,6 +2785,16 @@ function phoneQueryKeys(q){
   if(d.length<5)return [];
   return [...new Set([normPhone(q),d.replace(/^0+/,'')])].filter(k=>k.length>=5);
 }
+// Gemeinsame Suche fuer Board und "Meine Aufgaben": Firma, Ansprechpartner, Kundennummer,
+// E-Mail und Telefon (formatunabhaengig). q muss bereits klein geschrieben und getrimmt sein.
+function leadMatchesSearch(l,q,phoneKeys){
+  if(!q)return true;
+  if(!l)return false;
+  const keys=phoneKeys||phoneQueryKeys(q);
+  return (l.company||'').toLowerCase().includes(q)||(l.contact||'').toLowerCase().includes(q)
+    ||(l.customerNumber||'').toLowerCase().includes(q)||(l.email||'').toLowerCase().includes(q)
+    ||(keys.length>0&&keys.some(k=>normPhone(l.phone).includes(k)));
+}
 function getFilteredLeads(){
   const q=(document.getElementById('searchInput').value||'').toLowerCase().trim();
   const qPhoneKeys=phoneQueryKeys(q);
@@ -2800,12 +2810,7 @@ function getFilteredLeads(){
       const matchesOther=otherFilters.length&&(l.labelIds||[]).some(id=>otherFilters.includes(id));
       if(!(wantsNone&&hasNoLabel)&&!matchesOther)return false;
     }
-    if(q){
-      const hit=l.company.toLowerCase().includes(q)||l.contact.toLowerCase().includes(q)||(l.customerNumber||'').toLowerCase().includes(q)
-        ||(l.email||'').toLowerCase().includes(q)
-        ||(qPhoneKeys.length&&qPhoneKeys.some(k=>normPhone(l.phone).includes(k)));
-      if(!hit)return false;
-    }
+    if(q&&!leadMatchesSearch(l,q,qPhoneKeys))return false;
     return true;
   });
 }
@@ -4062,7 +4067,7 @@ function assignedTasksHtml(q){
     });
   });
   if(activeTasksAgentFilter!=='all')items=items.filter(t=>t.assigneeId===activeTasksAgentFilter);
-  if(q)items=items.filter(t=>t.lead.company.toLowerCase().includes(q)||(t.lead.customerNumber||'').toLowerCase().includes(q));
+  if(q){const pk=phoneQueryKeys(q);items=items.filter(t=>leadMatchesSearch(t.lead,q,pk));}
   items.sort((a,b)=>{
     if(a.done!==b.done)return a.done?1:-1;
     return (a.dueDate||'9999-99-99').localeCompare(b.dueDate||'9999-99-99');
@@ -4104,7 +4109,7 @@ function renderTasksView(){
   const q=(document.getElementById('tasksSearch').value||'').toLowerCase().trim();
   let withFollowup=leads.filter(l=>l.followup);
   if(activeTasksAgentFilter!=='all')withFollowup=withFollowup.filter(l=>(l.members||[]).includes(activeTasksAgentFilter));
-  if(q)withFollowup=withFollowup.filter(l=>l.company.toLowerCase().includes(q)||(l.customerNumber||'').toLowerCase().includes(q));
+  if(q){const pk=phoneQueryKeys(q);withFollowup=withFollowup.filter(l=>leadMatchesSearch(l,q,pk));}
   const buckets={overdue:[],today:[],week:[],nextweek:[]};
   withFollowup.forEach(l=>{const b=followupBucket(l);if(b)buckets[b].push(l);});
   ['overdue','today','week','nextweek'].forEach(k=>buckets[k].sort((a,b)=>a.followup.localeCompare(b.followup)));
