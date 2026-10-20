@@ -735,6 +735,8 @@ label{font-size:12px;font-weight:500;color:var(--text2);display:block;margin-bot
               <div class="filtermenu-item" onclick="triggerCSVImport()"><i class="ti ti-upload"></i> Import CSV</div>
               <div class="filtermenu-item" onclick="exportCSV()"><i class="ti ti-download"></i> Export CSV</div>
               <hr>
+              <div id="boardSortMenu"></div>
+              <hr>
               <div id="statsPopover"></div>
             </div>
           </div>
@@ -961,7 +963,7 @@ let localSettingsTrusted=false;
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-10-20T22:45:00.000Z';
+const BUILD_VERSION='2026-10-20T23:00:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -2500,6 +2502,35 @@ function runBoardRestructure(){
   if(currentView==='settings')renderSettings();
   alert('Umbau abgeschlossen. Die Listen sind jetzt auf „Board: SQL“ und „Board: PQL“ verteilt.');
 }
+// ── Sortierung der Listen (pro Person im Browser gespeichert) ──
+// manual = eigene Reihenfolge (Pfeile auf den Karten), due_asc / due_desc = nach Wiedervorlage.
+// Leads ohne Wiedervorlage stehen bei der Faelligkeits-Sortierung immer unten.
+let boardSortMode=(()=>{try{const v=localStorage.getItem('projectos_board_sort');return['manual','due_asc','due_desc'].includes(v)?v:'manual';}catch(e){return 'manual';}})();
+function setBoardSort(mode){
+  boardSortMode=['manual','due_asc','due_desc'].includes(mode)?mode:'manual';
+  try{localStorage.setItem('projectos_board_sort',boardSortMode);}catch(e){}
+  renderBoard();
+}
+function sortColumnItems(items){
+  const byOrder=(a,b)=>(a.order||0)-(b.order||0);
+  if(boardSortMode==='manual')return items.sort(byOrder);
+  const dir=boardSortMode==='due_desc'?-1:1;
+  return items.sort((a,b)=>{
+    const fa=a.followup||'',fb=b.followup||'';
+    if(!fa&&!fb)return byOrder(a,b);
+    if(!fa)return 1;
+    if(!fb)return -1;
+    if(fa!==fb)return fa<fb?-dir:dir;
+    return byOrder(a,b);
+  });
+}
+function renderBoardSortMenu(){
+  const el=document.getElementById('boardSortMenu');
+  if(!el)return;
+  const opt=(mode,label)=>`<div class="filtermenu-item" onclick="event.stopPropagation();setBoardSort('${mode}')"><i class="ti ti-check" style="visibility:${boardSortMode===mode?'visible':'hidden'}"></i> ${label}</div>`;
+  el.innerHTML=`<div style="font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--text3);padding:6px 12px 2px">Sortierung</div>`
+    +opt('manual','Manuell')+opt('due_asc','Fälligkeit: bald zuerst')+opt('due_desc','Fälligkeit: spät zuerst');
+}
 function renderBoardNav(){
   const fl=leads;
   const a=fl.filter(l=>leadBoardPart(l)==='akquise').length;
@@ -3012,8 +3043,9 @@ function renderBoard(){
   const fl=getFilteredLeads();
   const board=document.getElementById('board');
   const colsHtml=COLUMNS.filter(col=>colBoard(col)===currentBoardPart).map(col=>{
-    const items=fl.filter(l=>l.status===col.id).sort((a,b)=>(a.order||0)-(b.order||0));
-    const cardsHtml=items.length?items.map((l,idx)=>cardHtml(l,idx===0,idx===items.length-1)).join(''):`<div class="col-empty">Keine Leads</div>`;
+    const items=sortColumnItems(fl.filter(l=>l.status===col.id));
+    const manualSort=boardSortMode==='manual';
+    const cardsHtml=items.length?items.map((l,idx)=>manualSort?cardHtml(l,idx===0,idx===items.length-1):cardHtml(l,true,true)).join(''):`<div class="col-empty">Keine Leads</div>`;
     const isEditing=editingColId===col.id;
     const isMenuOpen=colMenuOpenId===col.id;
     const menuHtml=isMenuOpen?`<div class="col-menu-popover" onclick="event.stopPropagation()">
@@ -3076,6 +3108,7 @@ function renderBoard(){
     if(otherHits)partHintHtml=`<div class="board-part-hint"><div><b>${otherHits} Treffer in „${BOARD_PARTS[otherPart]}“</b></div><button class="btn" onclick="switchBoardPart('${otherPart}')"><i class="ti ti-arrows-exchange"></i> Zu ${BOARD_PARTS[otherPart]} wechseln</button></div>`;
   }
   board.innerHTML = partHintHtml + colsHtml + addTileHtml;
+  renderBoardSortMenu();
   {const t=document.getElementById('boardPartTitle');if(t)t.textContent=BOARD_PARTS[currentBoardPart];}
   renderBoardNav();
 
