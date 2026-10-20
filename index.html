@@ -796,7 +796,7 @@ label{font-size:12px;font-weight:500;color:var(--text2);display:block;margin-bot
       <div class="topbar-unified">
         <div class="omnibar-flex">
           <i class="ti ti-search omni-search-icon"></i>
-          <input type="text" class="omni-input" id="activitySearch" placeholder="Firma oder Kundennummer suchen…" oninput="renderActivities()">
+          <input type="text" class="omni-input" id="activitySearch" placeholder="Suche" oninput="renderActivities()">
           <div class="omni-addfilter-wrap">
             <button class="omnibar-btn" onclick="toggleActivityFilterMenu(event)"><i class="ti ti-plus" style="font-size:12px"></i> Filter</button>
             <div class="filtermenu" id="activityFilterMenu">
@@ -961,7 +961,7 @@ let localSettingsTrusted=false;
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-10-20T22:30:00.000Z';
+const BUILD_VERSION='2026-10-20T22:45:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -4442,7 +4442,7 @@ function renderActivityTrendChart(entries){
 }
 function renderActivities(){
   const q=(document.getElementById('activitySearch').value||'').toLowerCase().trim();
-  const matchingLeads=q?leads.filter(l=>l.company.toLowerCase().includes(q)||(l.customerNumber||'').toLowerCase().includes(q)):[];
+  const matchingLeads=q?(()=>{const pk=phoneQueryKeys(q);return leads.filter(l=>leadMatchesSearch(l,q,pk));})():[];
 
   // Kunden-Übersichtskarten bei Treffer
   let leadCardsHtml='';
@@ -4579,22 +4579,28 @@ async function fetchAllActivitiesForView(q, matchingLeads){
     if(activityAgentFilter!=='all') urlParams+=`&author=eq.${activityAgentFilter}`;
     if(activityTypeFilter!=='all'&&activityTypeFilter!=='login') urlParams+=`&type=eq.${activityTypeFilter}`;
     // Bei Suche: nur Leads aus der Suchergebnis-Liste
-    if(q&&matchingLeads.length){
-      const ids=matchingLeads.map(l=>`"${l.id}"`).join(',');
-      urlParams+=`&lead_id=in.(${ids})`;
-    } else if(q&&!matchingLeads.length){
+    if(q&&!matchingLeads.length){
       return []; // Suche ohne Treffer
     }
+    // Bei Suche nur die Aktivitaeten der Treffer laden - in Paketen zu 100 Leads, sonst wird die
+    // Adresse bei allgemeinen Suchbegriffen (z.B. Teil einer E-Mail-Domain) zu lang.
+    const leadChunks=q?chunkList(matchingLeads.map(l=>`"${l.id}"`),100):[null];
 
     if(activityTypeFilter!=='login'){
-      {
-        const rows=await fetchAllRows(`lead_activities?${urlParams}`,{maxRows:5000,timeoutMs:15000});
+      for(const part of leadChunks){
+        const up=part?`${urlParams}&lead_id=in.(${part.join(',')})`:urlParams;
+        const rows=await fetchAllRows(`lead_activities?${up}`,{maxRows:5000,timeoutMs:15000});
         rows.forEach(r=>{
           const lead=leads.find(l=>String(l.id)===String(r.lead_id));
           if(!lead)return; // Lead gelöscht
           if(activityStatusFilter!=='all'&&lead.status!==activityStatusFilter)return;
           entries.push({lead,text:r.text,date:r.date,type:r.type,author:r.author});
         });
+        if(entries.length>=5000)break;
+      }
+      if(leadChunks.length>1){
+        entries.sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')));
+        if(entries.length>5000)entries.length=5000;
       }
     }
   }catch(e){
