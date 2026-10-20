@@ -959,7 +959,7 @@ let localSettingsTrusted=false;
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-10-20T20:00:00.000Z';
+const BUILD_VERSION='2026-10-20T20:30:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -5263,7 +5263,22 @@ function trackStatusSince(lead,oldStatus,newStatus){
 }
 // Erzwingt ein Erstkontakt-Datum, sobald ein Lead die erste Liste verlaesst
 function blocksLeavingFirstColumn(lead,newStatus){
-  return lead.status===COLUMNS[0].id&&newStatus!==COLUMNS[0].id&&!lead.firstContact;
+  // Seit Okt. 2026 wird nicht mehr blockiert - das Datum wird automatisch gesetzt (siehe unten).
+  return false;
+}
+// Erstkontakt = echtes Gespraech mit dem Entscheider. Noetig erst beim Wechsel nach
+// "AM: Auftrag", "Verloren: Kein Interesse" (Board: SQL) oder in irgendeine Liste von Board: PQL.
+// NICHT bei Offen, Rueckruf, NE 1-4 und "Verloren: Nicht erreicht" - dort gab es kein Gespraech.
+// Fehlt das Datum, setzt das Board heute ein; im Lead jederzeit korrigierbar.
+function requiresFirstContact(statusId){
+  const c=colById(statusId);
+  if(!c)return false;
+  if(colBoard(c)==='vertrieb')return true;
+  return c.id==='am_order'||c.id==='lost_akq_interest';
+}
+function ensureFirstContactFor(lead,newStatus){
+  if(lead&&!lead.firstContact&&requiresFirstContact(newStatus)){lead.firstContact=TODAY;return true;}
+  return false;
 }
 function warnMissingFirstContact(company){
   alert(`"${company}" kann "${COLUMNS[0].name}" erst verlassen, wenn ein Erstkontakt-Datum eingetragen ist.\n\nDas Fenster öffnet sich jetzt, bitte trage das Datum im Feld "Datum Erstkontakt" ein und speichere erneut.`);
@@ -5305,6 +5320,7 @@ function onCardDrop(e,targetId){
     const oldName=colById(dragged.status).name,newName=colById(target.status).name;
     const _bact1={id:Date.now()+Math.random(),type:'activity',author:currentUser,text:`Status geändert: ${oldName} → ${newName}`,date:nowISO()};dragged.activity.unshift(_bact1);pushActivityToDb(dragged.id,_bact1);
     trackClosedStage(dragged,dragged.status,target.status);trackStatusSince(dragged,dragged.status,target.status);maybeSendListNotification(dragged,dragged.status,target.status);
+    ensureFirstContactFor(dragged,target.status);
   }
   dragged.status=target.status;
   let colCards=leads.filter(x=>x.status===target.status&&x.id!==dragged.id).sort((a,b)=>(a.order||0)-(b.order||0));
@@ -5348,6 +5364,7 @@ function onDrop(e,colId){
     const oldName=colById(l.status).name,newName=colById(colId).name;
     const _bact2={id:Date.now()+Math.random(),type:'activity',author:currentUser,text:`Status geändert: ${oldName} → ${newName}`,date:nowISO()};l.activity.unshift(_bact2);pushActivityToDb(l.id,_bact2);
     trackClosedStage(l,l.status,colId);trackStatusSince(l,l.status,colId);maybeSendListNotification(l,l.status,colId);
+    ensureFirstContactFor(l,colId);
     l.status=colId;
     l.order=Date.now();
     saveState();
@@ -6848,7 +6865,6 @@ function markNotReached(){
   const nextSt=editingLeadId?nextNotReachedStatus(draftLead.status):null;
   if(nextSt){
     const oldSt=draftLead.status;
-    if(isStage(oldSt,'open')&&!draftLead.firstContact)draftLead.firstContact=TODAY; // = erster Kontaktversuch
     if(colById(nextSt).outcome==='lost')draftLead.lossReason='Nicht Erreichbar';
     draftLead.status=nextSt;
     const act3={id:Date.now()+2,type:'activity',author:currentUser,text:`Status geändert: ${colById(oldSt).name} → ${colById(nextSt).name}`,date:nowISO()};
@@ -7040,6 +7056,10 @@ function saveLead(keepOpen){
     // Speichern hier still ab. Jetzt: klare Meldung statt Absturz, nichts wird doppelt angelegt.
     showModalError('Dieser Lead ist im Board gerade nicht geladen. Bitte Fenster schließen, Seite neu laden und den Lead über die Suche öffnen – er ist bereits gespeichert.');
     return;
+  }
+  {
+    const orig=editingLeadId?leads.find(x=>x.id===editingLeadId):null;
+    if(!orig||orig.status!==draftLead.status)ensureFirstContactFor(draftLead,draftLead.status);
   }
   if(editingLeadId){
     const original=leads.find(x=>x.id===editingLeadId);
