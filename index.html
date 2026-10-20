@@ -648,8 +648,8 @@ label{font-size:12px;font-weight:500;color:var(--text2);display:block;margin-bot
     </div>
     <div class="sidebar-nav-item" id="navDashboard" onclick="switchView('dashboard')"><span class="nav-icon-badge faded"><i class="ti ti-layout-dashboard"></i></span> Dashboard</div>
     <div class="sidebar-nav-item" id="navTasks" onclick="switchView('tasks')"><span class="nav-icon-badge"><i class="ti ti-list-check"></i></span> Meine Aufgaben</div>
-    <div class="sidebar-nav-item" id="navAkquise" onclick="switchBoardPart('akquise')"><span class="nav-icon-badge"><i class="ti ti-phone-call"></i></span> Akquise <span class="nav-count" id="navAkquiseCount"></span></div>
-    <div class="sidebar-nav-item" id="navBoard" onclick="switchBoardPart('vertrieb')"><span class="nav-icon-badge"><i class="ti ti-layout-kanban"></i></span> Vertrieb <span class="nav-count" id="navBoardCount"></span></div>
+    <div class="sidebar-nav-item" id="navAkquise" onclick="switchBoardPart('akquise')"><span class="nav-icon-badge"><i class="ti ti-phone-call"></i></span> Board: Akquise <span class="nav-count" id="navAkquiseCount"></span></div>
+    <div class="sidebar-nav-item" id="navBoard" onclick="switchBoardPart('vertrieb')"><span class="nav-icon-badge"><i class="ti ti-layout-kanban"></i></span> Board: Trails <span class="nav-count" id="navBoardCount"></span></div>
     <div class="sidebar-nav-item" id="navCrrma" onclick="switchView('crrma')"><span class="nav-icon-badge faded"><i class="ti ti-report-money"></i></span> Artikel</div>
     <div class="sidebar-nav-item" id="navActivities" onclick="switchView('activities')"><span class="nav-icon-badge faded"><i class="ti ti-history"></i></span> Aktivitäten</div>
     <div class="sidebar-nav-item" id="navSettings" onclick="toggleSettingsNav()"><span class="nav-icon-badge faded"><i class="ti ti-settings"></i></span> Einstellungen <i class="ti ti-chevron-down" id="settingsNavChevron" style="margin-left:auto;font-size:13px;color:var(--text3)"></i></div>
@@ -957,7 +957,7 @@ let localSettingsTrusted=false;
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-10-20T15:00:00.000Z';
+const BUILD_VERSION='2026-10-20T18:00:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -2413,12 +2413,23 @@ function colById(id){return COLUMNS.find(c=>c.id===id);}
 // keine zweite Datenhaltung - ein Lead wechselt das Board einfach mit seiner Phase.
 // Ohne ausdrueckliche Zuordnung entscheidet der Spaltenname (Offene Leads, Qualifizierung,
 // Nicht erreicht = Akquise). Eine Aenderung im Spaltenmenue speichert die Zuordnung.
-const BOARD_PARTS={akquise:'Akquise',vertrieb:'Vertrieb'};
+const BOARD_PARTS={akquise:'Board: Akquise',vertrieb:'Board: Trails'};
 function defaultBoardPartForColumn(c){
-  const n=((c&&c.name)||'').trim().toLowerCase();
-  if(n==='offene leads'||n.includes('qualifizierung')||n.includes('nicht erreicht'))return 'akquise';
+  if(!c)return 'vertrieb';
+  if(c.id==='open'||c.id==='fu_qual'||c.id==='am_order'||c.neLevel)return 'akquise';
+  const n=(c.name||'').trim().toLowerCase();
+  if(n.includes('nicht erreicht')||n.startsWith('followup: ne'))return 'akquise';
   return 'vertrieb';
 }
+// Phase einer Spalte fuer Auswertungen (Dashboard, Anmelde-Assistent, Follow-up-Grafiken).
+// Bisher hingen diese an festen Spalten-IDs - neue Listen (z.B. NE 1-4, Ausprobiert,
+// Eindruck, Bedarf) tragen ihre Phase deshalb als Eigenschaft "stage".
+function colStage(c){
+  if(!c)return '';
+  if(c.stage)return c.stage;
+  return({open:'open',fu_qual:'qual',fu_feedback:'feedback',fu_offer:'offer'})[c.id]||'';
+}
+function isStage(statusId,stage){return colStage(colById(statusId))===stage;}
 function colBoard(c){return(c&&(c.board==='akquise'||c.board==='vertrieb'))?c.board:defaultBoardPartForColumn(c);}
 function leadBoardPart(l){return colBoard(colById(l&&l.status));}
 let currentBoardPart=(()=>{try{return localStorage.getItem('projectos_board_part')==='akquise'?'akquise':'vertrieb';}catch(e){return 'vertrieb';}})();
@@ -2430,6 +2441,60 @@ function setColumnBoard(colId,part){
   colMenuOpenId=null;
   saveState();
   renderBoard();
+}
+// ── Einmaliger Board-Umbau (idempotent) ──
+// Benennt bestehende Listen um (IDs bleiben -> alle Leads bleiben in ihren Listen), legt die
+// neuen Listen an und ordnet jede Liste einem Board zu. Leads werden NICHT verschoben.
+function buildRestructuredColumns(){
+  const cols=COLUMNS.map(c=>Object.assign({},c));
+  const log=[];
+  const get=id=>cols.find(c=>c.id===id);
+  const upd=(c,props)=>{
+    if(!c)return;
+    if(props.name&&c.name!==props.name)log.push(`umbenennen: „${c.name}“ → „${props.name}“`);
+    if(props.board&&colBoard(c)!==props.board||props.board&&c.board!==props.board){if(colBoard(c)!==props.board)log.push(`„${props.name||c.name}“ → ${BOARD_PARTS[props.board]}`);}
+    Object.assign(c,props);
+  };
+  const ensure=(id,props)=>{let c=get(id);if(!c){c=Object.assign({id,color:'gray'},props);cols.push(c);log.push(`neu: „${props.name}“ (${BOARD_PARTS[props.board]})`);}else upd(c,props);return c;};
+  const A='akquise',T='vertrieb';
+  upd(get('open'),{name:'Leads: Offen',board:A});
+  upd(get('fu_qual'),{name:'Leads: Qualifizierung',board:A});
+  for(let n=1;n<=4;n++)ensure('fu_ne'+n,{name:'FollowUp: NE '+n,board:A,stage:'qual',neLevel:n,color:'amber'});
+  upd(get('am_order'),{board:A});
+  ensure('lost_akq_interest',{name:'Verloren: Kein Interesse',board:A,outcome:'lost',color:'red'});
+  let unreached=cols.find(c=>c.outcome==='lost'&&/nicht erreicht/i.test(c.name||''));
+  if(unreached)upd(unreached,{name:'Verloren: Nicht erreicht',board:A});
+  else unreached=ensure('lost_akq_unreached',{name:'Verloren: Nicht erreicht',board:A,outcome:'lost',color:'red'});
+  upd(get('fu_feedback'),{name:'FollowUp: Angekommen',board:T,stage:'feedback'});
+  ensure('fu_tried',{name:'FollowUp: Ausprobiert',board:T,stage:'feedback',color:'teal'});
+  ensure('fu_impression',{name:'FollowUp: Eindruck',board:T,stage:'feedback',color:'teal'});
+  ensure('fu_need',{name:'FollowUp: Bedarf',board:T,stage:'feedback',color:'teal'});
+  upd(get('am_offer'),{board:T});
+  upd(get('fu_offer'),{board:T});
+  upd(get('won'),{name:'Leads: Gewonnen',board:T});
+  upd(get('lost'),{name:'Leads: Verloren',board:T});
+  cols.forEach(c=>{if(c.board!=='akquise'&&c.board!=='vertrieb'){const b=defaultBoardPartForColumn(c);if(colBoard(c)!==b)log.push(`„${c.name}“ → ${BOARD_PARTS[b]}`);c.board=b;}});
+  const orderA=['open','fu_qual','fu_ne1','fu_ne2','fu_ne3','fu_ne4','am_order','lost_akq_interest',unreached&&unreached.id];
+  const orderT=['fu_feedback','fu_tried','fu_impression','fu_need','am_offer','fu_offer','won','lost'];
+  const rank=c=>{const ia=orderA.indexOf(c.id),it=orderT.indexOf(c.id);
+    if(c.board==='akquise')return ia>=0?ia:50;
+    return 100+(it>=0?it:50);};
+  const before=COLUMNS.map(c=>c.id).join(',');
+  cols.sort((a,b)=>rank(a)-rank(b));
+  if(cols.map(c=>c.id).join(',')!==before&&!log.some(x=>x.startsWith('Reihenfolge')))log.push('Reihenfolge der Listen angepasst');
+  return{cols,log};
+}
+function runBoardRestructure(){
+  if(!requireAdmin('Board umbauen'))return;
+  const{cols,log}=buildRestructuredColumns();
+  if(!log.length){alert('Das Board ist bereits umgebaut – es gibt nichts zu ändern.');return;}
+  const msg='Board-Umbau: Akquise & Trails\n\n'+log.join('\n')+'\n\nAlle Leads bleiben in ihren Listen. Jetzt umbauen?';
+  if(!confirm(msg))return;
+  COLUMNS.length=0;cols.forEach(c=>COLUMNS.push(c));
+  saveState();
+  renderBoard();
+  if(currentView==='settings')renderSettings();
+  alert('Umbau abgeschlossen. Die Listen sind jetzt auf „Board: Akquise“ und „Board: Trails“ verteilt.');
 }
 function renderBoardNav(){
   const fl=leads;
@@ -2933,8 +2998,8 @@ function renderBoard(){
       <div class="popover-divider"></div>
       <span class="small-label">Gehört zu Board</span>
       <select class="col-type-select" onchange="setColumnBoard('${col.id}',this.value)" onclick="event.stopPropagation()">
-        <option value="akquise" ${colBoard(col)==='akquise'?'selected':''}>Akquise</option>
-        <option value="vertrieb" ${colBoard(col)==='vertrieb'?'selected':''}>Vertrieb</option>
+        <option value="akquise" ${colBoard(col)==='akquise'?'selected':''}>Board: Akquise</option>
+        <option value="vertrieb" ${colBoard(col)==='vertrieb'?'selected':''}>Board: Trails</option>
       </select>
       <div class="popover-divider"></div>
       <div class="col-menu-item" onclick="sortColumnByFollowup('${col.id}','asc')"><i class="ti ti-sort-ascending"></i> Nach Fälligkeit sortieren (bald zuerst)</div>
@@ -2975,7 +3040,7 @@ function renderBoard(){
   if(qHint){
     const otherPart=currentBoardPart==='akquise'?'vertrieb':'akquise';
     const otherHits=fl.filter(l=>leadBoardPart(l)===otherPart).length;
-    if(otherHits)partHintHtml=`<div class="board-part-hint"><div><b>${otherHits} Treffer im Board „${BOARD_PARTS[otherPart]}“</b></div><button class="btn" onclick="switchBoardPart('${otherPart}')"><i class="ti ti-arrows-exchange"></i> Zu ${BOARD_PARTS[otherPart]} wechseln</button></div>`;
+    if(otherHits)partHintHtml=`<div class="board-part-hint"><div><b>${otherHits} Treffer in „${BOARD_PARTS[otherPart]}“</b></div><button class="btn" onclick="switchBoardPart('${otherPart}')"><i class="ti ti-arrows-exchange"></i> Zu ${BOARD_PARTS[otherPart]} wechseln</button></div>`;
   }
   board.innerHTML = partHintHtml + colsHtml + addTileHtml;
   renderBoardNav();
@@ -3125,7 +3190,7 @@ function computeDashboardKpiMetrics(arr){
   const cycleDays=arr.filter(l=>isClosedLead(l)&&l.firstContact&&l.closedAt)
     .map(l=>Math.round((new Date(l.closedAt)-new Date(l.firstContact))/86400000)).filter(d=>d>=0);
   const avgCycle=cycleDays.length?Math.round(cycleDays.reduce((a,b)=>a+b,0)/cycleDays.length):0;
-  const fuFeedback=arr.filter(l=>l.status==='fu_feedback').length;
+  const fuFeedback=arr.filter(l=>isStage(l.status,'feedback')).length;
   return {overdue,forecastSum:Math.round(forecastSum),investTotal:Math.round(investTotal),winRate,avgCycle,fuFeedback};
 }
 // Legt/aktualisiert den heutigen Eintrag in der (max. 7 Tage) Historie; gibt true zurueck,
@@ -3431,8 +3496,8 @@ function followupDayChartHtml(dl){
   const bars=Array.from({length:14},(_,i)=>i-2).map(offset=>{
     const d=new Date(TODAY);d.setDate(d.getDate()+offset);
     const ds=d.toISOString().slice(0,10);
-    const feedback=withFU.filter(l=>l.followup===ds&&l.status==='fu_feedback').length;
-    const offer=withFU.filter(l=>l.followup===ds&&l.status==='fu_offer').length;
+    const feedback=withFU.filter(l=>l.followup===ds&&isStage(l.status,'feedback')).length;
+    const offer=withFU.filter(l=>l.followup===ds&&isStage(l.status,'offer')).length;
     const overdue=offset<0?withFU.filter(l=>l.followup===ds).length:0;
     return{offset,date:d,ds,feedback,offer,overdue,total:feedback+offer+overdue};
   });
@@ -3471,7 +3536,7 @@ function followupDayChartHtml(dl){
 // Gantt-Streifen: Leads in FollowUp: Feedback und Angebot nach Wartezeit (statusSince),
 // begrenzt auf max. 10 Eintraege, sortiert laengste Wartezeit zuerst.
 function followupGanttHtml(dl){
-  const scope=dl.filter(l=>!isClosedLead(l)&&(l.status==='fu_feedback'||l.status==='fu_offer')&&l.statusSince);
+  const scope=dl.filter(l=>!isClosedLead(l)&&(isStage(l.status,'feedback')||isStage(l.status,'offer'))&&l.statusSince);
   const sorted=[...scope].sort((a,b)=>a.statusSince.localeCompare(b.statusSince)).slice(0,10);
   if(!sorted.length)return`<div class="section-hdr" style="margin-top:0">Toner draußen – warte auf Rückmeldung</div><p style="font-size:12px;color:var(--text3)">Aktuell keine Leads in FollowUp: Feedback oder Angebot.</p>`;
   const MAX_DAYS_SCALE=90;
@@ -3479,7 +3544,7 @@ function followupGanttHtml(dl){
   const rows=sorted.map(l=>{
     const days=Math.max(0,Math.round((new Date(TODAY)-new Date(l.statusSince))/86400000));
     const pct=Math.max(8,Math.round(days/maxDays*100));
-    const isFeedback=l.status==='fu_feedback';
+    const isFeedback=isStage(l.status,'feedback');
     const barColor=days>=21?'var(--purple-dark)':days>=10?'var(--purple)':'#5FBAC4';
     const stageBg=isFeedback?'var(--purple-bg)':'rgba(23,76,82,.12)';
     const stageColor=isFeedback?'var(--purple)':'var(--purple-dark)';
@@ -3512,7 +3577,7 @@ function renderDashboard(){
   }
   const movementDays=activeDashboardPeriod==='week'?7:activeDashboardPeriod==='month'?30:activeDashboardPeriod==='quarter'?90:3650;
   const total=dl.length;
-  const contacted=dl.filter(l=>l.status!=='open').length;
+  const contacted=dl.filter(l=>!isStage(l.status,'open')).length;
   const overdue=dl.filter(l=>l.followup&&daysUntil(l.followup)<0).length;
   const won=dl.filter(l=>isWon(l)).length;
   const lost=dl.filter(l=>isLost(l)).length;
@@ -4778,6 +4843,7 @@ function renderSettings(){
         <div class="btn-row">
           <button class="btn" onclick="exportFullBackup()"><i class="ti ti-database-export"></i> Alle Daten als Backup exportieren (JSON)</button>
           <button class="btn" onclick="runDataIntegrityCheck()"><i class="ti ti-stethoscope"></i> Datenintegrität jetzt prüfen</button>
+          <button class="btn" onclick="runBoardRestructure()"><i class="ti ti-layout-columns"></i> Board-Umbau: Akquise &amp; Trails</button>
           <button class="btn" onclick="listAvailableBackups()"><i class="ti ti-history"></i> Backups anzeigen / wiederherstellen</button>
           <button class="btn" onclick="migrateLegacyAttachmentsToStorage()"><i class="ti ti-file-upload"></i> Alte Anhänge in den Dateispeicher übertragen</button>
         </div>
@@ -6033,6 +6099,7 @@ function renderLeadModal(){
               <option value="Schlechte Qualität" ${draftLead.lossReason==='Schlechte Qualität'?'selected':''}>Schlechte Qualität</option>
               <option value="Preis zu Hoch" ${draftLead.lossReason==='Preis zu Hoch'?'selected':''}>Preis zu Hoch</option>
               <option value="Wettbewerber" ${draftLead.lossReason==='Wettbewerber'?'selected':''}>Wettbewerber</option>
+              <option value="Keine Rückmeldung" ${draftLead.lossReason==='Keine Rückmeldung'?'selected':''}>Keine Rückmeldung</option>
               <option value="Sonstiges" ${draftLead.lossReason==='Sonstiges'?'selected':''}>Sonstiges</option>
             </select>
             <label style="color:var(--red-dark);margin-top:8px">Kommentar zum Verlust <span style="font-weight:400">(Pflichtfeld, erscheint im Verlauf)</span></label>
@@ -6774,8 +6841,34 @@ function markNotReached(){
     draftLead.activity.unshift(act2);
     pushActivityToDb(editingLeadId||draftLead.id,act2);
   }
+  // Akquise: Offen/Qualifizierung -> NE 1 -> NE 2 -> NE 3 -> NE 4 -> Verloren: Nicht erreicht
+  const nextSt=editingLeadId?nextNotReachedStatus(draftLead.status):null;
+  if(nextSt){
+    const oldSt=draftLead.status;
+    if(isStage(oldSt,'open')&&!draftLead.firstContact)draftLead.firstContact=TODAY; // = erster Kontaktversuch
+    if(colById(nextSt).outcome==='lost')draftLead.lossReason='Nicht Erreichbar';
+    draftLead.status=nextSt;
+    const act3={id:Date.now()+2,type:'activity',author:currentUser,text:`Status geändert: ${colById(oldSt).name} → ${colById(nextSt).name}`,date:nowISO()};
+    draftLead.activity.unshift(act3);
+    pushActivityToDb(editingLeadId,act3);
+    trackClosedStage(draftLead,oldSt,nextSt);trackStatusSince(draftLead,oldSt,nextSt);maybeSendListNotification(draftLead,oldSt,nextSt);
+  }
   autoPersistIfEditing();
   renderLeadModal();
+}
+function nextNotReachedStatus(statusId){
+  const cur=colById(statusId);
+  if(!cur||colBoard(cur)!=='akquise')return null;
+  const ne=COLUMNS.filter(c=>c.neLevel).sort((a,b)=>a.neLevel-b.neLevel);
+  if(!ne.length)return null; // vor dem Umbau: Verhalten wie bisher
+  if(!cur.neLevel&&(isStage(statusId,'open')||isStage(statusId,'qual')))return ne[0].id;
+  if(cur.neLevel){
+    const nxt=ne.find(c=>c.neLevel===cur.neLevel+1);
+    if(nxt)return nxt.id;
+    const lost=COLUMNS.find(c=>c.outcome==='lost'&&colBoard(c)==='akquise'&&/nicht erreicht/i.test(c.name||''));
+    return lost?lost.id:null;
+  }
+  return null;
 }
 let editingCommentId=null;
 function startEditComment(id){
@@ -8191,9 +8284,9 @@ function wizardOverdueCount(){
 function wizardStageCounts(){
   const scope=wizardLeadScope();
   return{
-    qual:scope.filter(l=>l.status==='fu_qual').length,
-    feedback:scope.filter(l=>l.status==='fu_feedback').length,
-    offer:scope.filter(l=>l.status==='fu_offer').length
+    qual:scope.filter(l=>isStage(l.status,'qual')).length,
+    feedback:scope.filter(l=>isStage(l.status,'feedback')).length,
+    offer:scope.filter(l=>isStage(l.status,'offer')).length
   };
 }
 function wizardAssignedTasks(){
@@ -8234,7 +8327,7 @@ function wizardTeamActivityCount(){
   return count;
 }
 function wizardFuFeedbackNow(){
-  return leads.filter(l=>l.status==='fu_feedback').length;
+  return leads.filter(l=>isStage(l.status,'feedback')).length;
 }
 // Sucht in der bestehenden Dashboard-KPI-Historie den Eintrag, der am naechsten an
 // "vor 30 Tagen" liegt, um die Veraenderung anzuzeigen. Ist die Historie noch nicht so
