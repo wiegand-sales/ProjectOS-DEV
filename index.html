@@ -46,6 +46,8 @@ body{font-family:'Inter',sans-serif;background:linear-gradient(155deg,#f2f3f0 0%
 .sidebar-nav-item i{font-size:17px;flex-shrink:0;}
 .nav-count{margin-left:auto;font-size:11px;font-weight:700;color:var(--text3);background:var(--bg2);border-radius:10px;padding:1px 7px;}
 .board-part-title{font-weight:700;font-size:13px;color:var(--purple-dark);white-space:nowrap;padding-right:12px;margin-right:4px;border-right:1px solid var(--border,#dfe7e6);}
+.card-handover{align-self:flex-start;margin-top:6px;font-size:11px;font-weight:700;color:var(--purple-dark);background:var(--purple-bg);border:1px solid var(--purple-dark);border-radius:6px;padding:3px 8px;cursor:pointer;display:inline-flex;align-items:center;gap:4px;}
+.card-handover:hover{background:var(--purple-dark);color:#fff;}
 .board-part-hint{flex:0 0 260px;align-self:flex-start;border:1.5px dashed var(--purple-dark);border-radius:var(--r-md);padding:16px;background:var(--purple-bg);font-size:13px;color:var(--purple-dark);display:flex;flex-direction:column;gap:10px;}
 .board-part-hint button{align-self:flex-start;}
 .nav-icon-badge{width:36px;height:36px;border-radius:9px;background:linear-gradient(180deg,#27808a 0%,#206A72 100%);box-shadow:0 6px 16px rgba(32,106,114,.3);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
@@ -959,7 +961,7 @@ let localSettingsTrusted=false;
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-10-20T21:00:00.000Z';
+const BUILD_VERSION='2026-10-20T21:30:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -5151,6 +5153,7 @@ function cardHtml(l,isFirst,isLast){
     <div class="card-contact">${esc(l.contact)}${l.customerNumber?` · ${esc(l.customerNumber)}`:''}</div>
     <div class="card-labels-slot">${labelsHtml}</div>
     <div class="card-badges-row">${metaBadges.join('')}</div>
+    ${(!bulkMode&&l.status==='am_order'&&colById('fu_feedback'))?`<button class="card-handover" onclick="event.stopPropagation();handOverToPql(${l.id})" title="Nach „${esc(colById('fu_feedback').name)}“ im Board: PQL schieben"><i class="ti ti-arrow-right"></i> An PQL übergeben</button>`:''}
     <div class="card-spacer"></div>
     <div class="card-divider"></div>
     <div class="card-foot">
@@ -5373,6 +5376,31 @@ function onDrop(e,colId){
   dragCardId=null;
 }
 
+// Uebergabe SQL -> PQL: "AM: Auftrag" (Free-Toner-Zusage, Auftrag in SAP) -> erste Touchpoint-Liste.
+// Wie beim Ziehen: Statuswechsel im Verlauf, Phasenbeginn, Benachrichtigungen, Erstkontakt.
+// Zusaetzlich "Free Toner verschickt" = Ja, damit Versand in Investition und "Toner draussen" zaehlt.
+function handOverToPql(id){
+  const l=leads.find(x=>x.id===id);
+  const target=colById('fu_feedback');
+  if(!l||l.status!=='am_order'||!target)return;
+  const oldSt=l.status;
+  const act={id:Date.now()+Math.random(),type:'activity',author:currentUser,text:`Status geändert: ${colById(oldSt).name} → ${target.name}`,date:nowISO()};
+  if(!Array.isArray(l.activity))l.activity=[];
+  l.activity.unshift(act);pushActivityToDb(l.id,act);
+  trackClosedStage(l,oldSt,target.id);trackStatusSince(l,oldSt,target.id);maybeSendListNotification(l,oldSt,target.id);
+  ensureFirstContactFor(l,target.id);
+  if(l.tonerSent!=='Ja')l.tonerSent='Ja';
+  l.status=target.id;
+  l.order=Date.now();
+  saveState();
+  renderBoard();
+}
+function handOverDraftToPql(){
+  if(!draftLead||draftLead.status!=='am_order'||!colById('fu_feedback'))return;
+  draftLead.status='fu_feedback';
+  if(draftLead.tonerSent!=='Ja')draftLead.tonerSent='Ja';
+  saveLead(false);
+}
 // Karten innerhalb derselben Liste nach oben/unten verschieben
 function moveLeadUp(id){
   const l=leads.find(x=>x.id===id);
@@ -6198,6 +6226,7 @@ function renderLeadModal(){
       ${isEdit?`<button class="btn btn-danger" onclick="deleteLead()"><i class="ti ti-trash"></i> Löschen</button>`:'<div></div>'}
       <div style="display:flex;gap:8px;align-items:center">
         <span id="saveFlashMsg" style="display:none;font-size:12px;color:var(--green-dark);font-weight:600"><i class="ti ti-check"></i> Gespeichert</span>
+        ${(isEdit&&draftLead.status==='am_order'&&colById('fu_feedback'))?`<button class="btn" onclick="handOverDraftToPql()"><i class="ti ti-arrow-right"></i> An PQL übergeben</button>`:''}
         <button class="btn" onclick="closeModal('leadModal')">Abbrechen</button>
         <button class="btn" onclick="saveLead(true)"><i class="ti ti-check"></i> Speichern</button>
         <button class="btn btn-primary" onclick="saveLead(false)"><i class="ti ti-check"></i> Speichern &amp; schließen</button>
