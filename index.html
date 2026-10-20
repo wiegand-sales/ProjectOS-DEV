@@ -48,6 +48,35 @@ body{font-family:'Inter',sans-serif;background:linear-gradient(155deg,#f2f3f0 0%
 .board-part-title{font-weight:700;font-size:13px;color:var(--purple-dark);white-space:nowrap;padding-right:12px;margin-right:4px;border-right:1px solid var(--border,#dfe7e6);}
 .card-handover{align-self:flex-start;margin-top:6px;font-size:11px;font-weight:700;color:var(--purple-dark);background:var(--purple-bg);border:1px solid var(--purple-dark);border-radius:6px;padding:3px 8px;cursor:pointer;display:inline-flex;align-items:center;gap:4px;}
 .card-handover:hover{background:var(--purple-dark);color:#fff;}
+.cal-btn{height:34px;font-size:12px;font-weight:600;padding:0 12px;border:1px solid var(--border2,#dfe7e6);border-radius:var(--r-md,8px);background:var(--bg,#fff);color:var(--text);cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.cal-btn.on{background:var(--purple-dark);border-color:var(--purple-dark);color:#fff}
+.cal-btn.sq{width:34px;padding:0;justify-content:center}
+.cal-wrap{background:var(--bg,#fff);border:1px solid var(--border2,#dfe7e6);border-radius:12px;overflow:hidden}
+.cal-head{display:grid;grid-template-columns:56px repeat(7,minmax(0,1fr));border-bottom:1px solid var(--border2,#dfe7e6);background:var(--bg2,#f4f6f6)}
+.cal-head div{padding:8px 4px;text-align:center;font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase}
+.cal-head div b{display:block;font-size:13px;color:var(--text);text-transform:none}
+.cal-head .today b{color:var(--purple-dark)}
+.cal-body{display:grid;grid-template-columns:56px repeat(7,minmax(0,1fr));position:relative}
+.cal-gutter div{height:64px;font-size:11px;color:var(--text3);text-align:right;padding-right:8px;transform:translateY(-7px)}
+.cal-day{position:relative;border-left:1px solid var(--border2,#dfe7e6);background-image:repeating-linear-gradient(to bottom,var(--border2,#e4ebea) 0,var(--border2,#e4ebea) 1px,transparent 1px,transparent 32px)}
+.cal-day.today{background-color:rgba(14,104,112,.05)}
+.cal-day.drop{background-color:rgba(14,104,112,.12)}
+.cal-ev{position:absolute;left:3px;right:3px;border-radius:6px;padding:2px 6px;font-size:11px;line-height:1.25;overflow:hidden;cursor:grab;white-space:nowrap;text-overflow:ellipsis;border-left:3px solid}
+.cal-ev.sql{background:#e3f0f0;color:#0b4f55;border-left-color:#0e6870}
+.cal-ev.pql{background:#fdf1dc;color:#7a4e07;border-left-color:#ba7517}
+.cal-ev.past{opacity:.55}
+.cal-ev b{font-weight:700}
+.cal-now{position:absolute;left:0;right:0;height:2px;background:#e24b4a;z-index:2}
+.cal-month{display:grid;grid-template-columns:44px repeat(7,minmax(0,1fr));gap:6px}
+.cal-month .wd{font-size:11px;font-weight:700;color:var(--text3);text-align:center;padding:4px 0}
+.cal-month .kw{display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--text3);background:var(--bg2,#f4f6f6);border-radius:8px}
+.cal-cell{min-height:96px;border:1px solid var(--border2,#dfe7e6);border-radius:8px;padding:6px;background:var(--bg,#fff)}
+.cal-cell.out{background:transparent;border-color:transparent}
+.cal-cell.today{border-color:var(--purple-dark);background:rgba(14,104,112,.05)}
+.cal-cell.drop{background:rgba(14,104,112,.12)}
+.cal-cell .dn{font-size:12px;font-weight:700;margin-bottom:4px}
+.cal-cell .cal-ev{position:static;display:block;margin-top:3px}
+.cal-more{font-size:11px;color:var(--text3);cursor:pointer;margin-top:3px}
 .board-part-hint{flex:0 0 260px;align-self:flex-start;border:1.5px dashed var(--purple-dark);border-radius:var(--r-md);padding:16px;background:var(--purple-bg);font-size:13px;color:var(--purple-dark);display:flex;flex-direction:column;gap:10px;}
 .board-part-hint button{align-self:flex-start;}
 .nav-icon-badge{width:36px;height:36px;border-radius:9px;background:linear-gradient(180deg,#27808a 0%,#206A72 100%);box-shadow:0 6px 16px rgba(32,106,114,.3);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
@@ -651,6 +680,7 @@ label{font-size:12px;font-weight:500;color:var(--text2);display:block;margin-bot
     </div>
     <div class="sidebar-nav-item" id="navDashboard" onclick="switchView('dashboard')"><span class="nav-icon-badge faded"><i class="ti ti-layout-dashboard"></i></span> Dashboard</div>
     <div class="sidebar-nav-item" id="navTasks" onclick="switchView('tasks')"><span class="nav-icon-badge"><i class="ti ti-list-check"></i></span> Meine Aufgaben</div>
+    <div class="sidebar-nav-item" id="navCalendar" onclick="switchView('calendar')"><span class="nav-icon-badge"><i class="ti ti-calendar"></i></span> Mein Kalender</div>
     <div class="sidebar-nav-item" id="navAkquise" onclick="switchBoardPart('akquise')"><span class="nav-icon-badge"><i class="ti ti-phone-call"></i></span> <span style="white-space:nowrap">Board: SQL</span> <span class="nav-count" id="navAkquiseCount"></span></div>
     <div class="sidebar-nav-item" id="navBoard" onclick="switchBoardPart('vertrieb')"><span class="nav-icon-badge"><i class="ti ti-layout-kanban"></i></span> <span style="white-space:nowrap">Board: PQL</span> <span class="nav-count" id="navBoardCount"></span></div>
     <div class="sidebar-nav-item" id="navCrrma" onclick="switchView('crrma')"><span class="nav-icon-badge faded"><i class="ti ti-report-money"></i></span> Artikel</div>
@@ -797,6 +827,9 @@ label{font-size:12px;font-weight:500;color:var(--text2);display:block;margin-bot
       <div class="view-scroll" id="tasksViewContent"></div>
     </div>
 
+    <div class="view" id="viewCalendar">
+      <div id="calendarContent" style="padding:16px 20px 24px"></div>
+    </div>
     <div class="view" id="viewActivities">
       <div class="topbar-unified">
         <div class="omnibar-flex">
@@ -966,7 +999,7 @@ let localSettingsTrusted=false;
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-10-21T10:00:00.000Z';
+const BUILD_VERSION='2026-10-21T12:00:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -2534,6 +2567,157 @@ function renderBoardSortMenu(){
   el.innerHTML=`<div style="font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--text3);padding:6px 12px 2px">Sortierung</div>`
     +opt('manual','Manuell')+opt('due_asc','Fälligkeit: bald zuerst')+opt('due_desc','Fälligkeit: spät zuerst');
 }
+// ── MEIN KALENDER ──
+// Zeigt Follow-ups MIT Uhrzeit als 25-Minuten-Termine. Klick oeffnet den Lead, Ziehen verschiebt
+// (Woche: Tag + Uhrzeit, Raster 30 Min.; Monat: nur der Tag, Uhrzeit bleibt). Jede Verschiebung
+// wird wie im Lead-Fenster protokolliert (Wiedervorlage-Verlauf + Aktivitaet).
+const CAL_HOUR_PX=64, CAL_DUR=25, CAL_SNAP=30;
+let calViewMode=(()=>{try{return localStorage.getItem('projectos_cal_view')==='month'?'month':'week';}catch(e){return 'week';}})();
+let calWeekStart=null, calYear=null, calMonth=null, calAgent=null, calDrag=null;
+function calYmd(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function calMonday(d){const x=new Date(d.getFullYear(),d.getMonth(),d.getDate());const dow=x.getDay()||7;x.setDate(x.getDate()-(dow-1));return x;}
+function calIsoWeek(d){const t=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));const day=t.getUTCDay()||7;t.setUTCDate(t.getUTCDate()+4-day);const y=new Date(Date.UTC(t.getUTCFullYear(),0,1));return Math.ceil(((t-y)/86400000+1)/7);}
+function calInit(){
+  const t=new Date();
+  if(!calWeekStart)calWeekStart=calYmd(calMonday(t));
+  if(calYear===null){calYear=t.getFullYear();calMonth=t.getMonth();}
+  if(!calAgent)calAgent=currentUser;
+  if(!isAdmin())calAgent=currentUser;
+}
+function calParse(fu){
+  const m=/^(\d{4}-\d{2}-\d{2})T(\d{2}):(\d{2})/.exec(fu||'');
+  if(!m)return null;
+  return{date:m[1],min:(+m[2])*60+(+m[3]),time:m[2]+':'+m[3]};
+}
+function calEvents(){
+  return leads.filter(l=>!isClosedLead(l)&&calParse(l.followup)&&(calAgent==='all'||(l.members||[]).includes(calAgent)))
+    .map(l=>Object.assign({lead:l},calParse(l.followup)));
+}
+function calFmt(min){return String(Math.floor(min/60)).padStart(2,'0')+':'+String(min%60).padStart(2,'0');}
+function calSnap(min){return Math.round(min/CAL_SNAP)*CAL_SNAP;}
+function setCalView(m){calViewMode=m==='month'?'month':'week';try{localStorage.setItem('projectos_cal_view',calViewMode);}catch(e){}renderCalendar();}
+function calNav(delta){
+  if(calViewMode==='week'){const d=new Date(calWeekStart+'T00:00:00');d.setDate(d.getDate()+delta*7);calWeekStart=calYmd(d);}
+  else{const d=new Date(calYear,calMonth+delta,1);calYear=d.getFullYear();calMonth=d.getMonth();}
+  renderCalendar();
+}
+function calToday(){const t=new Date();calWeekStart=calYmd(calMonday(t));calYear=t.getFullYear();calMonth=t.getMonth();renderCalendar();}
+function calOpenWeekOf(dateStr){calWeekStart=calYmd(calMonday(new Date(dateStr+'T00:00:00')));setCalView('week');}
+function calSetAgent(v){calAgent=v;renderCalendar();}
+// Verschiebt den Follow-up-Termin eines Leads (gleiche Protokollierung wie im Lead-Fenster)
+function calMoveLead(id,dateStr,minutes){
+  const l=leads.find(x=>String(x.id)===String(id));
+  if(!l)return false;
+  const lock=getLeadLock(l.id);
+  if(lock&&lock.agentId!==currentUser){alert(`„${l.company}“ wird gerade von ${lock.agentName||'jemand anderem'} bearbeitet und kann nicht verschoben werden.`);return false;}
+  const nv=`${dateStr}T${calFmt(minutes)}`;
+  if(nv===l.followup)return false;
+  const old=calParse(l.followup);
+  l.followup=nv;
+  l.followupHistory=[...(l.followupHistory||[]),{date:nv,setAt:nowISO()}];
+  const act={id:Date.now()+Math.random(),type:'activity',author:currentUser,text:`Follow-up verschoben: „${old?fmtDate(old.date)+' '+old.time:'–'}“ → „${fmtDate(dateStr)} ${calFmt(minutes)}“`,date:nowISO()};
+  if(!Array.isArray(l.activity))l.activity=[];
+  l.activity.unshift(act);pushActivityToDb(l.id,act);
+  saveState();
+  renderCalendar();
+  return true;
+}
+function calDragStart(e,id){
+  const r=e.currentTarget.getBoundingClientRect();
+  calDrag={id,grabY:(e.clientY||0)-(r.top||0)};
+  try{e.dataTransfer.setData('text/plain',String(id));e.dataTransfer.effectAllowed='move';}catch(x){}
+}
+function calDragOver(e){e.preventDefault();e.currentTarget.classList.add('drop');}
+function calDragLeave(e){e.currentTarget.classList.remove('drop');}
+function calDropWeek(e,dateStr,startH,endH){
+  e.preventDefault();e.currentTarget.classList.remove('drop');
+  if(!calDrag)return;
+  const r=e.currentTarget.getBoundingClientRect();
+  const y=(e.clientY||0)-(r.top||0)-calDrag.grabY;
+  let min=calSnap(startH*60+y/CAL_HOUR_PX*60);
+  min=Math.max(startH*60,Math.min(endH*60-CAL_SNAP,min));
+  const id=calDrag.id;calDrag=null;
+  calMoveLead(id,dateStr,min);
+}
+function calDropMonth(e,dateStr){
+  e.preventDefault();e.currentTarget.classList.remove('drop');
+  if(!calDrag)return;
+  const l=leads.find(x=>String(x.id)===String(calDrag.id));calDrag=null;
+  const p=l&&calParse(l.followup);
+  if(p)calMoveLead(l.id,dateStr,p.min);
+}
+function calEventHtml(ev,style){
+  const part=leadBoardPart(ev.lead)==='akquise'?'sql':'pql';
+  const now=new Date();const past=new Date(ev.date+'T'+ev.time)<now;
+  return `<div class="cal-ev ${part} ${past?'past':''}" draggable="true" style="${style||''}" title="${esc(ev.time+' – '+ev.lead.company)}" ondragstart="calDragStart(event,${JSON.stringify(String(ev.lead.id)).replace(/"/g,'&quot;')})" onclick="openLeadModal(${typeof ev.lead.id==='number'?ev.lead.id:JSON.stringify(ev.lead.id).replace(/"/g,'&quot;')})"><b>${ev.time}</b> ${esc(ev.lead.company)}</div>`;
+}
+function renderCalendar(){
+  const el=document.getElementById('calendarContent');
+  if(!el)return;
+  calInit();
+  const mFull=['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
+  const mShort=['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'];
+  const evs=calEvents();
+  let label;
+  if(calViewMode==='week'){
+    const ws=new Date(calWeekStart+'T00:00:00');const we=new Date(ws);we.setDate(we.getDate()+6);
+    label=`${ws.getDate()}. ${mShort[ws.getMonth()]} – ${we.getDate()}. ${mShort[we.getMonth()]} ${we.getFullYear()} (KW ${calIsoWeek(ws)})`;
+  } else label=`${mFull[calMonth]} ${calYear}`;
+  const agentSel=isAdmin()?`<select onchange="calSetAgent(this.value)" style="height:34px;border:1px solid var(--border2,#dfe7e6);border-radius:var(--r-md,8px);padding:0 8px;font-size:12px">${activeAgents().map(a=>`<option value="${a.id}" ${calAgent===a.id?'selected':''}>${esc(a.name)}</option>`).join('')}<option value="all" ${calAgent==='all'?'selected':''}>Alle</option></select>`:'';
+  let h=`<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+    <button class="cal-btn ${calViewMode==='week'?'on':''}" onclick="setCalView('week')">Woche</button>
+    <button class="cal-btn ${calViewMode==='month'?'on':''}" onclick="setCalView('month')">Monat</button>
+    <button class="cal-btn" onclick="calToday()"><i class="ti ti-calendar-event"></i> Heute</button>
+    <button class="cal-btn sq" onclick="calNav(-1)" title="Zurück"><i class="ti ti-chevron-left"></i></button>
+    <button class="cal-btn sq" onclick="calNav(1)" title="Weiter"><i class="ti ti-chevron-right"></i></button>
+    <div style="font-size:14px;font-weight:700;padding:0 6px" id="calLabel">${label}</div>
+    <div style="flex:1"></div>${agentSel}
+    <div style="display:flex;gap:12px;font-size:11px;color:var(--text3);align-items:center">
+      <span><span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:#0e6870"></span> Board: SQL</span>
+      <span><span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:#ba7517"></span> Board: PQL</span>
+      <span>Termin = 25 Min.</span>
+    </div></div>`;
+  const todayStr=calYmd(new Date());
+  if(calViewMode==='week'){
+    const ws=new Date(calWeekStart+'T00:00:00');
+    const days=[...Array(7)].map((_,i)=>{const d=new Date(ws);d.setDate(d.getDate()+i);return calYmd(d);});
+    const inWeek=evs.filter(e=>days.includes(e.date));
+    let startH=8,endH=20;
+    inWeek.forEach(e=>{startH=Math.min(startH,Math.floor(e.min/60));endH=Math.max(endH,Math.ceil((e.min+CAL_DUR)/60));});
+    const wd=['Mo','Di','Mi','Do','Fr','Sa','So'];
+    h+=`<div class="cal-wrap"><div class="cal-head"><div></div>${days.map((d,i)=>`<div class="${d===todayStr?'today':''}">${wd[i]}<b>${d.slice(8,10)}.${d.slice(5,7)}.</b></div>`).join('')}</div>`;
+    h+=`<div class="cal-body"><div class="cal-gutter">${[...Array(endH-startH)].map((_,i)=>`<div>${String(startH+i).padStart(2,'0')}:00</div>`).join('')}</div>`;
+    days.forEach(d=>{
+      const list=inWeek.filter(e=>e.date===d).sort((a,b)=>a.min-b.min||String(a.lead.company).localeCompare(b.lead.company));
+      // Ueberschneidungen nebeneinander: Gruppen ueberlappender Termine auf Spuren verteilen
+      const lanes=[];list.forEach(e=>{let li=lanes.findIndex(end=>end<=e.min);if(li<0){li=lanes.length;lanes.push(0);}lanes[li]=e.min+CAL_DUR;e.lane=li;});
+      list.forEach(e=>{const grp=list.filter(o=>o.min<e.min+CAL_DUR&&e.min<o.min+CAL_DUR);e.lanes=Math.max(...grp.map(o=>o.lane))+1;});
+      let inner=list.map(e=>{const top=(e.min-startH*60)/60*CAL_HOUR_PX;const ht=CAL_DUR/60*CAL_HOUR_PX;const w=100/e.lanes;
+        return calEventHtml(e,`top:${top}px;height:${ht}px;left:calc(${w*e.lane}% + 2px);width:calc(${w}% - 4px);right:auto`);}).join('');
+      if(d===todayStr){const n=new Date();const nm=n.getHours()*60+n.getMinutes();if(nm>=startH*60&&nm<=endH*60)inner+=`<div class="cal-now" style="top:${(nm-startH*60)/60*CAL_HOUR_PX}px"></div>`;}
+      h+=`<div class="cal-day ${d===todayStr?'today':''}" style="height:${(endH-startH)*CAL_HOUR_PX}px" data-date="${d}" ondragover="calDragOver(event)" ondragleave="calDragLeave(event)" ondrop="calDropWeek(event,'${d}',${startH},${endH})">${inner}</div>`;
+    });
+    h+=`</div></div>`;
+  } else {
+    const first=new Date(calYear,calMonth,1);const start=calMonday(first);
+    const last=new Date(calYear,calMonth+1,0);
+    h+=`<div class="cal-month"><div></div>${['Mo','Di','Mi','Do','Fr','Sa','So'].map(x=>`<div class="wd">${x}</div>`).join('')}`;
+    for(let w=new Date(start);w<=last;w.setDate(w.getDate()+7)){
+      h+=`<div class="kw">KW${calIsoWeek(w)}</div>`;
+      for(let i=0;i<7;i++){
+        const d=new Date(w);d.setDate(d.getDate()+i);const ds=calYmd(d);const inMonth=d.getMonth()===calMonth;
+        if(!inMonth){h+=`<div class="cal-cell out"></div>`;continue;}
+        const list=evs.filter(e=>e.date===ds).sort((a,b)=>a.min-b.min);
+        const shown=list.slice(0,4).map(e=>calEventHtml(e)).join('');
+        const more=list.length>4?`<div class="cal-more" onclick="calOpenWeekOf('${ds}')">+${list.length-4} weitere</div>`:'';
+        h+=`<div class="cal-cell ${ds===todayStr?'today':''}" data-date="${ds}" ondragover="calDragOver(event)" ondragleave="calDragLeave(event)" ondrop="calDropMonth(event,'${ds}')"><div class="dn">${d.getDate()}</div>${shown}${more}</div>`;
+      }
+    }
+    h+=`</div>`;
+  }
+  if(!evs.length)h+=`<div style="margin-top:12px;font-size:12px;color:var(--text3)">Keine Termine mit Uhrzeit. Termine erscheinen hier, sobald bei einem Follow-up eine Uhrzeit eingetragen ist.</div>`;
+  el.innerHTML=h;
+}
 function renderBoardNav(){
   const fl=leads;
   const a=fl.filter(l=>leadBoardPart(l)==='akquise').length;
@@ -3047,7 +3231,7 @@ function switchView(view){
     view='board';
   }
   currentView=view;
-  ['dashboard','board','crrma','tasks','activities','settings'].forEach(v=>{
+  ['dashboard','board','crrma','tasks','calendar','activities','settings'].forEach(v=>{
     document.getElementById('view'+v.charAt(0).toUpperCase()+v.slice(1)).classList.toggle('active',v===view);
     document.getElementById('nav'+v.charAt(0).toUpperCase()+v.slice(1)).classList.toggle('active',v===view);
   });
@@ -3058,6 +3242,7 @@ function switchView(view){
   if(view==='board'){renderLabelChips();renderBoard();}
   if(view==='crrma')setTimeout(()=>renderCrRma(),0);
   if(view==='tasks'){renderTasksAgentChips();renderTasksView();}
+  if(view==='calendar')renderCalendar();
   if(view==='activities'){renderActivityFilterChips();renderActivities();}
   if(view==='settings'){renderSettings();equalizeRowHeights();}
 }
