@@ -58,11 +58,11 @@ body{font-family:'Inter',sans-serif;background:linear-gradient(155deg,#f2f3f0 0%
 .cal-mini-grid button{height:32px;border:1px solid var(--border2,#dfe7e6);border-radius:8px;background:var(--bg,#fff);font-size:12px;font-weight:600;cursor:pointer}
 .cal-mini-grid button.on{background:var(--purple-dark);border-color:var(--purple-dark);color:#fff}
 .cal-closed{position:absolute;left:0;right:0;top:0;background:rgba(0,0,0,.035);pointer-events:none}
-.cal-head{display:grid;grid-template-columns:56px repeat(7,minmax(0,1fr));border-bottom:1px solid var(--border2,#dfe7e6);background:var(--bg2,#f4f6f6)}
+.cal-head{display:grid;grid-template-columns:56px repeat(5,minmax(0,1fr));border-bottom:1px solid var(--border2,#dfe7e6);background:var(--bg2,#f4f6f6)}
 .cal-head div{padding:8px 4px;text-align:center;font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase}
 .cal-head div b{display:block;font-size:13px;color:var(--text);text-transform:none}
 .cal-head .today b{color:var(--purple-dark)}
-.cal-body{display:grid;grid-template-columns:56px repeat(7,minmax(0,1fr));position:relative}
+.cal-body{display:grid;grid-template-columns:56px repeat(5,minmax(0,1fr));position:relative}
 .cal-gutter div{height:64px;font-size:11px;color:var(--text3);text-align:right;padding:4px 8px 0 0;box-sizing:border-box;border-top:1px solid transparent}
 .cal-day{position:relative;border-left:1px solid var(--border2,#dfe7e6);background-image:repeating-linear-gradient(to bottom,var(--border2,#e4ebea) 0,var(--border2,#e4ebea) 1px,transparent 1px,transparent 64px)}
 .cal-day.today{background-color:rgba(14,104,112,.05)}
@@ -73,7 +73,7 @@ body{font-family:'Inter',sans-serif;background:linear-gradient(155deg,#f2f3f0 0%
 .cal-ev.past{opacity:.55}
 .cal-ev b{font-weight:700}
 .cal-now{position:absolute;left:0;right:0;height:2px;background:#e24b4a;z-index:2}
-.cal-month{display:grid;grid-template-columns:44px repeat(7,minmax(0,1fr));gap:6px}
+.cal-month{display:grid;grid-template-columns:44px repeat(5,minmax(0,1fr));gap:6px}
 .cal-month .wd{font-size:11px;font-weight:700;color:var(--text3);text-align:center;padding:4px 0}
 .cal-month .kw{display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--text3);background:var(--bg2,#f4f6f6);border-radius:8px}
 .cal-cell{min-height:96px;border:1px solid var(--border2,#dfe7e6);border-radius:8px;padding:6px;background:var(--bg,#fff)}
@@ -113,6 +113,16 @@ body{font-family:'Inter',sans-serif;background:linear-gradient(155deg,#f2f3f0 0%
 .ap-info{background:#e3f0f0;color:#0b4f55}
 .ap-err{background:#fcebeb;color:#a32d2d}
 .ap-primary{background:#206A72!important;border-color:#206A72!important;color:#fff!important}
+.cal-split{display:grid;grid-template-columns:minmax(0,1fr) 250px;gap:12px;align-items:start}
+.cal-split.nopanel{grid-template-columns:minmax(0,1fr)}
+.cal-plan{border:1px solid var(--border2,#dfe7e6);border-radius:10px;padding:10px;max-height:820px;overflow-y:auto}
+.cal-plan-h{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700}
+.cal-grp{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:#206A72;text-transform:uppercase;letter-spacing:.04em;margin:12px 0 6px;cursor:pointer}
+.cal-grp span{margin-left:auto;color:var(--text3)}
+.cal-it{display:flex;align-items:center;gap:6px;border:1px solid var(--border2,#dfe7e6);border-radius:8px;padding:6px 8px;font-size:12px;margin-bottom:5px;cursor:grab;background:var(--bg,#fff)}
+.cal-it:hover{border-color:#206A72}
+.cal-it small{display:block;color:var(--text3);font-size:11px}
+.cal-it.od{box-shadow:inset 3px 0 0 #e24b4a}
 .board-part-hint{flex:0 0 260px;align-self:flex-start;border:1.5px dashed var(--purple-dark);border-radius:var(--r-md);padding:16px;background:var(--purple-bg);font-size:13px;color:var(--purple-dark);display:flex;flex-direction:column;gap:10px;}
 .board-part-hint button{align-self:flex-start;}
 .nav-icon-badge{width:36px;height:36px;border-radius:9px;background:linear-gradient(180deg,#27808a 0%,#206A72 100%);box-shadow:0 6px 16px rgba(32,106,114,.3);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
@@ -1044,7 +1054,7 @@ let localSettingsTrusted=false;
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-10-21T14:00:00.000Z';
+const BUILD_VERSION='2026-10-21T15:00:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -2619,6 +2629,8 @@ function renderBoardSortMenu(){
 const CAL_HOUR_PX=64, CAL_DUR=25, CAL_SNAP=30;
 let calViewMode=(()=>{try{return localStorage.getItem('projectos_cal_view')==='month'?'month':'week';}catch(e){return 'week';}})();
 let calWeekStart=null, calYear=null, calMonth=null, calAgent=null, calDrag=null, calMiniOpen=false, calMiniYear=null;
+let calPlanPanel=(()=>{try{return localStorage.getItem('projectos_cal_plan')!=='0';}catch(e){return true;}})();
+let calPlanOpen={overdue:true,today:true,week:true,weekend:true};
 const CAL_DAY_START=8, CAL_DAY_END=20, CAL_BOOK_FROM=9; // Tag 08-20 Uhr, Termine ab 09:00
 function calYmd(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
 function calMonday(d){const x=new Date(d.getFullYear(),d.getMonth(),d.getDate());const dow=x.getDay()||7;x.setDate(x.getDate()-(dow-1));return x;}
@@ -2652,6 +2664,52 @@ function calNav(delta){
 function calToday(){const t=new Date();calWeekStart=calYmd(calMonday(t));calYear=t.getFullYear();calMonth=t.getMonth();renderCalendar();}
 function calOpenWeekOf(dateStr){calWeekStart=calYmd(calMonday(new Date(dateStr+'T00:00:00')));setCalView('week');}
 function calSetAgent(v){calAgent=v;renderCalendar();}
+// ── Seitenleiste "Zu planen": Wiedervorlagen ohne Uhrzeit (ueberfaellig, heute, diese Woche)
+// und Termine am Wochenende. Ziehen auf eine Uhrzeit = Termin; Klick oeffnet den Lead.
+function calTogglePlanPanel(){calPlanPanel=!calPlanPanel;try{localStorage.setItem('projectos_cal_plan',calPlanPanel?'1':'0');}catch(e){}renderCalendar();}
+function calTogglePlanGroup(k){calPlanOpen[k]=!calPlanOpen[k];renderCalendar();}
+function calPlanItems(){
+  calInit();
+  const q=((document.getElementById('calendarSearch')||{}).value||'').toLowerCase().trim();
+  const pk=phoneQueryKeys(q);
+  const today=calYmd(new Date());
+  const fri=(()=>{const m=calMonday(new Date());m.setDate(m.getDate()+4);return calYmd(m);})();
+  const out=[];
+  leads.forEach(l=>{
+    if(isClosedLead(l)||!l.followup)return;
+    if(!(calAgent==='all'||(l.members||[]).includes(calAgent)))return;
+    if(!leadMatchesSearch(l,q,pk))return;
+    const p=calParse(l.followup);
+    const date=(l.followup||'').slice(0,10);
+    if(p){const dow=new Date(p.date+'T00:00:00').getDay();if(dow===0||dow===6)out.push({lead:l,group:'weekend',date});return;}
+    if(date<today)out.push({lead:l,group:'overdue',date});
+    else if(date===today)out.push({lead:l,group:'today',date});
+    else if(date<=fri)out.push({lead:l,group:'week',date});
+  });
+  return out.sort((a,b)=>a.date.localeCompare(b.date)||String(a.lead.company).localeCompare(b.lead.company));
+}
+function calPlanPanelHtml(){
+  const items=calPlanItems();
+  const today=new Date(calYmd(new Date())+'T00:00:00');
+  const groups=[['overdue','Überfällig'],['today','Heute'],['week','Diese Woche'],['weekend','Wochenende']];
+  let h=`<div class="cal-plan"><div class="cal-plan-h"><i class="ti ti-list-check" style="color:#206A72"></i>Zu planen<span style="margin-left:auto;font-size:12px;color:var(--text3)">${items.length}</span></div>
+    <div style="font-size:11px;color:var(--text3);margin-top:4px">Lead auf eine Uhrzeit ziehen = Termin.</div>`;
+  groups.forEach(([k,label])=>{
+    const list=items.filter(i=>i.group===k);
+    if(!list.length&&k==='weekend')return;
+    h+=`<div class="cal-grp" onclick="calTogglePlanGroup('${k}')"><i class="ti ti-chevron-${calPlanOpen[k]?'down':'right'}"></i>${label}<span>${list.length}</span></div>`;
+    if(!calPlanOpen[k])return;
+    if(!list.length){h+=`<div style="font-size:11px;color:var(--text3);padding:0 2px 4px">Nichts zu planen.</div>`;return;}
+    h+=list.map(i=>{
+      const l=i.lead;const col=colById(l.status);
+      const days=Math.round((today-new Date(i.date+'T00:00:00'))/86400000);
+      const sub=[k==='overdue'?`seit ${days} T`:(k==='week'||k==='weekend'?fmtDate(i.date)+(k==='weekend'&&calParse(l.followup)?' '+calParse(l.followup).time:''):''),col?col.name:'',leadBoardPart(l)==='akquise'?'SQL':'PQL'].filter(Boolean).join(' · ');
+      const idAttr=JSON.stringify(String(l.id)).replace(/"/g,'&quot;');
+      return `<div class="cal-it ${k==='overdue'?'od':''}" draggable="true" data-id="${esc(String(l.id))}" ondragstart="calDragStart(event,${idAttr});calDrag.grabY=0" onclick="openLeadModal(${typeof l.id==='number'?l.id:idAttr})"><i class="ti ti-grip-vertical" style="color:var(--text3)"></i><div style="min-width:0"><div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(l.company)}</div><small>${esc(sub)}</small></div></div>`;
+    }).join('');
+  });
+  return h+`</div>`;
+}
 function calToggleMini(e){
   if(e)e.stopPropagation();
   calMiniOpen=!calMiniOpen;
@@ -2676,9 +2734,10 @@ function calMoveLead(id,dateStr,minutes){
   const nv=`${dateStr}T${calFmt(minutes)}`;
   if(nv===l.followup)return false;
   const old=calParse(l.followup);
+  const prevFu=l.followup||'';
   l.followup=nv;
   l.followupHistory=[...(l.followupHistory||[]),{date:nv,setAt:nowISO()}];
-  const act={id:Date.now()+Math.random(),type:'activity',author:currentUser,text:`Follow-up verschoben: „${old?fmtDate(old.date)+' '+old.time:'–'}“ → „${fmtDate(dateStr)} ${calFmt(minutes)}“`,date:nowISO()};
+  const act={id:Date.now()+Math.random(),type:'activity',author:currentUser,text:old?`Follow-up verschoben: „${fmtDate(old.date)} ${old.time}“ → „${fmtDate(dateStr)} ${calFmt(minutes)}“`:`Follow-up-Uhrzeit festgelegt: „${prevFu?fmtDate(prevFu):'–'}“ → „${fmtDate(dateStr)} ${calFmt(minutes)}“`,date:nowISO()};
   if(!Array.isArray(l.activity))l.activity=[];
   l.activity.unshift(act);pushActivityToDb(l.id,act);
   saveState();
@@ -2723,7 +2782,7 @@ function renderCalendar(){
   const evs=calEvents();
   let label;
   if(calViewMode==='week'){
-    const ws=new Date(calWeekStart+'T00:00:00');const we=new Date(ws);we.setDate(we.getDate()+6);
+    const ws=new Date(calWeekStart+'T00:00:00');const we=new Date(ws);we.setDate(we.getDate()+4);
     label=`${ws.getDate()}. ${mShort[ws.getMonth()]} – ${we.getDate()}. ${mShort[we.getMonth()]} ${we.getFullYear()} (KW ${calIsoWeek(ws)})`;
   } else label=`${mFull[calMonth]} ${calYear}`;
   const agentSel=isAdmin()?`<select onchange="calSetAgent(this.value)" style="height:34px;border:1px solid var(--border2,#dfe7e6);border-radius:var(--r-md,8px);padding:0 8px;font-size:12px">${activeAgents().map(a=>`<option value="${a.id}" ${calAgent===a.id?'selected':''}>${esc(a.name)}</option>`).join('')}<option value="all" ${calAgent==='all'?'selected':''}>Alle</option></select>`:'';
@@ -2735,6 +2794,7 @@ function renderCalendar(){
     <button class="cal-btn sq" onclick="calNav(1)" title="Weiter"><i class="ti ti-chevron-right"></i></button>
     <div style="position:relative"><div onclick="calToggleMini(event)" style="font-size:14px;font-weight:700;padding:6px 10px;border-radius:6px;cursor:pointer;display:flex;align-items:center;gap:5px" id="calLabel">${label} <i class="ti ti-chevron-down" style="font-size:13px;color:var(--text3)"></i></div>${calMiniOpen?(()=>{const curY=calViewMode==='week'?new Date(calWeekStart+'T00:00:00').getFullYear():calYear;const curM=calViewMode==='week'?new Date(calWeekStart+'T00:00:00').getMonth():calMonth;return `<div class="cal-mini" onclick="event.stopPropagation()"><div style="display:flex;align-items:center;justify-content:space-between"><button class="cal-btn sq" style="height:28px;width:28px" onclick="calMiniYearNav(-1,event)"><i class="ti ti-chevron-left"></i></button><b style="font-size:14px">${calMiniYear}</b><button class="cal-btn sq" style="height:28px;width:28px" onclick="calMiniYearNav(1,event)"><i class="ti ti-chevron-right"></i></button></div><div class="cal-mini-grid">${mShort.map((mn,i)=>`<button class="${calMiniYear===curY&&i===curM?'on':''}" onclick="calJumpMonth(${calMiniYear},${i},event)">${mn}</button>`).join('')}</div></div>`;})():''}</div>
     <div style="flex:1"></div>${agentSel}
+    ${calViewMode==='week'?`<button class="cal-btn ${calPlanPanel?'on':''}" onclick="calTogglePlanPanel()" title="Seitenleiste ein-/ausblenden"><i class="ti ti-list-check"></i> Zu planen <b>${calPlanItems().length}</b></button>`:''}
     <button class="cal-btn ap-primary" onclick="openCalAppt()"><i class="ti ti-plus"></i> Termin</button>
     <div style="display:flex;gap:12px;font-size:11px;color:var(--text3);align-items:center">
       <span><span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:#0e6870"></span> Board: SQL</span>
@@ -2744,12 +2804,12 @@ function renderCalendar(){
   const todayStr=calYmd(new Date());
   if(calViewMode==='week'){
     const ws=new Date(calWeekStart+'T00:00:00');
-    const days=[...Array(7)].map((_,i)=>{const d=new Date(ws);d.setDate(d.getDate()+i);return calYmd(d);});
+    const days=[...Array(5)].map((_,i)=>{const d=new Date(ws);d.setDate(d.getDate()+i);return calYmd(d);});
     const inWeek=evs.filter(e=>days.includes(e.date));
     let startH=CAL_DAY_START,endH=CAL_DAY_END;
     inWeek.forEach(e=>{startH=Math.min(startH,Math.floor(e.min/60));endH=Math.max(endH,Math.ceil((e.min+CAL_DUR)/60));});
-    const wd=['Mo','Di','Mi','Do','Fr','Sa','So'];
-    h+=`<div class="cal-wrap"><div class="cal-head"><div></div>${days.map((d,i)=>`<div class="${d===todayStr?'today':''}">${wd[i]}<b>${d.slice(8,10)}.${d.slice(5,7)}.</b></div>`).join('')}</div>`;
+    const wd=['Mo','Di','Mi','Do','Fr'];
+    h+=`<div class="cal-split ${calPlanPanel?'':'nopanel'}"><div class="cal-wrap"><div class="cal-head"><div></div>${days.map((d,i)=>`<div class="${d===todayStr?'today':''}">${wd[i]}<b>${d.slice(8,10)}.${d.slice(5,7)}.</b></div>`).join('')}</div>`;
     h+=`<div class="cal-body"><div class="cal-gutter">${[...Array(endH-startH)].map((_,i)=>`<div>${String(startH+i).padStart(2,'0')}:00</div>`).join('')}</div>`;
     days.forEach(d=>{
       const list=inWeek.filter(e=>e.date===d).sort((a,b)=>a.min-b.min||String(a.lead.company).localeCompare(b.lead.company));
@@ -2762,14 +2822,16 @@ function renderCalendar(){
       if(CAL_BOOK_FROM>startH)inner=`<div class="cal-closed" style="height:${(CAL_BOOK_FROM-startH)*CAL_HOUR_PX}px"></div>`+inner;
       h+=`<div class="cal-day ${d===todayStr?'today':''}" style="height:${(endH-startH)*CAL_HOUR_PX}px" data-date="${d}" onclick="calSlotClick(event,'${d}',${startH})" ondragover="calDragOver(event)" ondragleave="calDragLeave(event)" ondrop="calDropWeek(event,'${d}',${startH},${endH})">${inner}</div>`;
     });
-    h+=`</div></div>`;
+    h+=`</div></div>${calPlanPanel?calPlanPanelHtml():''}</div>`;
   } else {
     const first=new Date(calYear,calMonth,1);const start=calMonday(first);
     const last=new Date(calYear,calMonth+1,0);
-    h+=`<div class="cal-month"><div></div>${['Mo','Di','Mi','Do','Fr','Sa','So'].map(x=>`<div class="wd">${x}</div>`).join('')}`;
+    h+=`<div class="cal-month"><div></div>${['Mo','Di','Mi','Do','Fr'].map(x=>`<div class="wd">${x}</div>`).join('')}`;
     for(let w=new Date(start);w<=last;w.setDate(w.getDate()+7)){
+      const anyWorkday=[0,1,2,3,4].some(i=>{const d=new Date(w);d.setDate(d.getDate()+i);return d.getMonth()===calMonth;});
+      if(!anyWorkday)continue;
       h+=`<div class="kw">KW${calIsoWeek(w)}</div>`;
-      for(let i=0;i<7;i++){
+      for(let i=0;i<5;i++){
         const d=new Date(w);d.setDate(d.getDate()+i);const ds=calYmd(d);const inMonth=d.getMonth()===calMonth;
         if(!inMonth){h+=`<div class="cal-cell out"></div>`;continue;}
         const list=evs.filter(e=>e.date===ds).sort((a,b)=>a.min-b.min);
