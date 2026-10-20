@@ -1061,7 +1061,7 @@ let localSettingsTrusted=false;
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-10-21T16:00:00.000Z';
+const BUILD_VERSION='2026-10-21T16:30:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -8972,7 +8972,7 @@ function wizardTeamTopForecastList(){
 let wizardPage=0;
 function wizardPageCount(){
   const me=agentById(currentUser);
-  return(me&&me.role==='am')?5:6;
+  return(me&&me.role==='am')?amWizardPages().length:6;
 }
 function openLoginWizard(){
   const me=agentById(currentUser);
@@ -9024,7 +9024,7 @@ async function loadWizardYesterday(){
       talks:rows.filter(r=>r.type==='comment'&&r.author===currentUser).length,
       wins:[...new Set(rows.filter(r=>toWon(r)&&mine.has(String(r.lead_id))).map(r=>String(r.lead_id)))].map(id=>leads.find(l=>String(l.id)===id)).filter(Boolean)};
   }catch(e){wizardYesterday={error:true};}
-  if(wizardPage===2&&!document.getElementById('loginWizardOverlay').classList.contains('hidden'))renderWizardPage();
+  if(amWizardPages()[wizardPage]==='yesterday'&&!document.getElementById('loginWizardOverlay').classList.contains('hidden'))renderWizardPage();
 }
 // ── Erinnerung 5 Minuten vor einem eigenen Termin (Follow-up mit Uhrzeit) ──
 // Prueft alle 30 s. Jeder Termin erinnert genau einmal (Merker im Browser, je Lead + Terminzeit).
@@ -9064,11 +9064,19 @@ function wizardRow(main,sub,right,onclick){
   return `<div class="wizard-taskrow" ${onclick?`style="cursor:pointer" onclick="${onclick}"`:''}><div style="flex:1;min-width:0;text-align:left"><div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${main}</div>${sub?`<div style="font-size:11px;opacity:.7">${sub}</div>`:''}</div>${right?`<div style="font-weight:700;white-space:nowrap">${right}</div>`:''}</div>`;
 }
 function wizardOpenLead(id){closeLoginWizard();openLeadModal(id);}
+// Seitenfolge fuer Account Manager: "Dir zugewiesen" nur, wenn es Aufgaben gibt; Spruch immer als letzte Seite.
+function amWizardPages(){
+  const p=['overdue','today','yesterday','offers'];
+  if(wizardAssignedTasks().length)p.push('tasks');
+  p.push('quote');
+  return p;
+}
 function renderAmWizardPage(body){
   const scope=wizardLeadScope().filter(l=>!isClosedLead(l));
   const colName=l=>{const c=colById(l.status);return c?c.name:'';};
   const idArg=l=>typeof l.id==='number'?l.id:JSON.stringify(String(l.id)).replace(/"/g,'&quot;');
-  if(wizardPage===0){
+  const pageKey=amWizardPages()[wizardPage]||'quote';
+  if(pageKey==='overdue'){
     const od=scope.filter(l=>l.followup&&daysUntil(l.followup)<0).sort((a,b)=>daysUntil(a.followup)-daysUntil(b.followup));
     const n=od.length;
     body.innerHTML=`
@@ -9078,7 +9086,7 @@ function renderAmWizardPage(body){
       ${n?od.slice(0,3).map(l=>wizardRow(esc(l.company),`${esc(colName(l))} · seit ${Math.abs(daysUntil(l.followup))} Tagen`,'',`wizardOpenLead(${idArg(l)})`)).join('')
         +`<button class="wizard-next-btn" style="margin-top:6px;background:transparent;color:#fff;border:1px solid rgba(255,255,255,.4)" onclick="wizardJumpToPlanning()">Jetzt planen <i class="ti ti-arrow-right"></i></button>`
         :'<div class="wizard-sub">Alles im grünen Bereich – aktuell keine überfälligen Follow-ups.</div>'}`;
-  }else if(wizardPage===1){
+  }else if(pageKey==='today'){
     const today=TODAY;
     const timed=scope.map(l=>({l,p:calParse(l.followup)})).filter(x=>x.p&&x.p.date===today).sort((a,b)=>a.p.min-b.p.min);
     const untimed=scope.filter(l=>l.followup&&!calParse(l.followup)&&(l.followup||'').slice(0,10)===today).length;
@@ -9088,7 +9096,7 @@ function renderAmWizardPage(body){
       ${timed.length?timed.slice(0,6).map(x=>wizardRow(`<span style="color:#9fe1cb;margin-right:8px">${x.p.time}</span>${esc(x.l.company)}`,esc(colName(x.l)),'',`wizardOpenLead(${idArg(x.l)})`)).join('')+(timed.length>6?`<div class="wizard-sub">+${timed.length-6} weitere im Kalender</div>`:'')
         :'<div class="wizard-sub">Für heute sind noch keine Termine mit Uhrzeit geplant.</div>'}
       ${untimed?`<button class="wizard-next-btn" style="margin-top:6px;background:transparent;color:#fff;border:1px solid rgba(255,255,255,.4)" onclick="wizardJumpToPlanning()">${untimed} ${untimed===1?'Wiedervorlage':'Wiedervorlagen'} noch ohne Uhrzeit <i class="ti ti-arrow-right"></i></button>`:''}`;
-  }else if(wizardPage===2){
+  }else if(pageKey==='yesterday'){
     const y=wizardYesterday;const d=wizardLastWorkday();
     const label=`${['So','Mo','Di','Mi','Do','Fr','Sa'][d.getDay()]} ${String(d.getDate()).padStart(2,'0')}.${String(d.getMonth()+1).padStart(2,'0')}.`;
     const v=k=>(!y||y.loading)?'…':(y.error?'–':y[k]);
@@ -9102,7 +9110,7 @@ function renderAmWizardPage(body){
       </div>
       ${y&&y.wins&&y.wins.length?y.wins.slice(0,3).map(l=>wizardRow(`<i class="ti ti-confetti" style="color:#fac775;margin-right:6px"></i>${esc(l.company)}`,'gewonnen',l.forecast?fmtEur(l.forecast):'',`wizardOpenLead(${idArg(l)})`)).join(''):''}
       ${y&&!y.loading&&!y.error?`<div class="wizard-sub">Team gesamt: ${y.tonerTeam} Free-Toner-${y.tonerTeam===1?'Zusage':'Zusagen'}</div>`:''}`;
-  }else if(wizardPage===3){
+  }else if(pageKey==='offers'){
     const offers=scope.filter(l=>l.status==='am_offer'||isStage(l.status,'offer')).sort((a,b)=>String(a.statusSince||'9999').localeCompare(String(b.statusSince||'9999')));
     const sum=offers.reduce((s,l)=>s+(parseFloat(l.forecast)||0),0);
     const age=l=>l.statusSince?Math.max(0,Math.round((new Date(TODAY+'T00:00:00')-new Date(String(l.statusSince).slice(0,10)+'T00:00:00'))/86400000)):null;
@@ -9112,12 +9120,17 @@ function renderAmWizardPage(body){
       ${offers.length?offers.slice(0,5).map(l=>wizardRow(esc(l.company),`${esc(colName(l))}${age(l)!==null?` · seit ${age(l)} Tagen`:''}`,l.forecast?fmtEur(l.forecast):'',`wizardOpenLead(${idArg(l)})`)).join('')
         +`<div class="wizard-sub">${offers.length} offene ${offers.length===1?'Angebot':'Angebote'} · ${fmtEur(sum)||'0 €'}</div>`
         :'<div class="wizard-sub">Aktuell keine offenen Angebote.</div>'}`;
-  }else{
+  }else if(pageKey==='tasks'){
     const items=wizardAssignedTasks();
+    body.innerHTML=`
+      <div class="wizard-icon"><i class="ti ti-checkbox"></i></div>
+      <div class="wizard-title" style="margin-bottom:8px">Dir zugewiesene Aufgaben</div>
+      ${items.map(x=>wizardRow(esc(x.task.text||x.task.title||'Aufgabe'),`${esc(x.lead.company)}${x.task.dueDate?' · '+fmtDate(x.task.dueDate):''}`,'',`wizardOpenLead(${idArg(x.lead)})`)).join('')}`;
+  }else{
     const quote=pickNextMotivationQuote();
     body.innerHTML=`
-      ${items.length?`<div class="wizard-title" style="margin-bottom:8px">Dir zugewiesen</div>`+items.map(x=>wizardRow(esc(x.task.text||x.task.title||'Aufgabe'),`${esc(x.lead.company)}${x.task.dueDate?' · '+fmtDate(x.task.dueDate):''}`,'',`wizardOpenLead(${idArg(x.lead)})`)).join(''):`<div class="wizard-icon"><i class="ti ti-bulb"></i></div>`}
-      <div class="wizard-quote" style="margin-top:10px">"${esc(quote)}"</div>`;
+      <div class="wizard-icon"><i class="ti ti-bulb"></i></div>
+      <div class="wizard-quote">"${esc(quote)}"</div>`;
   }
 }
 function renderAdminWizardPage(body){
