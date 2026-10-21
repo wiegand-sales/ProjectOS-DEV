@@ -1186,7 +1186,7 @@ let localSettingsTrusted=false;
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-10-22T11:00:00.000Z';
+const BUILD_VERSION='2026-10-22T11:30:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -2565,7 +2565,9 @@ async function previewAndRestoreBackup(dateStr){
     if(!rows.length){alert(`Kein Backup für "${dateStr}" gefunden. Bitte exaktes Format aus der Liste oben verwenden (z.B. 2026-07-09_14).`);return;}
     const backupData=rows[0].data;
     const leadCount=(backupData.leads||[]).length;
-    if(!confirm(`Backup vom ${dateStr} enthält ${leadCount} Lead(s).\nAktuell im System: ${leads.length} Lead(s).\n\nWirklich diesen Stand wiederherstellen?\n\nACHTUNG: Das überschreibt den aktuellen Stand für ALLE im Team. Alles, was seit diesem Backup neu eingetragen wurde, geht dabei verloren. Nicht rückgängig zu machen (außer über ein anderes Backup).\n\nHINWEIS: Kommentare und Aktivitäten (in lead_activities) bleiben beim Restore erhalten und werden NICHT zurückgesetzt.`))return;
+    const hasCal=Array.isArray(backupData.calendar_events);
+    const calCount=hasCal?backupData.calendar_events.filter(e=>!e.deleted).length:0;
+    if(!confirm(`Backup vom ${dateStr} enthält ${leadCount} Lead(s)${hasCal?` und ${calCount} Kalender-Aufgaben`:''}.\nAktuell im System: ${leads.length} Lead(s).\n\nWirklich diesen Stand wiederherstellen?\n\nACHTUNG: Das überschreibt den aktuellen Stand für ALLE im Team. Alles, was seit diesem Backup neu eingetragen wurde, geht dabei verloren. Nicht rückgängig zu machen (außer über ein anderes Backup).\n\nHINWEIS: Kommentare und Aktivitäten (in lead_activities) bleiben beim Restore erhalten und werden NICHT zurückgesetzt.`))return;
     applyStateData(JSON.parse(JSON.stringify(backupData)));
     // WICHTIG: applyStateData() kuemmert sich seit dem Umbau bewusst NICHT mehr um
     // Leads (die leben jetzt in eigenen Datenbank-Zeilen). Die Leads aus dem Backup
@@ -2576,8 +2578,24 @@ async function previewAndRestoreBackup(dateStr){
     saveState();
     await syncMerge();
     await syncLeadsLayer();
+    // Kalender-Aufgaben: Stand des Backups wiederherstellen; spaeter angelegte werden ausgeblendet (deleted), nie endgueltig geloescht
+    let calMsg='';
+    if(hasCal){
+      try{
+        const bk=backupData.calendar_events;const ids=new Set(bk.map(e=>String(e.id)));
+        const cur=await fetchAllRows('calendar_events?select=id,deleted&order=id.asc',{timeoutMs:30000});
+        const hide=cur.filter(e=>!ids.has(String(e.id))&&!e.deleted).map(e=>({id:e.id,deleted:true,updated_at:nowISO()}));
+        const rows=bk.map(e=>{const r=Object.assign({},e);r.updated_at=nowISO();return r;}).concat(hide.map(h=>Object.assign({},h)));
+        for(const part of chunkList(rows,200)){
+          const res2=await fetchWithTimeout(`${SUPABASE_URL}/rest/v1/calendar_events?on_conflict=id`,{method:'POST',headers:Object.assign({},getSbHeaders(),{'Content-Type':'application/json','Prefer':'resolution=merge-duplicates,return=minimal'}),body:JSON.stringify(part)},30000);
+          if(!res2.ok)throw new Error('HTTP '+res2.status);
+        }
+        calMsg=`, ${calCount} Kalender-Aufgaben`;
+        calTasksLoadedAt=0;loadCalTasks(true);
+      }catch(e){calMsg=`. ACHTUNG: Kalender-Aufgaben konnten nicht wiederhergestellt werden (${e.message})`;}
+    }
     renderBoard();
-    alert(`Backup vom ${dateStr} wurde wiederherstellt und in die Cloud hochgeladen (${leads.length} Leads).`);
+    alert(`Backup vom ${dateStr} wurde wiederherstellt und in die Cloud hochgeladen (${leads.length} Leads${calMsg}).`);
   }catch(e){
     alert('Fehler bei der Wiederherstellung: '+e.message);
   }
@@ -8618,6 +8636,9 @@ async function loadAllLeadActivitiesForBackup(){
 // Gibt true zurueck, wenn die Kommentartabelle vollstaendig im Backup steckt.
 async function exportFullBackup(isAutomatic){
   const act=await loadAllLeadActivitiesForBackup();
+  // Kalender-Aufgaben (Tabelle calendar_events) gehoeren seit Okt. 2026 mit ins Backup
+  let calEvents=[],calEventsError=null;
+  try{calEvents=await fetchAllRows('calendar_events?select=*&order=date.asc,id.asc',{timeoutMs:30000});}catch(e){calEventsError=e.message||String(e);}
   const activities=act.rows;
   const complete=!act.error;
   if(!complete)console.warn('Backup: Kommentartabelle unvollstaendig -',act.error);
@@ -8628,6 +8649,8 @@ async function exportFullBackup(isAutomatic){
     leads,COLUMNS,LABELS,AGENTS,ARTICLES,PROJECT,
     nextId,nextLabelId,nextPrinterId,nextColId,nextAgentId,nextArticleId,nextMilestoneId,nextRiskId,nextNotifyRuleId,
     lead_activities:activities,
+    calendar_events:calEvents,
+    calendar_events_complete:!calEventsError,
     lead_activities_complete:complete,
     lead_activities_total:act.total,
     _note:complete
@@ -8646,7 +8669,7 @@ async function exportFullBackup(isAutomatic){
   URL.revokeObjectURL(url);
   if(complete&&!isAutomatic){
     // Sichtbare Bestaetigung beim manuellen Export - vorher stand das nur in der Datei (_note).
-    alert(`Backup gespeichert – vollständig.\n\n${leads.length} Leads\n${activities.length} von ${act.total} Kommentaren/Aktivitäten\n${AGENTS.length} Mitarbeiter, ${LABELS.length} Labels, ${ARTICLES.length} Artikel\n\nHinweis: Dateianhänge aus dem Dateispeicher sind nur als Verweis enthalten, nicht als Datei.`);
+    alert(`Backup gespeichert – vollständig.\n\n${leads.length} Leads\n${activities.length} von ${act.total} Kommentaren/Aktivitäten\n${calEventsError?'Kalender-Aufgaben: NICHT enthalten ('+calEventsError+')':calEvents.filter(e=>!e.deleted).length+' Kalender-Aufgaben'}\n${AGENTS.length} Mitarbeiter, ${LABELS.length} Labels, ${ARTICLES.length} Artikel\n\nHinweis: Dateianhänge aus dem Dateispeicher sind nur als Verweis enthalten, nicht als Datei.`);
   }
   if(!complete&&!isAutomatic){
     alert(`Backup wurde gespeichert, ist aber UNVOLLSTÄNDIG:\n\n${act.error}\n\nLeads, Einstellungen und der eingebettete Verlauf sind enthalten. Bitte ggf. neu anmelden und das Backup wiederholen.`);
