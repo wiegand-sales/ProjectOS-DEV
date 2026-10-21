@@ -213,6 +213,27 @@ body{font-family:'Inter',sans-serif;background:linear-gradient(155deg,#f2f3f0 0%
 .ass-sec .d3{border-top-color:var(--border2,#e4ebea)}
 .ass-sec .d3 .f{color:#a32d2d}.ass-sec .d3 .f.h{color:#8a5a0b}.ass-sec .d3 .f.nt{color:var(--text3)}
 .d3 .f.nt{color:var(--text3);font-weight:600}
+.wk2-head{background:linear-gradient(180deg,#1d6169 0%,#206A72 100%);color:#fff;padding:14px 22px;display:flex;align-items:center;gap:10px;font-size:16px;font-weight:700}
+.wk2-head .n{margin-left:auto;font-size:13px;font-weight:600;opacity:.9}
+.wk2-head .x{background:rgba(255,255,255,.15);border:0;color:#fff;border-radius:8px;width:32px;height:32px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center}
+.wk2-head .x:hover{background:rgba(255,255,255,.28)}
+.wk2-bar{height:5px;background:#e8eeee}.wk2-bar div{height:5px;transition:width .2s}
+.wk2-body{padding:22px 26px;overflow-y:auto}
+.wk2-top{display:flex;align-items:flex-start;gap:16px}
+.wk2-co{font-size:24px;font-weight:700;margin-top:8px}
+.wk2-ct{font-size:14px;color:var(--text2);margin-top:3px}
+.wk2-call{display:inline-flex;align-items:center;gap:8px;background:#0F6E56;color:#fff;border-radius:10px;padding:10px 16px;font-size:15px;font-weight:700;text-decoration:none;white-space:nowrap}
+.wk2-call:hover{background:#0c5a46}
+.wk2-call.off{background:var(--bg2,#f4f6f6);color:var(--text3);pointer-events:none}
+.wk2-nh{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin:22px 0 10px}
+.wk2-note{border-left:3px solid #9fe1cb;padding:3px 0 3px 12px;margin-bottom:12px;font-size:14px;line-height:1.5}
+.wk2-note small{display:block;font-size:11px;color:var(--text3);margin-bottom:2px}
+.wk2-ta{width:100%;box-sizing:border-box;min-height:76px;border:1px solid var(--border2,#dfe7e6);border-radius:10px;padding:10px 12px;font-size:14px;font-family:inherit;resize:vertical}
+.wk2-ta:focus{border-color:#206A72;box-shadow:0 0 0 3px rgba(32,106,114,.15);outline:none}
+.wk2-ft{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;padding:14px 26px 18px;border-top:1px solid var(--border2,#dfe7e6)}
+.wk2-ft .btn{justify-content:center;width:100%;font-size:13px;padding:10px 0}
+.wk2-ft .btn.skip{background:#fdecec;border-color:#f0a0a0;color:#a32d2d}
+.wk2-ft .btn.skip:hover{background:#fbdcdc}
 .board-part-hint{flex:0 0 260px;align-self:flex-start;border:1.5px dashed var(--purple-dark);border-radius:var(--r-md);padding:16px;background:var(--purple-bg);font-size:13px;color:var(--purple-dark);display:flex;flex-direction:column;gap:10px;}
 .board-part-hint button{align-self:flex-start;}
 .nav-icon-badge{width:36px;height:36px;border-radius:9px;background:linear-gradient(180deg,#27808a 0%,#206A72 100%);box-shadow:0 6px 16px rgba(32,106,114,.3);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
@@ -1018,8 +1039,8 @@ label{font-size:12px;font-weight:500;color:var(--text2);display:block;margin-bot
     </div>
   </div>
 </div>
-<div class="modal-overlay hidden" id="workModal">
-  <div class="modal-sm" id="workModalInner" style="max-width:560px;width:100%;padding:0;overflow:hidden"></div>
+<div class="modal-overlay hidden" id="workModal" style="align-items:flex-start;padding-top:5vh">
+  <div class="modal-lg" id="workModalInner"></div>
 </div>
 <div class="modal-overlay hidden" id="leadModal">
   <div class="modal-lg" id="leadModalInner"></div>
@@ -1158,7 +1179,7 @@ let localSettingsTrusted=false;
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-10-21T23:00:00.000Z';
+const BUILD_VERSION='2026-10-21T23:30:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -4920,7 +4941,7 @@ async function workLoadComment(id){
   if(!work||work.comments[id]!==undefined)return;
   const w0=work;w0.comments[id]=null;
   let res=false;
-  try{const rows=await fetchAllRows(`lead_activities?lead_id=eq.${id}&type=eq.comment&select=text,date&order=date.desc,id.desc`,{maxRows:1,timeoutMs:10000});res=rows[0]||false;}
+  try{const rows=await fetchAllRows(`lead_activities?lead_id=eq.${id}&type=eq.comment&select=text,date,author&order=date.desc,id.desc`,{maxRows:3,timeoutMs:10000});res=rows;}
   catch(e){res=false;}
   w0.comments[id]=res; // Modus kann inzwischen geschlossen sein
   if(work===w0&&work.items[work.i]&&work.items[work.i].id===id)renderWork();
@@ -4948,26 +4969,33 @@ function renderWork(){
   const tag=it.kind==='overdue'?`<span class="q-tag r">seit ${it.days} T</span>`:it.kind==='missed'?`<span class="q-tag r">Termin ${it.p.time} verpasst</span>`:`<span class="q-tag a">heute</span>`;
   const col=colById(l.status);const part=leadBoardPart(l)==='akquise'?'SQL':'PQL';
   const cm=work.comments[it.id];if(cm===undefined)workLoadComment(it.id);
-  const cmHtml=cm===undefined||cm===null?'<span style="color:var(--text3)">Letzter Kommentar wird geladen…</span>':(cm?`<b>Letzter Kommentar (${fmtDate(String(cm.date).slice(0,10))}):</b> ${esc(cm.text)}`:'<span style="color:var(--text3)">Noch kein Kommentar.</span>');
+  // letzte 3 Notizen: aus der Datenbank, ergaenzt um gerade im Speicher geschriebene
+  const mem=(l.activity||[]).filter(a=>a.type==='comment');
+  const notes=Array.isArray(cm)?[...mem,...cm].filter((n,i,arr)=>arr.findIndex(x=>x.text===n.text&&String(x.date).slice(0,16)===String(n.date).slice(0,16))===i).sort((a,b)=>String(b.date).localeCompare(String(a.date))).slice(0,3):mem.slice(0,3);
+  const notesHtml=(cm===undefined||cm===null)&&!notes.length?'<div style="color:var(--text3);font-size:13px">Notizen werden geladen…</div>'
+    :(notes.length?notes.map(n=>{const a=agentById(n.author);const d=String(n.date).slice(0,10);return `<div class="wk2-note"><small>${d.slice(8,10)}.${d.slice(5,7)}.${d.slice(0,4)}${a?' · '+esc(a.name):''}</small>${esc(n.text)}</div>`;}).join(''):'<div style="color:var(--text3);font-size:13px">Noch keine Notizen.</div>');
   const pct=Math.round(work.i/n*100);
   const id=leadIdArg(l);
-  el.innerHTML=`<div class="ap-head" style="justify-content:space-between"><span style="display:flex;gap:8px;align-items:center"><i class="ti ti-player-play"></i> Heute abarbeiten</span><span style="font-size:13px;font-weight:600;opacity:.85">${work.i+1} von ${n}</span></div>
-    <div style="height:5px;background:#e8eeee"><div style="height:5px;width:${pct}%;background:${red?'#e24b4a':'#ba7517'};transition:width .2s"></div></div>
-    <div class="ap-body" style="padding:16px 20px">
-      <div style="display:flex;gap:6px;align-items:center">${tag}<span style="font-size:10px;font-weight:700;padding:2px 6px;border-radius:6px;${part==='SQL'?'background:#e3f0f0;color:#0b4f55':'background:#fdf1dc;color:#7a4e07'}">${part}</span><span style="font-size:12px;color:var(--text3)">${esc(col?col.name:'')}</span></div>
-      <div style="font-size:19px;font-weight:700;margin-top:8px">${esc(l.company)}</div>
-      <div style="font-size:13px;color:var(--text2);margin-top:2px">${esc(l.contact||'')}${l.phone?` · <a href="tel:${esc(l.phone)}" style="color:#206A72;font-weight:600">${esc(l.phone)}</a>`:''}${l.customerNumber?` · ${esc(l.customerNumber)}`:''}</div>
-      <div style="font-size:12px;background:var(--bg2,#f4f6f6);border-radius:9px;padding:9px 11px;margin-top:12px;line-height:1.45">${cmHtml}</div>
+  const tel=String(l.phone||'').replace(/[^\d+]/g,'');
+  el.innerHTML=`<div class="wk2-head"><i class="ti ti-player-play"></i> Heute abarbeiten<span class="n">${work.i+1} von ${n}</span><button class="x" onclick="closeModal('workModal');work=null;renderTasksView()" title="Schließen"><i class="ti ti-x"></i></button></div>
+    <div class="wk2-bar"><div style="width:${pct}%;background:${red?'#e24b4a':'#ba7517'}"></div></div>
+    <div class="wk2-body">
+      <div class="wk2-top"><div style="flex:1;min-width:0">
+        <div style="display:flex;gap:6px;align-items:center">${tag}<span style="font-size:11px;font-weight:700;padding:2px 7px;border-radius:6px;${part==='SQL'?'background:#e3f0f0;color:#0b4f55':'background:#fdf1dc;color:#7a4e07'}">${part}</span><span style="font-size:13px;color:var(--text3)">${esc(col?col.name:'')}</span></div>
+        <div class="wk2-co">${esc(l.company)}</div>
+        <div class="wk2-ct">${esc([l.contact,l.customerNumber?'Kd-Nr. '+l.customerNumber:'',l.email].filter(Boolean).join(' · '))}</div>
+      </div>${tel?`<a class="wk2-call" href="tel:${esc(tel)}"><i class="ti ti-phone"></i>${esc(l.phone)}</a>`:`<span class="wk2-call off"><i class="ti ti-phone-off"></i>Keine Nummer</span>`}</div>
+      <div class="wk2-nh">Letzte Notizen</div>${notesHtml}
+      <div class="wk2-nh">Notiz zum Anruf</div>
+      <textarea class="wk2-ta" id="wk2Note" placeholder="Was wurde besprochen? Wird beim Klick unten automatisch als Kommentar gespeichert." oninput="work.note=this.value">${esc(work.note||'')}</textarea>
     </div>
-    <div class="wk-act">
+    <div class="wk2-ft">
       <button class="btn" onclick="workDo('ne')"><i class="ti ti-phone-off"></i> Nicht erreicht</button>
       <button class="btn" onclick="workDo('d1')">+1T</button>
       <button class="btn" onclick="workDo('d3')">+3T</button>
       <button class="btn" onclick="workDo('termin')"><i class="ti ti-calendar-plus"></i> Termin</button>
       <button class="btn" onclick="openLeadModal(${id})"><i class="ti ti-external-link"></i> Öffnen</button>
-      <span style="flex:1"></span>
-      <button class="btn" onclick="workDo('skip')">Überspringen</button>
-      <button class="btn" onclick="closeModal('workModal');work=null;renderTasksView()" title="Abbrechen"><i class="ti ti-x"></i></button>
+      <button class="btn skip" onclick="workDo('skip')">Überspringen <i class="ti ti-arrow-right"></i></button>
     </div>`;
 }
 // "Nicht erreicht" ohne geoeffnetes Lead-Fenster - identisch zum Knopf im Lead-Fenster:
@@ -4986,13 +5014,25 @@ function quickNotReached(id){
   if(currentView==='tasks')renderTasksView();
   return true;
 }
+// Notiz aus dem Feld "Notiz zum Anruf" als Kommentar am Lead speichern (vor jeder Aktion)
+function workSaveNote(l){
+  const ta=document.getElementById('wk2Note');const txt=((ta&&ta.value)||(work&&work.note)||'').trim();
+  if(!txt||!l)return false;
+  const act={id:Date.now()+Math.random(),type:'comment',author:currentUser,text:txt,date:nowISO()};
+  if(!Array.isArray(l.activity))l.activity=[];
+  l.activity.unshift(act);pushActivityToDb(l.id,act);
+  if(work){work.note='';delete work.comments[String(l.id)];}
+  saveState();
+  return true;
+}
 function workNext(stat){if(stat)work.stats[stat]++;work.i++;renderWork();if(currentView==='tasks')renderTasksView();}
 function workDo(action){
   const l=workCurrentLead();if(!l||!work)return;
+  const lock=getLeadLock(l.id);
+  if(action!=='skip'&&lock&&lock.agentId!==currentUser){alert(`„${l.company}“ wird gerade von ${lock.agentName||'jemand anderem'} bearbeitet.`);return;}
+  workSaveNote(l); // Notiz zum Anruf wird bei jeder Aktion mitgespeichert
   if(action==='skip')return workNext('skip');
   if(action==='termin'){work.awaitAppt=String(l.id);openCalApptForLead(l.id);return;}
-  const lock=getLeadLock(l.id);
-  if(lock&&lock.agentId!==currentUser){alert(`„${l.company}“ wird gerade von ${lock.agentName||'jemand anderem'} bearbeitet.`);return;}
   if(action==='d1'||action==='d3'){if(quickReschedule(l.id,action==='d1'?1:3))workNext('moved');return;}
   if(action==='ne'){applyNotReached(l);workNext('ne');}
 }
