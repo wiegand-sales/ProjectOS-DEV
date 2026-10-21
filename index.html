@@ -115,7 +115,7 @@ body{font-family:'Inter',sans-serif;background:linear-gradient(155deg,#f2f3f0 0%
 .ap-primary{background:#206A72!important;border-color:#206A72!important;color:#fff!important}
 .cal-split{display:grid;grid-template-columns:minmax(0,1fr) 250px;gap:12px;align-items:start}
 .cal-split.nopanel{grid-template-columns:minmax(0,1fr)}
-.cal-plan{border:1px solid var(--border2,#dfe7e6);border-radius:10px;padding:10px;max-height:820px;overflow-y:auto}
+.cal-plan{border:1px solid var(--purple-dark);background:var(--purple-bg);border-radius:10px;padding:10px;max-height:820px;overflow-y:auto}
 .cal-plan-h{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700}
 .cal-grp{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:#206A72;text-transform:uppercase;letter-spacing:.04em;margin:12px 0 6px;cursor:pointer}
 .cal-grp span{margin-left:auto;color:var(--text3)}
@@ -1179,7 +1179,7 @@ let localSettingsTrusted=false;
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-10-21T23:30:00.000Z';
+const BUILD_VERSION='2026-10-22T08:00:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -9206,10 +9206,8 @@ async function bootstrapApp(){
     console.warn('Initialer Sync beim Start fehlgeschlagen (wird automatisch per Hintergrund-Abgleich erneut versucht):',e);
     sbInitialSyncDone=true;
   }
-  if(pendingLoginWizard){
-    pendingLoginWizard=false;
-    openLoginWizard();
-  }
+  pendingLoginWizard=false;
+  maybeShowDailyWizard(); // Assistent: einmal taeglich ab 09:00 Uhr (nicht mehr nur nach Passwort-Anmeldung)
   setTimeout(()=>{sbPoll();window.__sbPollInterval=setInterval(sbPoll,5000);},Math.random()*5000);
   window.__versionCheckInterval=setInterval(checkForNewVersion,60000);
   window.__autoBackupInterval=setInterval(maybeRunClientAutoBackup,60000);
@@ -9489,10 +9487,28 @@ function wizardPageCount(){
   const me=agentById(currentUser);
   return(me&&me.role==='am')?amWizardPages().length:6;
 }
+// ── Taeglicher Assistent (Okt. 2026) ──
+// Erscheint einmal pro Tag und Person ab 09:00 Uhr: ist das Board um 9 Uhr offen, genau dann,
+// sonst beim ersten Oeffnen danach. Ist gerade ein Fenster offen, wartet er bis es geschlossen ist.
+const DAILY_WIZARD_HOUR=9;
+function dailyWizardKey(){return 'projectos_wizard_shown_'+(currentUser||'');}
+function maybeShowDailyWizard(nowDate){
+  if(!currentUser||!agentById(currentUser))return false;
+  const now=nowDate||new Date();
+  if(now.getHours()<DAILY_WIZARD_HOUR)return false;
+  const today=calYmd(now);
+  try{if(localStorage.getItem(dailyWizardKey())===today)return false;}catch(e){}
+  const busy=[...document.querySelectorAll('.modal-overlay,.wizard-overlay')].some(el=>!el.classList.contains('hidden'));
+  if(busy)return false;
+  openLoginWizard();
+  return true;
+}
+setInterval(()=>{try{maybeShowDailyWizard();}catch(e){}},30000);
 function openLoginWizard(){
   const me=agentById(currentUser);
   if(!me)return;
   wizardPage=0;
+  try{localStorage.setItem(dailyWizardKey(),calYmd(new Date()));}catch(e){}
   if(me.role==='am')loadWizardYesterday();
   renderWizardPage();
   document.getElementById('loginWizardOverlay').classList.remove('hidden');
@@ -9716,7 +9732,7 @@ function showApp(isFreshLogin){
     if(isFreshLogin)pendingLoginWizard=true;
     bootstrapApp();
   }else if(isFreshLogin){
-    openLoginWizard();
+    maybeShowDailyWizard();
   }
   if(isFreshLogin){
     setTimeout(()=>{
