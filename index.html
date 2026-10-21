@@ -1126,7 +1126,7 @@ let localSettingsTrusted=false;
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-10-21T20:30:00.000Z';
+const BUILD_VERSION='2026-10-21T20:45:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -4752,10 +4752,16 @@ function assignedOpenCount(q){
 // ── "Heute zu erledigen" (Okt. 2026): Ueberfaellige + heute faellige OHNE Uhrzeit + verpasste Termine.
 // Termine MIT Uhrzeit stehen in der Zeitleiste "Termine heute" - verstreicht einer ungenutzt
 // (Start + 25 Min.), rutscht er als "Termin HH:MM verpasst" in die Liste.
+// Termine mit Uhrzeit sind immer bewusste Verabredungen - sie zaehlen auch ohne Erstkontakt.
+function tasksTodayAppts(){
+  return tasksBaseFollowups(true).map(l=>({l,p:calParse(l.followup)})).filter(x=>x.p&&x.p.date===TODAY).sort((a,b)=>a.p.min-b.p.min);
+}
 function tasksTodayQueue(withFollowup){
   const now=new Date();const nowMin=now.getHours()*60+now.getMinutes();
   const out=[];
-  withFollowup.forEach(l=>{
+  const seen=new Set(withFollowup.map(l=>String(l.id)));
+  const extra=tasksTodayAppts().map(x=>x.l).filter(l=>!seen.has(String(l.id))); // verpasste Termine ohne Erstkontakt
+  withFollowup.concat(extra).forEach(l=>{
     const date=String(l.followup).slice(0,10);const p=calParse(l.followup);
     if(date<TODAY)out.push({l,kind:'overdue',days:-daysUntil(date),date,p});
     else if(date===TODAY){
@@ -4779,7 +4785,7 @@ function tasksTodayLayoutHtml(withFollowup,q){
   const open=queue.filter(x=>x.kind!=='missed');
   const missedN=queue.length-open.length;
   const now=new Date();const nowMin=now.getHours()*60+now.getMinutes();
-  const appts=withFollowup.map(l=>({l,p:calParse(l.followup)})).filter(x=>x.p&&x.p.date===TODAY).sort((a,b)=>a.p.min-b.p.min);
+  const appts=tasksTodayAppts();
   const colName=l=>{const c=colById(l.status);return c?c.name:'';};
   const dot=l=>`<span class="dot" style="background:${leadBoardPart(l)==='akquise'?'#0e6870':'#ba7517'}" title="${BOARD_PARTS[leadBoardPart(l)]}"></span>`;
   const acts=l=>`<span class="act" onclick="event.stopPropagation()"><button class="q-btn" onclick="quickReschedule(${leadIdArg(l)},1)" title="Auf morgen">+1T</button><button class="q-btn" onclick="openCalApptForLead(${leadIdArg(l)})" title="Termin planen"><i class="ti ti-calendar-plus"></i></button></span>`;
@@ -4817,9 +4823,9 @@ function tasksTodayLayoutHtml(withFollowup,q){
 }
 // ── Abarbeiten-Modus: geht "Heute zu erledigen" Lead fuer Lead durch ──
 let work=null;
-function tasksBaseFollowups(){
+function tasksBaseFollowups(withoutFirstContact){
   const q=(document.getElementById('tasksSearch').value||'').toLowerCase().trim();
-  let list=leads.filter(l=>l.followup&&l.firstContact&&!isLostStatus(l.status));
+  let list=leads.filter(l=>l.followup&&(withoutFirstContact||l.firstContact)&&!isLostStatus(l.status));
   if(activeTasksAgentFilter!=='all')list=list.filter(l=>(l.members||[]).includes(activeTasksAgentFilter));
   if(activeTasksBoardFilter!=='all')list=list.filter(l=>leadBoardPart(l)===activeTasksBoardFilter);
   if(q){const pk=phoneQueryKeys(q);list=list.filter(l=>leadMatchesSearch(l,q,pk));}
