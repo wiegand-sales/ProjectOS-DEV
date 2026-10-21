@@ -1067,7 +1067,7 @@ let localSettingsTrusted=false;
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-10-21T18:00:00.000Z';
+const BUILD_VERSION='2026-10-21T18:15:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -8952,8 +8952,9 @@ function wizardLeadScope(){
   if(me&&me.role==='am')return leads.filter(l=>(l.members||[]).includes(currentUser));
   return leads;
 }
+// Ueberfaellig = wie in "Meine Aufgaben": nur Leads mit Erstkontakt, nicht abgeschlossen
 function wizardOverdueCount(){
-  return wizardLeadScope().filter(l=>l.followup&&daysUntil(l.followup)<0&&!isClosedLead(l)).length;
+  return wizardLeadScope().filter(l=>l.followup&&l.firstContact&&daysUntil(l.followup)<0&&!isClosedLead(l)).length;
 }
 function wizardStageCounts(){
   const scope=wizardLeadScope();
@@ -9141,7 +9142,7 @@ function renderAmWizardPage(body){
   const idArg=l=>typeof l.id==='number'?l.id:JSON.stringify(String(l.id)).replace(/"/g,'&quot;');
   const pageKey=amWizardPages()[wizardPage]||'quote';
   if(pageKey==='overdue'){
-    const od=scope.filter(l=>l.followup&&daysUntil(l.followup)<0).sort((a,b)=>daysUntil(a.followup)-daysUntil(b.followup));
+    const od=scope.filter(l=>l.followup&&l.firstContact&&daysUntil(l.followup)<0).sort((a,b)=>daysUntil(a.followup)-daysUntil(b.followup));
     const n=od.length;
     body.innerHTML=`
       <div class="wizard-icon"><i class="ti ti-alert-triangle"></i></div>
