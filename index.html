@@ -1158,7 +1158,7 @@ let localSettingsTrusted=false;
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-10-21T22:45:00.000Z';
+const BUILD_VERSION='2026-10-21T23:00:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -4645,9 +4645,7 @@ function quickReschedule(leadId,days){
   if(!l)return false;
   const lock=getLeadLock(l.id);
   if(lock&&lock.agentId!==currentUser){alert(`„${l.company}“ wird gerade von ${lock.agentName||'jemand anderem'} bearbeitet.`);return false;}
-  const base=new Date(TODAY);
-  base.setDate(base.getDate()+days);
-  const newDate=base.toISOString().slice(0,10);
+  const newDate=addWorkdays(TODAY,days); // +1T/+3T in Arbeitstagen
   const old=l.followup||'';
   l.followup=newDate;
   l.followupHistory=[...(l.followupHistory||[]),{date:newDate,setAt:nowISO()}];
@@ -4854,7 +4852,7 @@ function tasksTodayLayoutHtml(withFollowup,q){
   const appts=tasksTodayAppts();
   const colName=l=>{const c=colById(l.status);return c?c.name:'';};
   const dot=l=>`<span class="dot" style="background:${leadBoardPart(l)==='akquise'?'#0e6870':'#ba7517'}" title="${BOARD_PARTS[leadBoardPart(l)]}"></span>`;
-  const acts=l=>`<span class="act" onclick="event.stopPropagation()"><button class="q-btn" onclick="quickNotReached(${leadIdArg(l)})" title="Nicht erreicht: Kommentar + FollowUp in ${PROJECT.notReachedFollowupDays!==undefined?PROJECT.notReachedFollowupDays:6} Tagen"><i class="ti ti-phone-off"></i></button><button class="q-btn" onclick="quickReschedule(${leadIdArg(l)},1)" title="Auf morgen">+1T</button><button class="q-btn" onclick="openCalApptForLead(${leadIdArg(l)})" title="Termin planen"><i class="ti ti-calendar-plus"></i></button></span>`;
+  const acts=l=>`<span class="act" onclick="event.stopPropagation()"><button class="q-btn" onclick="quickNotReached(${leadIdArg(l)})" title="Nicht erreicht: Kommentar + FollowUp in ${PROJECT.notReachedFollowupDays!==undefined?PROJECT.notReachedFollowupDays:6} Arbeitstagen"><i class="ti ti-phone-off"></i></button><button class="q-btn" onclick="quickReschedule(${leadIdArg(l)},1)" title="Nächster Arbeitstag">+1T</button><button class="q-btn" onclick="openCalApptForLead(${leadIdArg(l)})" title="Termin planen"><i class="ti ti-calendar-plus"></i></button></span>`;
   const sub=l=>esc([colName(l),l.contact].filter(Boolean).join(' · '));
   const total=queue.length;
   if(!total&&!appts.length){
@@ -5827,7 +5825,7 @@ function renderSettings(){
       </div>
       <div class="info-section">
         <div class="section-hdr" style="margin-top:0">"Nicht erreicht"-Verhalten</div>
-        <div class="field"><label>Follow-up automatisch verschieben um (Tage)</label><input type="number" min="1" max="90" step="1" value="${PROJECT.notReachedFollowupDays!==undefined?PROJECT.notReachedFollowupDays:6}" onchange="setProjectField('notReachedFollowupDays',Math.max(1,parseInt(this.value)||6))" style="width:100%;max-width:200px"></div>
+        <div class="field"><label>FollowUp automatisch verschieben um (Arbeitstage)</label><input type="number" min="1" max="90" step="1" value="${PROJECT.notReachedFollowupDays!==undefined?PROJECT.notReachedFollowupDays:6}" onchange="setProjectField('notReachedFollowupDays',Math.max(1,parseInt(this.value)||6))" style="width:100%;max-width:200px"></div>
         <p style="font-size:11px;color:var(--text3);margin-top:6px">Klickt jemand im Lead auf "Nicht erreicht", wird das Follow-up-Datum automatisch um diese Anzahl Tage ab heute gesetzt.</p>
       </div>`,
     project:`
@@ -7060,7 +7058,7 @@ function renderLeadModal(){
           <textarea id="commentInput" placeholder="Kommentar schreiben… (Strg+Enter zum Senden)" oninput="draftCommentText=this.value" onkeydown="if((event.key==='Enter')&&(event.ctrlKey||event.metaKey))addComment()">${esc(draftCommentText)}</textarea>
         </div>
         <div style="display:flex;gap:8px">
-          <button class="btn" style="flex:1;justify-content:center" onclick="markNotReached()" title="Trägt automatisch einen Kommentar ein und setzt das Follow-up-Datum auf in ${PROJECT.notReachedFollowupDays!==undefined?PROJECT.notReachedFollowupDays:6} Tagen (einstellbar unter Einstellungen)"><i class="ti ti-phone-off"></i> Nicht erreicht</button>
+          <button class="btn" style="flex:1;justify-content:center" onclick="markNotReached()" title="Trägt automatisch einen Kommentar ein und setzt das Follow-up-Datum auf in ${PROJECT.notReachedFollowupDays!==undefined?PROJECT.notReachedFollowupDays:6} Arbeitstagen (einstellbar unter Einstellungen)"><i class="ti ti-phone-off"></i> Nicht erreicht</button>
           <button class="btn btn-petrol-muted" style="flex:1;justify-content:center" onclick="addComment()"><i class="ti ti-send"></i> Kommentieren</button>
         </div>
       </div>
@@ -7901,12 +7899,16 @@ function addComment(){
 // des Kommentarfelds) einen festen Kommentar ein und setzt das Follow-up-Datum automatisch
 // auf in 3 Tagen - damit ein nicht erreichter Kunde nie versehentlich ohne FollowUp
 // liegen bleibt.
+// n Arbeitstage nach dem Datum (Sa/So zaehlen nicht): Freitag + 3 = Mittwoch, Freitag + 1 = Montag
+function addWorkdays(dateStr,n){
+  const d=new Date(String(dateStr).slice(0,10)+'T00:00:00');let left=Math.max(0,n|0);
+  while(left>0){d.setDate(d.getDate()+1);if(d.getDay()!==0&&d.getDay()!==6)left--;}
+  return calYmd(d);
+}
 function markNotReached(){
   if(modalReadOnly)return;
   const days=PROJECT.notReachedFollowupDays!==undefined?PROJECT.notReachedFollowupDays:6;
-  const d=new Date(TODAY+'T00:00:00');
-  d.setDate(d.getDate()+days);
-  const newFollowup=d.toISOString().slice(0,10);
+  const newFollowup=addWorkdays(TODAY,days); // Arbeitstage - Wochenende wird uebersprungen
   const oldFollowup=draftLead.followup;
   const act1={id:Date.now(),type:'comment',author:currentUser,text:'Nicht erreicht ... erneut probieren',date:nowISO()};
   draftLead.activity.unshift(act1);
