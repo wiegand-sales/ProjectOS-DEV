@@ -1186,7 +1186,7 @@ let localSettingsTrusted=false;
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-10-22T09:00:00.000Z';
+const BUILD_VERSION='2026-10-22T09:30:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -2893,13 +2893,13 @@ function calDropWeek(e,dateStr,startH,endH){
   let min=calSnap(startH*60+y/CAL_HOUR_PX*60);
   min=Math.max(CAL_BOOK_FROM*60,Math.min(CAL_DAY_END*60-CAL_SNAP,min)); // buchbar 09:00 bis 19:30
   const id=calDrag.id;calDrag=null;
-  if(String(id).startsWith('t:'))return calMoveTask(String(id).slice(2),dateStr,min);
+  if(String(id).startsWith('t:')){const [tid,occ]=String(id).slice(2).split('@');return calMoveTask(tid,dateStr,min,occ);}
   calMoveLead(id,dateStr,min);
 }
 function calDropMonth(e,dateStr){
   e.preventDefault();e.currentTarget.classList.remove('drop');
   if(!calDrag)return;
-  if(String(calDrag.id).startsWith('t:')){const t=calTasks.find(x=>x.id===String(calDrag.id).slice(2));calDrag=null;if(t)calMoveTask(t.id,dateStr,calParseTime(t.start_time));return;}
+  if(String(calDrag.id).startsWith('t:')){const [tid,occ]=String(calDrag.id).slice(2).split('@');const t=calTasks.find(x=>x.id===tid);calDrag=null;if(t)calMoveTask(t.id,dateStr,calParseTime(t.start_time),occ);return;}
   const l=leads.find(x=>String(x.id)===String(calDrag.id));calDrag=null;
   const p=l&&calParse(l.followup);
   if(p)calMoveLead(l.id,dateStr,p.min);
@@ -2916,7 +2916,7 @@ function renderCalendar(){
   calInit();
   const mFull=['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
   const mShort=['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'];
-  const evs=calEvents().concat(calTaskEvents());
+  const evs=calEvents().concat(calTaskEvents(calVisibleDates()));
   loadCalTasks();
   let label;
   if(calViewMode==='week'){
@@ -3026,22 +3026,45 @@ async function loadCalTasks(force){
   calTasksLoading=true;
   try{
     const from=new Date(TODAY+'T00:00:00');from.setDate(from.getDate()-120);
-    calTasks=await fetchAllRows(`calendar_events?select=*&deleted=eq.false&date=gte.${calYmd(from)}&order=date.asc`,{timeoutMs:15000});
+    calTasks=await fetchAllRows(`calendar_events?select=*&deleted=eq.false&or=(date.gte.${calYmd(from)},repeat.neq.none)&order=date.asc`,{timeoutMs:15000});
     calTasksError=false;
   }catch(e){calTasksError=true;}
   calTasksLoadedAt=Date.now();calTasksLoading=false;
   if(currentView==='calendar')renderCalendar();
 }
-function calTaskEvents(){
-  return calTasks.filter(t=>!t.deleted&&(calAgent==='all'||t.owner===calAgent)).map(t=>{
+// Sichtbare Tage der aktuellen Ansicht (Woche: Mo-Fr, Monat: alle Werktage des Monats)
+function calVisibleDates(){
+  calInit();const out=[];
+  if(calViewMode==='week'){const ws=new Date(calWeekStart+'T00:00:00');for(let i=0;i<5;i++){const d=new Date(ws);d.setDate(d.getDate()+i);out.push(calYmd(d));}}
+  else{const d=new Date(calYear,calMonth,1);while(d.getMonth()===calMonth){if(d.getDay()!==0&&d.getDay()!==6)out.push(calYmd(d));d.setDate(d.getDate()+1);}}
+  return out;
+}
+// Serien: repeat = none | daily (Mo-Fr) | weekly (gleicher Wochentag), repeat_until optional, skip_dates = ausgelassene Tage
+function calTaskOccursOn(t,ds){
+  const start=String(t.date).slice(0,10);
+  const rp=t.repeat||'none';
+  if(rp==='none')return ds===start;
+  if(ds<start)return false;
+  if(t.repeat_until&&ds>String(t.repeat_until).slice(0,10))return false;
+  if((t.skip_dates||[]).includes(ds))return false;
+  const dd=new Date(ds+'T00:00:00');const dow=dd.getDay();
+  if(rp==='daily')return dow!==0&&dow!==6;
+  if(rp==='weekly')return dow===new Date(start+'T00:00:00').getDay();
+  return false;
+}
+function calTaskEvents(dates){
+  const out=[];
+  calTasks.filter(t=>!t.deleted&&(calAgent==='all'||t.owner===calAgent)).forEach(t=>{
     const a=calParseTime(t.start_time),b=calParseTime(t.end_time);
-    return{task:t,date:String(t.date).slice(0,10),min:a,dur:Math.max(15,b-a),time:t.start_time};
+    (dates||[]).forEach(ds=>{if(calTaskOccursOn(t,ds))out.push({task:t,date:ds,min:a,dur:Math.max(15,b-a),time:t.start_time});});
   });
+  return out;
 }
 function calTaskHtml(ev,style){
-  const t=ev.task;const idAttr=JSON.stringify('t:'+t.id).replace(/"/g,'&quot;');
+  const t=ev.task;const idAttr=JSON.stringify('t:'+t.id+'@'+ev.date).replace(/"/g,'&quot;');
+  const rep=t.repeat&&t.repeat!=='none';
   const lead=t.lead_id?leads.find(l=>String(l.id)===String(t.lead_id)):null;
-  return `<div class="cal-ev task" draggable="true" style="${style||''}" title="${esc(t.start_time+'–'+t.end_time+' · '+t.title)}" ondragstart="calDragStart(event,${idAttr})" onclick="openCalTaskEdit('${esc(t.id)}')"><b>${esc(t.start_time)}–${esc(t.end_time)}</b> ${esc(t.title)}${lead?` · <span style="opacity:.75">${esc(lead.company)}</span>`:''}${style?`<div class="rs" onmousedown="calResizeStart(event,'${esc(t.id)}')" onclick="event.stopPropagation()" draggable="false"></div>`:''}</div>`;
+  return `<div class="cal-ev task" draggable="true" style="${style||''}" title="${esc(t.start_time+'–'+t.end_time+' · '+t.title)}" ondragstart="calDragStart(event,${idAttr})" onclick="openCalTaskEdit('${esc(t.id)}','${ev.date}')"><b>${esc(t.start_time)}–${esc(t.end_time)}</b> ${rep?'<i class="ti ti-repeat" style="font-size:11px" title="Serie"></i> ':''}${esc(t.title)}${lead?` · <span style="opacity:.75">${esc(lead.company)}</span>`:''}${style?`<div class="rs" onmousedown="calResizeStart(event,'${esc(t.id)}')" onclick="event.stopPropagation()" draggable="false"></div>`:''}</div>`;
 }
 async function calTaskWrite(method,task){
   const url=method==='POST'?`${SUPABASE_URL}/rest/v1/calendar_events`:`${SUPABASE_URL}/rest/v1/calendar_events?id=eq.${encodeURIComponent(task.id)}`;
@@ -3050,12 +3073,17 @@ async function calTaskWrite(method,task){
   if(!res.ok)throw new Error('HTTP '+res.status);
   return res.json();
 }
-async function calMoveTask(id,dateStr,startMin){
+async function calMoveTask(id,dateStr,startMin,occDate){
   const t=calTasks.find(x=>x.id===id);if(!t)return;
   const dur=Math.max(15,calParseTime(t.end_time)-calParseTime(t.start_time));
   let st=Math.max(CAL_DAY_START*60,Math.min(CAL_DAY_END*60-15,startMin));let en=Math.min(CAL_DAY_END*60,st+dur);
   const old={date:t.date,start_time:t.start_time,end_time:t.end_time};
-  Object.assign(t,{date:dateStr,start_time:calFmt(st),end_time:calFmt(en),updated_at:nowISO()});renderCalendar();
+  // Serie: Uhrzeit gilt fuer alle Termine; woechentlich verschiebt sich der Wochentag um denselben Abstand, taeglich bleibt das Startdatum
+  let newDate=dateStr;
+  const rp=t.repeat||'none';
+  if(rp==='daily')newDate=String(t.date).slice(0,10);
+  else if(rp==='weekly'&&occDate){const delta=Math.round((new Date(dateStr+'T00:00:00')-new Date(occDate+'T00:00:00'))/86400000);const nd=new Date(String(t.date).slice(0,10)+'T00:00:00');nd.setDate(nd.getDate()+delta);newDate=calYmd(nd);}
+  Object.assign(t,{date:newDate,start_time:calFmt(st),end_time:calFmt(en),updated_at:nowISO()});renderCalendar();
   try{await calTaskWrite('PATCH',{id:t.id,date:t.date,start_time:t.start_time,end_time:t.end_time,updated_at:t.updated_at});}
   catch(e){Object.assign(t,old);renderCalendar();alert('Die Aufgabe konnte nicht verschoben werden. Bitte später erneut versuchen.');}
 }
@@ -3084,13 +3112,13 @@ async function calResizeApply(id,endMin){
   catch(err){t.end_time=old;renderCalendar();alert('Die neue Endzeit konnte nicht gespeichert werden.');}
 }
 function calTaskTimes(){const o=[];for(let m=CAL_DAY_START*60;m<=CAL_DAY_END*60;m+=15)o.push(calFmt(m));return o;}
-function openCalTaskEdit(id){
+function openCalTaskEdit(id,occDate){
   const t=calTasks.find(x=>x.id===id);if(!t)return;
   calInit();
-  calAppt={kind:'task',taskId:t.id,title:t.title,leadId:t.lead_id||null,date:String(t.date).slice(0,10),time:t.start_time,end:t.end_time,note:t.note||'',q:'',err:''};
+  calAppt={kind:'task',taskId:t.id,occDate:occDate||String(t.date).slice(0,10),title:t.title,leadId:t.lead_id||null,date:String(t.date).slice(0,10),time:t.start_time,end:t.end_time,note:t.note||'',repeat:t.repeat||'none',until:t.repeat_until?String(t.repeat_until).slice(0,10):'',q:'',err:''};
   renderCalAppt();openModal('calApptModal');
 }
-function calApptKind(k){if(!calAppt)return;calAppt.kind=k;calAppt.err='';if(k==='task'&&!calAppt.end){calAppt.end=calFmt(Math.min(CAL_DAY_END*60,calParseTime(calAppt.time)+60));}renderCalAppt();}
+function calApptKind(k){if(!calAppt)return;calAppt.kind=k;calAppt.err='';if(!calAppt.repeat)calAppt.repeat='none';if(k==='task'&&!calAppt.end){calAppt.end=calFmt(Math.min(CAL_DAY_END*60,calParseTime(calAppt.time)+60));}renderCalAppt();}
 async function saveCalTask(){
   const a=calAppt;
   const title=(a.title||'').trim();
@@ -3098,7 +3126,9 @@ async function saveCalTask(){
   if(!/^\d{4}-\d{2}-\d{2}$/.test(a.date||'')){a.err='Bitte ein gültiges Datum wählen.';renderCalAppt();return false;}
   if(calParseTime(a.end)<=calParseTime(a.time)){a.err='Das Ende muss nach dem Beginn liegen.';renderCalAppt();return false;}
   const owner=calApptPerson();
-  const rec={id:a.taskId||('ev'+Date.now()+Math.random().toString(36).slice(2,7)),owner,title,date:a.date,start_time:a.time,end_time:a.end,lead_id:a.leadId?String(a.leadId):null,note:(a.note||'').trim()||null,created_by:currentUser,updated_at:nowISO()};
+  const rp=['daily','weekly'].includes(a.repeat)?a.repeat:'none';
+  if(rp!=='none'&&a.until&&a.until<a.date){a.err='„Wiederholen bis“ muss nach dem Startdatum liegen.';renderCalAppt();return false;}
+  const rec={id:a.taskId||('ev'+Date.now()+Math.random().toString(36).slice(2,7)),owner,title,date:a.date,start_time:a.time,end_time:a.end,lead_id:a.leadId?String(a.leadId):null,note:(a.note||'').trim()||null,repeat:rp,repeat_until:rp!=='none'&&a.until?a.until:null,created_by:currentUser,updated_at:nowISO()};
   try{
     const out=await calTaskWrite(a.taskId?'PATCH':'POST',rec);
     const saved=(Array.isArray(out)&&out[0])||rec;
@@ -3107,9 +3137,18 @@ async function saveCalTask(){
   closeModal('calApptModal');calAppt=null;renderCalendar();
   return true;
 }
-async function deleteCalTask(){
+async function deleteCalTask(scope){
   const a=calAppt;if(!a||!a.taskId)return;
-  if(!confirm('Diese Aufgabe aus dem Kalender löschen?'))return;
+  const t=calTasks.find(x=>x.id===a.taskId);
+  const series=t&&t.repeat&&t.repeat!=='none';
+  if(series&&scope==='one'){
+    if(!confirm(`Nur den Termin am ${fmtDate(a.occDate)} löschen? Die übrigen Termine der Serie bleiben.`))return;
+    const skip=[...new Set([...(t.skip_dates||[]),a.occDate])];
+    try{await calTaskWrite('PATCH',{id:a.taskId,skip_dates:skip,updated_at:nowISO()});}
+    catch(e){a.err='Löschen fehlgeschlagen. Bitte erneut versuchen.';renderCalAppt();return;}
+    t.skip_dates=skip;closeModal('calApptModal');calAppt=null;renderCalendar();return;
+  }
+  if(!confirm(series?'Die ganze Serie aus dem Kalender löschen?':'Diese Aufgabe aus dem Kalender löschen?'))return;
   try{await calTaskWrite('PATCH',{id:a.taskId,deleted:true,updated_at:nowISO()});}
   catch(e){a.err='Löschen fehlgeschlagen. Bitte erneut versuchen.';renderCalAppt();return;}
   calTasks=calTasks.filter(x=>x.id!==a.taskId);closeModal('calApptModal');calAppt=null;renderCalendar();
@@ -3147,11 +3186,16 @@ function renderCalTaskForm(el){
       <div><div class="ap-lbl">Beginn</div><select id="apTStart" onchange="calAppt.time=this.value;if(calParseTime(calAppt.end)<=calParseTime(this.value)){calAppt.end=calFmt(Math.min(CAL_DAY_END*60,calParseTime(this.value)+60));}renderCalAppt()">${times.slice(0,-1).map(t=>`<option ${t===a.time?'selected':''}>${t}</option>`).join('')}</select></div>
       <div><div class="ap-lbl">Ende</div><select id="apTEnd" onchange="calAppt.end=this.value">${times.filter(t=>calParseTime(t)>calParseTime(a.time)).map(t=>`<option ${t===a.end?'selected':''}>${t}</option>`).join('')}</select></div>
     </div></div>
+    <div class="ap-sec" style="color:#3c3489"><i class="ti ti-repeat"></i> Wiederholen</div>
+    <div class="ap-blk" style="border-left-color:#534ab7">
+      <div class="ap-seg" style="margin-top:2px">${[['none','Nie'],['daily','Täglich (Mo–Fr)'],['weekly','Wöchentlich']].map(([k,lab])=>`<button class="${(a.repeat||'none')===k?'on task':''}" onclick="calAppt.repeat='${k}';renderCalAppt()">${lab}</button>`).join('')}</div>
+      ${(a.repeat||'none')!=='none'?`<div class="ap-lbl">Wiederholen bis <small>(optional, sonst ohne Ende)</small></div><input type="date" value="${esc(a.until||'')}" onchange="calAppt.until=this.value">${a.taskId?`<div style="font-size:11px;color:var(--text3);margin-top:6px">Änderungen an Uhrzeit, Titel oder Notiz gelten für alle Termine der Serie.</div>`:''}`:''}
+    </div>
     <div class="ap-sec" style="color:#3c3489"><i class="ti ti-notes"></i> Notiz</div>
     <div class="ap-blk" style="border-left-color:#534ab7"><textarea rows="2" placeholder="optional" oninput="calAppt.note=this.value">${esc(a.note||'')}</textarea></div>
     ${a.err?`<div class="ap-note ap-err"><i class="ti ti-alert-circle"></i><span>${esc(a.err)}</span></div>`:''}
   </div>
-  <div class="modal-actions" style="justify-content:flex-start"><button class="btn" onclick="closeModal('calApptModal')">Abbrechen</button><button class="btn ap-primary" style="background:#534ab7!important;border-color:#534ab7!important" onclick="saveCalTask()"><i class="ti ti-check"></i> ${a.taskId?'Speichern':'Aufgabe speichern'}</button>${a.taskId?`<span style="flex:1"></span><button class="btn" style="color:#a32d2d" onclick="deleteCalTask()"><i class="ti ti-trash"></i> Löschen</button>`:''}</div>`;
+  <div class="modal-actions" style="justify-content:flex-start"><button class="btn" onclick="closeModal('calApptModal')">Abbrechen</button><button class="btn ap-primary" style="background:#534ab7!important;border-color:#534ab7!important" onclick="saveCalTask()"><i class="ti ti-check"></i> ${a.taskId?'Speichern':'Aufgabe speichern'}</button>${a.taskId?`<span style="flex:1"></span>${(()=>{const t=calTasks.find(x=>x.id===a.taskId);return t&&t.repeat&&t.repeat!=='none'?`<button class="btn" style="color:#a32d2d" onclick="deleteCalTask('one')"><i class="ti ti-calendar-minus"></i> Nur diesen Tag</button><button class="btn" style="color:#a32d2d" onclick="deleteCalTask('all')"><i class="ti ti-trash"></i> Ganze Serie</button>`:`<button class="btn" style="color:#a32d2d" onclick="deleteCalTask('all')"><i class="ti ti-trash"></i> Löschen</button>`;})()}`:''}</div>`;
   if(!sel)renderCalApptResults();
 }
 function calApptSearch(v){calAppt.q=v;renderCalApptResults();}
