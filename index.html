@@ -158,6 +158,29 @@ body{font-family:'Inter',sans-serif;background:linear-gradient(155deg,#f2f3f0 0%
 .wk-tag{font-size:11px;font-weight:700;border-radius:6px;padding:2px 7px}
 .wk-act{display:flex;gap:6px;flex-wrap:wrap;padding:12px 20px 16px;border-top:1px solid var(--border2,#dfe7e6)}
 .wk-act .btn{font-size:12px}
+.day-sub{font-size:11px;font-weight:700;color:#a32d2d;text-transform:uppercase;letter-spacing:.05em;margin:14px 2px 6px}
+.day-sub.t{color:#206A72}
+.day-list{background:#fff;border-radius:11px;padding:2px 14px}
+.d2{display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid #f1e3e3;font-size:13px;cursor:pointer}
+.day-list>.d2:first-child{border-top:0}
+.d2 .c{flex:1;min-width:0}
+.d2 .c b{display:block;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.d2 .c small{display:block;font-size:11px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.d2 .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.d2 .age{color:#a32d2d;font-size:12px;font-weight:600;white-space:nowrap}
+.d2 .tm{font-weight:700;color:#206A72;min-width:44px;font-variant-numeric:tabular-nums}
+.d2.miss .tm,.d2.miss .c b{color:#a32d2d}
+.d2.next{background:#e3f0f0;margin:0 -14px;padding:10px 14px;border-radius:8px}
+.d2 .act{display:flex;gap:4px;opacity:0;transition:opacity .12s}
+.d2:hover .act{opacity:1}
+@media (hover:none){.d2 .act{opacity:1}}
+.d2.more{color:var(--text3);font-size:12px;justify-content:center}
+.now-line{display:flex;align-items:center;gap:8px;font-size:11px;font-weight:700;color:#206A72;margin:2px 0}
+.now-line:after{content:"";flex:1;height:2px;background:#206A72;border-radius:1px}
+.pv-line{display:flex;gap:18px;flex-wrap:wrap;align-items:center;background:var(--bg,#fff);border:1px solid var(--border2,#dfe7e6);border-radius:12px;padding:10px 16px;margin:14px 0 22px;font-size:12px;color:var(--text3)}
+.pv-line b{color:var(--text);font-weight:700}
+.pv-line .it{cursor:pointer}
+.pv-line .it span{color:#206A72;font-weight:700}
 .board-part-hint{flex:0 0 260px;align-self:flex-start;border:1.5px dashed var(--purple-dark);border-radius:var(--r-md);padding:16px;background:var(--purple-bg);font-size:13px;color:var(--purple-dark);display:flex;flex-direction:column;gap:10px;}
 .board-part-hint button{align-self:flex-start;}
 .nav-icon-badge{width:36px;height:36px;border-radius:9px;background:linear-gradient(180deg,#27808a 0%,#206A72 100%);box-shadow:0 6px 16px rgba(32,106,114,.3);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
@@ -1103,7 +1126,7 @@ let localSettingsTrusted=false;
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-10-21T20:00:00.000Z';
+const BUILD_VERSION='2026-10-21T20:30:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -4750,36 +4773,47 @@ function queueTagHtml(it){
 }
 function leadIdArg(l){return typeof l.id==='number'?l.id:JSON.stringify(String(l.id)).replace(/"/g,'&quot;');}
 function tasksTodayLayoutHtml(withFollowup,q){
+  // Variante B (Okt. 2026): ein Kasten ueber die volle Breite - oben "Offen, ohne feste Uhrzeit",
+  // darunter "Termine" nach Uhrzeit mit Jetzt-Linie. Darunter Zugewiesene Aufgaben + Vorschau.
   const queue=tasksTodayQueue(withFollowup);
-  const od=queue.filter(x=>x.kind!=='today').length;
-  const colName=l=>{const c=colById(l.status);return c?c.name:'';};
-  const all=!!taskShowAll.queue;const shown=all?queue:queue.slice(0,10);
-  const left=queue.length?`<div class="today-box">
-      <div class="today-hd"><i class="ti ti-list-check"></i> Heute zu erledigen<span class="n">${queue.length}${od?` · davon ${od} überfällig`:''}</span></div>
-      <div style="margin:10px 0 4px"><button class="today-go" onclick="startWorkMode()"><i class="ti ti-player-play"></i> Jetzt abarbeiten</button></div>
-      ${shown.map(it=>`<div class="q-row" onclick="openLeadModal(${leadIdArg(it.l)})"><div class="c"><b>${esc(it.l.company)}</b><small>${esc([colName(it.l),it.l.contact].filter(Boolean).join(' · '))}</small></div>${queueTagHtml(it)}<span style="font-size:10px;font-weight:700;padding:2px 6px;border-radius:6px;${leadBoardPart(it.l)==='akquise'?'background:#e3f0f0;color:#0b4f55':'background:#fdf1dc;color:#7a4e07'}">${leadBoardPart(it.l)==='akquise'?'SQL':'PQL'}</span><span onclick="event.stopPropagation()" style="display:flex;gap:4px"><button class="q-btn" onclick="quickReschedule(${leadIdArg(it.l)},1)" title="Auf morgen">+1T</button><button class="q-btn" onclick="openCalApptForLead(${leadIdArg(it.l)})" title="Termin planen"><i class="ti ti-calendar-plus"></i></button></span></div>`).join('')}
-      ${queue.length>10?`<button class="btn" style="margin-top:8px;width:100%;justify-content:center" onclick="taskShowAll.queue=!taskShowAll.queue;renderTasksView()">${all?'Weniger anzeigen':`Alle anzeigen (${queue.length})`}</button>`:''}
-    </div>`:`<div class="today-box done"><div class="today-hd"><i class="ti ti-circle-check"></i> Alles erledigt für heute<span class="n">0</span></div><div style="font-size:12px;color:#0b5e45;margin-top:6px">Keine überfälligen oder heute fälligen Wiedervorlagen ohne Uhrzeit.</div></div>`;
-  // Termine heute (Zeitleiste)
+  const open=queue.filter(x=>x.kind!=='missed');
+  const missedN=queue.length-open.length;
   const now=new Date();const nowMin=now.getHours()*60+now.getMinutes();
   const appts=withFollowup.map(l=>({l,p:calParse(l.followup)})).filter(x=>x.p&&x.p.date===TODAY).sort((a,b)=>a.p.min-b.p.min);
-  const nextIdx=appts.findIndex(x=>x.p.min+CAL_DUR>=nowMin);
-  const tl=appts.length?`<div class="tl2">${appts.map((x,i)=>{const missed=x.p.min+CAL_DUR<nowMin;const next=i===nextIdx;const inMin=x.p.min-nowMin;
-      const badge=next?(inMin<=0?'<span class="q-tag t">jetzt</span>':`<span class="q-tag t">in ${inMin<60?inMin+' Min':Math.floor(inMin/60)+' Std '+(inMin%60?inMin%60+' Min':'')}</span>`):'';
-      return `<div class="tl2-it ${missed?'miss':''} ${next?'next':''}" onclick="openLeadModal(${leadIdArg(x.l)})"><b>${x.p.time}</b> ${esc(x.l.company)} ${badge}<small>${missed?'verpasst → in „Heute zu erledigen“':esc([colName(x.l),x.l.contact].filter(Boolean).join(' · '))}</small></div>`;}).join('')}</div>`
-    :`<div style="font-size:12px;color:var(--text3)">Keine Termine mit Uhrzeit. <a href="#" onclick="event.preventDefault();switchView('calendar')" style="color:#206A72;font-weight:600">Im Kalender planen</a></div>`;
-  const right=`<div style="display:flex;flex-direction:column;gap:12px">
-      <div class="side-card"><div class="side-hd"><i class="ti ti-clock" style="color:#206A72"></i>Termine heute<span class="n">${appts.length}</span></div>${tl}</div>
-      ${assignedTasksHtml(q)}
+  const colName=l=>{const c=colById(l.status);return c?c.name:'';};
+  const dot=l=>`<span class="dot" style="background:${leadBoardPart(l)==='akquise'?'#0e6870':'#ba7517'}" title="${BOARD_PARTS[leadBoardPart(l)]}"></span>`;
+  const acts=l=>`<span class="act" onclick="event.stopPropagation()"><button class="q-btn" onclick="quickReschedule(${leadIdArg(l)},1)" title="Auf morgen">+1T</button><button class="q-btn" onclick="openCalApptForLead(${leadIdArg(l)})" title="Termin planen"><i class="ti ti-calendar-plus"></i></button></span>`;
+  const sub=l=>esc([colName(l),l.contact].filter(Boolean).join(' · '));
+  const total=queue.length;
+  if(!total&&!appts.length){
+    var box=`<div class="today-box done"><div class="today-hd"><i class="ti ti-circle-check"></i> Alles erledigt für heute<span class="n">0</span></div><div style="font-size:12px;color:#0b5e45;margin-top:6px">Keine offenen Wiedervorlagen und keine Termine mehr für heute.</div></div>`;
+  }else{
+    const all=!!taskShowAll.queue;const shown=all?open:open.slice(0,5);
+    const openHtml=open.length?`<div class="day-list">${shown.map(it=>`<div class="d2" onclick="openLeadModal(${leadIdArg(it.l)})">${dot(it.l)}<div class="c"><b>${esc(it.l.company)}</b><small>${sub(it.l)}</small></div>${acts(it.l)}<span class="age" ${it.kind==='today'?'style="color:#8a5a0b"':''}>${it.kind==='overdue'?`seit ${it.days} T`:'heute'}</span></div>`).join('')}${open.length>5?`<div class="d2 more" onclick="taskShowAll.queue=!taskShowAll.queue;renderTasksView()">${all?'Weniger anzeigen':`+ ${open.length-5} weitere`}</div>`:''}</div>`
+      :`<div class="day-list"><div class="d2 more" style="cursor:default">Nichts offen ohne Uhrzeit.</div></div>`;
+    let apptHtml='';let lineDone=false;let nextDone=false;
+    appts.forEach(x=>{
+      const missed=x.p.min+CAL_DUR<nowMin;const running=!missed&&x.p.min<=nowMin;
+      if(!lineDone&&x.p.min+CAL_DUR>=nowMin){apptHtml+=`<div class="now-line">jetzt ${calFmt(nowMin)}</div>`;lineDone=true;}
+      const isNext=!missed&&!nextDone&&lineDone;if(isNext)nextDone=true;
+      const inMin=x.p.min-nowMin;
+      const note=missed?'verpasst':running?'läuft gerade':(isNext?(inMin<60?`in ${inMin} Min`:`in ${Math.floor(inMin/60)} Std${inMin%60?' '+(inMin%60)+' Min':''}`):'');
+      apptHtml+=`<div class="d2 ${missed?'miss':''} ${isNext?'next':''}" onclick="openLeadModal(${leadIdArg(x.l)})"><span class="tm">${x.p.time}</span>${dot(x.l)}<div class="c"><b>${esc(x.l.company)}</b><small>${[note,sub(x.l)].filter(Boolean).join(' · ')}</small></div>${acts(x.l)}</div>`;
+    });
+    if(appts.length&&!lineDone)apptHtml+=`<div class="now-line">jetzt ${calFmt(nowMin)}</div>`;
+    var box=`<div class="today-box">
+      <div class="today-hd"><i class="ti ti-list-check"></i> Heute zu erledigen<span class="n">${open.length} offen · ${appts.length} ${appts.length===1?'Termin':'Termine'}</span>${total?`<button class="today-go" style="margin-left:12px" onclick="startWorkMode()"><i class="ti ti-player-play"></i> Jetzt abarbeiten${missedN?` (${total})`:''}</button>`:''}</div>
+      <div class="day-sub">Offen, ohne feste Uhrzeit</div>${openHtml}
+      <div class="day-sub t">Termine</div>${appts.length?`<div class="day-list">${apptHtml}</div>`:`<div class="day-list"><div class="d2 more" style="cursor:default">Keine Termine mit Uhrzeit · <a href="#" onclick="event.preventDefault();switchView('calendar')" style="color:#206A72;font-weight:600;margin-left:4px">Im Kalender planen</a></div></div>`}
     </div>`;
-  // Vorschau naechste 3 Arbeitstage
+  }
+  // Vorschau naechste 3 Arbeitstage als eine Zeile
   const tmr=(()=>{const d=new Date(TODAY+'T00:00:00');d.setDate(d.getDate()+1);return calYmd(d);})();
-  const days=heroWorkdays(3,tmr,true);
-  const wdN=['So','Mo','Di','Mi','Do','Fr','Sa'];
-  const pv=`<div class="pv3">${days.map((d,i)=>{const list=withFollowup.filter(l=>String(l.followup).slice(0,10)===d);const timed=list.map(l=>({l,p:calParse(l.followup)})).filter(x=>x.p).sort((a,b)=>a.p.min-b.p.min);const untimed=list.length-timed.length;
-      const dd=new Date(d+'T00:00:00');const lab=(i===0&&d===tmr?'Morgen · ':'')+wdN[dd.getDay()]+' '+String(dd.getDate()).padStart(2,'0')+'.'+String(dd.getMonth()+1).padStart(2,'0')+'.';
-      return `<div class="side-card"><div class="side-hd" style="font-size:13px;margin-bottom:4px">${lab}<span class="n">${list.length}</span></div>${timed.slice(0,3).map(x=>`<div class="pv3-it" onclick="openLeadModal(${leadIdArg(x.l)})"><b>${x.p.time}</b>${esc(x.l.company)}</div>`).join('')}${untimed?`<div class="pv3-it" style="color:var(--text3);cursor:default">+ ${untimed} ohne Uhrzeit</div>`:''}${!list.length?`<div class="pv3-it" style="color:var(--text3);cursor:default">Nichts geplant</div>`:''}</div>`;}).join('')}</div>`;
-  return `<div style="display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:16px;align-items:start">${left}${right}</div>${pv}`;
+  const days=heroWorkdays(3,tmr,true);const wdN=['So','Mo','Di','Mi','Do','Fr','Sa'];
+  const pv=`<div class="pv-line"><b>Nächste 3 Tage</b>${days.map(d=>{const list=withFollowup.filter(l=>String(l.followup).slice(0,10)===d);const first=list.map(l=>({l,p:calParse(l.followup)})).filter(x=>x.p).sort((a,b)=>a.p.min-b.p.min)[0];
+      const dd=new Date(d+'T00:00:00');const lab=wdN[dd.getDay()]+' '+String(dd.getDate()).padStart(2,'0')+'.'+String(dd.getMonth()+1).padStart(2,'0')+'.';
+      return `<span class="it" ${first?`onclick="openLeadModal(${leadIdArg(first.l)})"`:''}>${lab} · ${list.length?`${list.length} ${list.length===1?'Wiedervorlage':'Wiedervorlagen'}${first?`, erster Termin <span>${first.p.time}</span>`:''}`:'nichts geplant'}</span>`;}).join('')}</div>`;
+  return `${box}<div style="margin-top:14px">${assignedTasksHtml(q)}</div>${pv}`;
 }
 // ── Abarbeiten-Modus: geht "Heute zu erledigen" Lead fuer Lead durch ──
 let work=null;
@@ -4868,10 +4902,10 @@ function workDo(action){
     workNext('ne');
   }
 }
-function limitedRowsHtml(rowHtmls,isOpen,key,emptyMsg){
+function limitedRowsHtml(rowHtmls,isOpen,key,emptyMsg,limit){
   if(!isOpen)return '';
   if(!rowHtmls.length)return `<div class="task-row-empty">${emptyMsg}</div>`;
-  const all=!!taskShowAll[key];const LIM=10;
+  const all=!!taskShowAll[key];const LIM=limit||10;
   let html=(all?rowHtmls:rowHtmls.slice(0,LIM)).join('');
   if(rowHtmls.length>LIM)html+=`<button class="btn" style="margin-top:8px;width:100%;justify-content:center" onclick="taskShowAll['${key}']=!taskShowAll['${key}'];renderTasksView()">${all?'Weniger anzeigen':`Alle anzeigen (${rowHtmls.length})`}</button>`;
   return html;
@@ -4975,7 +5009,7 @@ function assignedTasksHtml(q){
   });
   return `<div class="info-section">
     <div class="section-hdr" style="margin-top:0;cursor:pointer" onclick="toggleTaskSection('assigned')"><span style="display:flex;align-items:center;gap:6px"><i class="ti ti-user-check" style="color:var(--purple);font-size:16px"></i>Zugewiesene Aufgaben</span> <span style="display:flex;align-items:center;gap:8px"><span class="task-group-count">${openCount} offen</span><i class="ti ti-chevron-${isOpen?'up':'down'}" style="font-size:14px;color:var(--text3)"></i></span></div>
-    ${limitedRowsHtml(rowHtmls,isOpen,'assigned','Keine offenen zugewiesenen Aufgaben.')}
+    ${limitedRowsHtml(rowHtmls,isOpen,'assigned','Keine offenen zugewiesenen Aufgaben.',3)}
   </div>`;
 }
 function toggleAssignedTask(leadId,taskId){
@@ -5013,9 +5047,7 @@ function renderTasksView(){
 
   const html=`
     ${tasksHeroHtml(withFollowup,history,q)}
-    ${tasksTodayLayoutHtml(withFollowup,q)}
-    ${followupGroupHtml('Diese Woche',buckets.week,'var(--green-dark)','calendar-week','followup-kpi-week','wk')}
-    ${followupGroupHtml('Nächste Woche',buckets.nextweek,'var(--purple)','calendar-plus','followup-kpi-nextweek','nwk')}`;
+    ${tasksTodayLayoutHtml(withFollowup,q)}`;
   document.getElementById('tasksViewContent').innerHTML=html;
 }
 // ── CR RMA: Artikel-Stammdaten ──
