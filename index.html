@@ -275,6 +275,13 @@ body{font-family:'Inter',sans-serif;background:linear-gradient(155deg,#f2f3f0 0%
 .ts-qty-menu{position:absolute;left:8px;top:46px;z-index:70;background:var(--bg,#fff);border:1px solid var(--border2,#dfe7e6);border-radius:9px;box-shadow:0 12px 30px rgba(15,61,66,.16);padding:4px;display:grid;grid-template-columns:repeat(5,30px);gap:3px}
 .ts-qty-menu span{text-align:center;font-size:12px;padding:5px 0;border-radius:6px;cursor:pointer}
 .ts-qty-menu span:hover{background:#E9F0F1}.ts-qty-menu span.on{background:#206A72;color:#fff}
+.ts-hits{margin:4px 0 10px;padding:6px;border-radius:12px;background:#E9F0F1}
+.ts-hits .ts-card{margin-top:6px;background:var(--bg,#fff);cursor:pointer}
+.ts-hits .ts-card:first-child{margin-top:0}
+.ts-hits .ts-card:hover{border-color:#206A72;box-shadow:0 0 0 2px rgba(32,106,114,.15)}
+.ts-hits .ts-card.dis{opacity:.5;cursor:default;box-shadow:none}
+.ts-hits .ts-qty{cursor:inherit;font-size:14px}
+.ts-card .bin.add{color:#206A72;font-size:18px;display:flex}
 .ts-res-inline .ts-res{position:static;box-shadow:none;margin-top:6px;max-height:none}
 .ts-card .t{grid-column:2 / span 2;grid-row:1;font-size:13px;font-weight:600;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ts-card .bin{grid-column:4;grid-row:1 / span 2;align-self:center;justify-self:end;background:none;border:0;color:var(--text3);cursor:pointer;font-size:16px;padding:0}
@@ -1242,7 +1249,7 @@ let localSettingsTrusted=false;
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-10-22T16:00:00.000Z';
+const BUILD_VERSION='2026-10-22T16:15:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -7929,9 +7936,9 @@ function renderShipArtResults(){
   const chosen=new Set(draftLead.shipPrinter.skus.filter(x=>x.sku).map(x=>String(x.sku).toLowerCase()));
   const all=ARTICLES.filter(a=>a.sku&&(String(a.sku).toLowerCase().includes(q)||String(a.title||'').toLowerCase().includes(q)));
   const hits=all.slice(0,12);
-  if(!hits.length){el.innerHTML=`<div class="ts-res"><div class="ts-res-row dis" style="grid-template-columns:1fr">Kein Artikel gefunden.</div></div>`;return;}
-  el.innerHTML=`<div class="ts-res">${hits.map(a=>{const dis=chosen.has(String(a.sku).toLowerCase());const rma=shipNum(a.crRma);const cls=rma===null?'':crRmaCellClass(rma);const ek=shipNum(a.ek),vk=shipNum(a.vk);
-    return `<div class="ts-res-row ${dis?'dis':''}" ${dis?'':`onmousedown="event.preventDefault();shipArtPick('${esc(String(a.id))}')"`}><span class="crrma-dot ${cls}" style="width:8px;height:8px;border-radius:50%;grid-column:1;grid-row:1 / span 2;background:${cls?'':'var(--border2,#c9d6d5)'}"></span><span style="grid-column:2;grid-row:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><b style="font-weight:600">${esc(a.title||a.sku)}</b>${dis?' <span style="font-size:11px;color:var(--text3)">· bereits gewählt</span>':''}</span><span style="grid-column:3;grid-row:1 / span 2;display:flex;gap:6px;justify-content:flex-end"><span class="ts-pill">EK ${ek!==null?fmtEurCent(ek):'–'}</span><span class="ts-pill">VK ${vk!==null?fmtEurCent(vk):'–'}</span><span class="ts-pill ${cls}">RMA ${rma!==null?String(rma).replace('.',',')+' %':'–'}</span></span><small>${esc(a.sku)}</small></div>`;}).join('')}${all.length>12?`<div class="ts-res-row dis" style="grid-template-columns:1fr;font-size:11px">+ ${all.length-12} weitere Treffer – Suche genauer eingeben</div>`:''}</div>`;
+  if(!hits.length){el.innerHTML=`<div style="font-size:12px;color:var(--text3);padding:8px 2px">Kein Artikel gefunden.</div>`;return;}
+  el.innerHTML=`<div class="ts-hits">${hits.map(a=>{const dis=chosen.has(String(a.sku).toLowerCase());const rma=shipNum(a.crRma);const cls=rma===null?'':crRmaCellClass(rma);const ek=shipNum(a.ek),vk=shipNum(a.vk);
+    return `<div class="ts-card ts-hit ${cls} ${dis?'dis':''}" ${dis?'title="Bereits gewählt"':`onmousedown="event.preventDefault();shipArtPick('${esc(String(a.id))}')" title="Artikel übernehmen"`}><span class="ts-qty ${cls}">${dis?'<i class="ti ti-check"></i>':'<i class="ti ti-plus"></i>'}</span><span class="t">${esc(a.title||a.sku)}</span><span class="bin add">${dis?'<i class="ti ti-check"></i>':'<i class="ti ti-circle-plus"></i>'}</span><span class="sku">${esc(a.sku)}${dis?' · bereits gewählt':''}</span><span class="vals"><span class="ts-pill">EK ${ek!==null?fmtEurCent(ek):'–'}</span><span class="ts-pill">VK ${vk!==null?fmtEurCent(vk):'–'}</span><span class="ts-pill ${cls}">RMA ${rma!==null?String(rma).replace('.',',')+' %':'–'}</span></span></div>`;}).join('')}${all.length>12?`<div style="font-size:11px;color:var(--text3);padding:6px 2px 0">+ ${all.length-12} weitere Treffer – Suche genauer eingeben</div>`:''}</div>`;
 }
 function shipArtPick(articleId){
   if(modalReadOnly)return;
