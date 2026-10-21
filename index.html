@@ -204,12 +204,11 @@ body{font-family:'Inter',sans-serif;background:linear-gradient(155deg,#f2f3f0 0%
 .d3.miss .f,.d3.miss .c b{color:#a32d2d}
 .d3.next{background:#e3f0f0;margin:0 -14px;padding:9px 14px;border-radius:8px}
 @media (max-width:1100px){.d3-head,.d3{grid-template-columns:70px minmax(0,1fr) 130px minmax(0,1fr) 60px}}
-.next-box{background:#eef6f6;border:1px solid #c4dede;border-radius:14px;padding:14px 16px;margin:14px 0 22px}
-.next-box .today-hd{color:#174c52}
-.next-box .day-sub{color:#206A72;display:flex;align-items:center}
-.next-box .day-sub span{margin-left:auto;font-weight:600;letter-spacing:0;text-transform:none;color:var(--text3)}
-.next-box .d3{border-top-color:#e1eded}
-.next-box .d3-head{color:#206A72}
+.next-sec{margin-top:22px}
+.next-sec .day-sub{color:var(--text2);display:flex;align-items:center}
+.next-sec .day-sub span{margin-left:auto;font-weight:600;letter-spacing:0;text-transform:none;color:var(--text3)}
+.next-sec .d3{border-top-color:var(--border2,#e4ebea)}
+.next-sec .d3-head{color:var(--text3)}
 .d3 .f.nt{color:var(--text3);font-weight:600}
 .board-part-hint{flex:0 0 260px;align-self:flex-start;border:1.5px dashed var(--purple-dark);border-radius:var(--r-md);padding:16px;background:var(--purple-bg);font-size:13px;color:var(--purple-dark);display:flex;flex-direction:column;gap:10px;}
 .board-part-hint button{align-self:flex-start;}
@@ -1156,7 +1155,7 @@ let localSettingsTrusted=false;
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-10-21T21:45:00.000Z';
+const BUILD_VERSION='2026-10-21T22:00:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -2698,8 +2697,8 @@ function runBoardRestructure(){
   alert('Umbau abgeschlossen. Die Listen sind jetzt auf „Board: SQL“ und „Board: PQL“ verteilt.');
 }
 // ── Sortierung der Listen (pro Person im Browser gespeichert) ──
-// manual = eigene Reihenfolge (Pfeile auf den Karten), due_asc / due_desc = nach Wiedervorlage.
-// Leads ohne Wiedervorlage stehen bei der Faelligkeits-Sortierung immer unten.
+// manual = eigene Reihenfolge (Pfeile auf den Karten), due_asc / due_desc = nach FollowUp.
+// Leads ohne FollowUp stehen bei der Faelligkeits-Sortierung immer unten.
 let boardSortMode=(()=>{try{const v=localStorage.getItem('projectos_board_sort');return['manual','due_asc','due_desc'].includes(v)?v:'manual';}catch(e){return 'manual';}})();
 function setBoardSort(mode){
   boardSortMode=['manual','due_asc','due_desc'].includes(mode)?mode:'manual';
@@ -2729,7 +2728,7 @@ function renderBoardSortMenu(){
 // ── MEIN KALENDER ──
 // Zeigt Follow-ups MIT Uhrzeit als 25-Minuten-Termine. Klick oeffnet den Lead, Ziehen verschiebt
 // (Woche: Tag + Uhrzeit, Raster 30 Min.; Monat: nur der Tag, Uhrzeit bleibt). Jede Verschiebung
-// wird wie im Lead-Fenster protokolliert (Wiedervorlage-Verlauf + Aktivitaet).
+// wird wie im Lead-Fenster protokolliert (FollowUp-Verlauf + Aktivitaet).
 const CAL_HOUR_PX=64, CAL_DUR=25, CAL_SNAP=30;
 let calViewMode=(()=>{try{return localStorage.getItem('projectos_cal_view')==='month'?'month':'week';}catch(e){return 'week';}})();
 let calWeekStart=null, calYear=null, calMonth=null, calAgent=null, calDrag=null, calMiniOpen=false, calMiniYear=null;
@@ -2768,7 +2767,7 @@ function calNav(delta){
 function calToday(){const t=new Date();calWeekStart=calYmd(calMonday(t));calYear=t.getFullYear();calMonth=t.getMonth();renderCalendar();}
 function calOpenWeekOf(dateStr){calWeekStart=calYmd(calMonday(new Date(dateStr+'T00:00:00')));setCalView('week');}
 function calSetAgent(v){calAgent=v;renderCalendar();}
-// ── Seitenleiste "Zu planen": Wiedervorlagen ohne Uhrzeit (ueberfaellig, heute, diese Woche)
+// ── Seitenleiste "Zu planen": FollowUps ohne Uhrzeit (ueberfaellig, heute, diese Woche)
 // und Termine am Wochenende. Ziehen auf eine Uhrzeit = Termin; Klick oeffnet den Lead.
 function calTogglePlanPanel(){calPlanPanel=!calPlanPanel;try{localStorage.setItem('projectos_cal_plan',calPlanPanel?'1':'0');}catch(e){}renderCalendar();}
 function calTogglePlanGroup(k){calPlanOpen[k]=!calPlanOpen[k];renderCalendar();}
@@ -2955,7 +2954,7 @@ function renderCalendar(){
 }
 // ── Termin planen (Fenster im Stil von Sales OS) ──
 // Setzt beim gewaehlten Lead das Follow-up auf Datum + Startzeit - dasselbe Feld wie im Lead-Fenster
-// und auf der Board-Karte. Eine bestehende Wiedervorlage wird ersetzt und protokolliert.
+// und auf der Board-Karte. Eine bestehende FollowUp wird ersetzt und protokolliert.
 let calAppt=null;
 function calApptPerson(){return calAgent&&calAgent!=='all'?calAgent:currentUser;}
 function calTimeOptions(){const o=[];for(let m=CAL_BOOK_FROM*60;m<=CAL_DAY_END*60-CAL_SNAP;m+=CAL_SNAP)o.push(calFmt(m));return o;}
@@ -3007,7 +3006,7 @@ function renderCalAppt(){
   const opts=calTimeOptions();if(!opts.includes(calAppt.time))opts.unshift(calAppt.time);
   const person=calApptPerson();const pa=agentById(person);
   let notes='';
-  if(sel&&sel.followup){const p=calParse(sel.followup);notes+=`<div class="ap-note ap-warn"><i class="ti ti-alert-triangle"></i><span>Bestehende Wiedervorlage am ${fmtDate(sel.followup)}${p?' um '+p.time:''} wird durch diesen Termin ersetzt.</span></div>`;}
+  if(sel&&sel.followup){const p=calParse(sel.followup);notes+=`<div class="ap-note ap-warn"><i class="ti ti-alert-triangle"></i><span>Bestehende FollowUp am ${fmtDate(sel.followup)}${p?' um '+p.time:''} wird durch diesen Termin ersetzt.</span></div>`;}
   if(sel&&!(sel.members||[]).includes(person))notes+=`<div class="ap-note ap-info"><i class="ti ti-user-plus"></i><span>${esc(pa?pa.name:'Die Person')} wird als Person zum Lead hinzugefügt, damit der Termin im Kalender erscheint.</span></div>`;
   el.innerHTML=`<div class="ap-head"><i class="ti ti-calendar-plus"></i> Termin planen</div>
   <div class="ap-body">
@@ -4747,7 +4746,7 @@ function tasksHeroHtml(withFollowup,history,q){
     <div style="display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px;padding-bottom:18px;margin-bottom:18px;border-bottom:1px solid rgba(255,255,255,0.14);min-height:118px;align-items:center">`;
   h+=top(`Gespräche · KW ${calIsoWeek(new Date(TODAY+'T00:00:00'))}`,talks,'Gespräche',loading?'':`Ø ${talksAvg} pro Arbeitstag`,loading?'':`Vorwoche ${talksPrev}`,loading?'':heroBars(talkBars,C.bar,300,34,undefined,wd14.map(d=>fmtDate(d))));
   h+=top(`Free Toner zugesagt · ${mNames[+ym.slice(5,7)-1]}`,toner,'Zusagen',loading?'':`Ø ${tonerAvg} pro Woche`,loading?'':`Team gesamt ${tonerTeam}`,loading?'':heroBars(tonerBars,C.bar,300,34,undefined,tonerLbl));
-  h+=top('Termine heute',todayT.length,todayT.length===1?'Termin':'Termine',next?`Nächster: ${next.p.time} ${esc(next.l.company)}`:(todayT.length?'Keine weiteren Termine heute':'Keine Termine mit Uhrzeit'),`${untimed} ${untimed===1?'Wiedervorlage':'Wiedervorlagen'} ohne Uhrzeit`,heroBars(apptBars,C.bar,300,34,0,wdNext.map(d=>fmtDate(d))));
+  h+=top('Termine heute',todayT.length,todayT.length===1?'Termin':'Termine',next?`Nächster: ${next.p.time} ${esc(next.l.company)}`:(todayT.length?'Keine weiteren Termine heute':'Keine Termine mit Uhrzeit'),`${untimed} ${untimed===1?'FollowUp':'FollowUps'} ohne Uhrzeit`,heroBars(apptBars,C.bar,300,34,0,wdNext.map(d=>fmtDate(d))));
   h+=`</div><div style="display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px">`;
   // Untere Reihe
   const curr=history[29],prev=history[28];
@@ -4856,7 +4855,7 @@ function tasksTodayLayoutHtml(withFollowup,q){
   const sub=l=>esc([colName(l),l.contact].filter(Boolean).join(' · '));
   const total=queue.length;
   if(!total&&!appts.length){
-    var box=`<div class="today-box done"><div class="today-hd"><i class="ti ti-circle-check"></i> Alles erledigt für heute<span class="n">0</span></div><div style="font-size:12px;color:#0b5e45;margin-top:6px">Keine offenen Wiedervorlagen und keine Termine mehr für heute.</div></div>`;
+    var box=`<div class="today-box done"><div class="today-hd"><i class="ti ti-circle-check"></i> Alles erledigt für heute<span class="n">0</span></div><div style="font-size:12px;color:#0b5e45;margin-top:6px">Keine offenen FollowUps und keine Termine mehr für heute.</div></div>`;
   }else{
     const all=!!taskShowAll.queue;const shown=all?open:open.slice(0,5);
     loadTasksLastComments([...shown.map(x=>String(x.l.id)),...appts.map(x=>String(x.l.id))]);
@@ -4897,8 +4896,8 @@ function tasksTodayLayoutHtml(withFollowup,q){
     return head+`<div class="day-list"><div class="d3-head" style="margin:0 -14px"><span>Uhrzeit</span><span>Firma · Kontakt</span><span>Telefon</span><span>Letzter Kommentar</span><span></span></div>${shownD.map(it=>`<div class="d3" onclick="openLeadModal(${leadIdArg(it.l)})"><span class="f ${it.time?'tm':'nt'}">${it.time||'ohne Zeit'}</span><div class="c">${dot(it.l)}<div><b>${esc(it.l.company)}</b><small>${sub(it.l)}</small></div></div>${d3PhoneHtml(it.l)}${d3CommentHtml(it.l)}${acts(it.l)}</div>`).join('')}${items.length>5?`<div class="d2 more" onclick="taskShowAll['${key}']=!taskShowAll['${key}'];renderTasksView()">${allD?'Weniger anzeigen':`+ ${items.length-5} weitere`}</div>`:''}</div>`;
   }).join('');
   loadTasksLastComments(nextIds);
-  const pv=`<div class="next-box"><div class="today-hd"><i class="ti ti-calendar-week"></i> Nächste 3 Tage<span class="n">${nextTotal} ${nextTotal===1?'Wiedervorlage':'Wiedervorlagen'}</span></div>${dayBlocks}</div>`;
-  return `${box}<div style="margin-top:14px">${assignedTasksHtml(q)}</div>${pv}`;
+  const pv=`<div class="info-section next-sec"><div class="section-hdr" style="margin-top:0"><span style="display:flex;align-items:center;gap:6px"><i class="ti ti-calendar-week" style="color:var(--purple);font-size:16px"></i>Nächste 3 Tage</span><span class="task-group-count">${nextTotal} ${nextTotal===1?'FollowUp':'FollowUps'}</span></div>${dayBlocks}</div>`;
+  return `<div style="margin-bottom:22px">${assignedTasksHtml(q)}</div>${box}${pv}`;
 }
 // ── Abarbeiten-Modus: geht "Heute zu erledigen" Lead fuer Lead durch ──
 let work=null;
@@ -4937,7 +4936,7 @@ function renderWork(){
         <div style="width:56px;height:56px;border-radius:50%;background:#e3f5ee;color:#0b5e45;display:flex;align-items:center;justify-content:center;font-size:28px;margin:4px auto 8px"><i class="ti ti-confetti"></i></div>
         <div style="font-size:16px;font-weight:700">${n?`${n} ${n===1?'Lead':'Leads'} bearbeitet`:'Heute steht nichts mehr an'}</div>
         ${n?`<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:14px 0">${[['verschoben',st.moved],['nicht erreicht',st.ne],['Termine',st.termin],['übersprungen',st.skip]].map(([k,v])=>`<div style="background:var(--bg2,#f4f6f6);border-radius:10px;padding:8px"><div style="font-size:20px;font-weight:700">${v}</div><div style="font-size:11px;color:var(--text3)">${k}</div></div>`).join('')}</div>`:''}
-        <div style="font-size:12px;color:var(--text3)">${fmtDate(tmr)}: ${tomorrow} ${tomorrow===1?'Wiedervorlage':'Wiedervorlagen'}</div>
+        <div style="font-size:12px;color:var(--text3)">${fmtDate(tmr)}: ${tomorrow} ${tomorrow===1?'FollowUp':'FollowUps'}</div>
       </div>
       <div class="modal-actions" style="justify-content:flex-start"><button class="btn" onclick="closeModal('workModal');switchView('calendar')"><i class="ti ti-calendar"></i> Zum Kalender</button><button class="btn ap-primary" onclick="closeModal('workModal');work=null;renderTasksView()"><i class="ti ti-check"></i> Fertig</button></div>`;
     return;
@@ -5106,7 +5105,7 @@ function toggleAssignedTask(leadId,taskId){
 }
 function renderTasksView(){
   const q=(document.getElementById('tasksSearch').value||'').toLowerCase().trim();
-  // Nur echte Aufgaben: Wiedervorlage + Erstkontakt erfolgt, Lead nicht verloren (Okt. 2026)
+  // Nur echte Aufgaben: FollowUp + Erstkontakt erfolgt, Lead nicht verloren (Okt. 2026)
   let withFollowup=leads.filter(l=>l.followup&&l.firstContact&&!isLostStatus(l.status));
   if(activeTasksAgentFilter!=='all')withFollowup=withFollowup.filter(l=>(l.members||[]).includes(activeTasksAgentFilter));
   if(activeTasksBoardFilter!=='all')withFollowup=withFollowup.filter(l=>leadBoardPart(l)===activeTasksBoardFilter);
@@ -6286,7 +6285,7 @@ function trackClosedStage(lead,oldStatus,newStatus){
     lead.closedFromStage=oldStatus;
     lead.closedAt=nowISO();
   }
-  // Verloren: Wiedervorlage entfaellt - der Lead taucht nicht mehr in Aufgaben/Kalender auf.
+  // Verloren: FollowUp entfaellt - der Lead taucht nicht mehr in Aufgaben/Kalender auf.
   if(newCol&&newCol.outcome==='lost'&&oldStatus!==newStatus)lead.followup='';
 }
 function trackStatusSince(lead,oldStatus,newStatus){
@@ -7902,7 +7901,7 @@ function addComment(){
 }
 // Ein-Klick-Aktion fuer "Kunde war nicht erreichbar": traegt IMMER (unabhaengig vom Inhalt
 // des Kommentarfelds) einen festen Kommentar ein und setzt das Follow-up-Datum automatisch
-// auf in 3 Tagen - damit ein nicht erreichter Kunde nie versehentlich ohne Wiedervorlage
+// auf in 3 Tagen - damit ein nicht erreichter Kunde nie versehentlich ohne FollowUp
 // liegen bleibt.
 function markNotReached(){
   if(modalReadOnly)return;
@@ -9571,7 +9570,7 @@ function renderAmWizardPage(body){
       <div class="wizard-title" style="margin-bottom:8px">Heute geplant${timed.length?` · ${timed.length} ${timed.length===1?'Termin':'Termine'}`:''}</div>
       ${timed.length?timed.slice(0,6).map(x=>wizardRow(`<span style="color:#9fe1cb;margin-right:8px">${x.p.time}</span>${esc(x.l.company)}`,esc(colName(x.l)),'',`wizardOpenLead(${idArg(x.l)})`)).join('')+(timed.length>6?`<div class="wizard-sub">+${timed.length-6} weitere im Kalender</div>`:'')
         :'<div class="wizard-sub">Für heute sind noch keine Termine mit Uhrzeit geplant.</div>'}
-      ${untimed?`<button class="wizard-next-btn" style="margin-top:6px;background:transparent;color:#fff;border:1px solid rgba(255,255,255,.4)" onclick="wizardJumpToPlanning()">${untimed} ${untimed===1?'Wiedervorlage':'Wiedervorlagen'} noch ohne Uhrzeit <i class="ti ti-arrow-right"></i></button>`:''}`;
+      ${untimed?`<button class="wizard-next-btn" style="margin-top:6px;background:transparent;color:#fff;border:1px solid rgba(255,255,255,.4)" onclick="wizardJumpToPlanning()">${untimed} ${untimed===1?'FollowUp':'FollowUps'} noch ohne Uhrzeit <i class="ti ti-arrow-right"></i></button>`:''}`;
   }else if(pageKey==='yesterday'){
     const y=wizardYesterday;const d=wizardLastWorkday();
     const label=`${['So','Mo','Di','Mi','Do','Fr','Sa'][d.getDay()]} ${String(d.getDate()).padStart(2,'0')}.${String(d.getMonth()+1).padStart(2,'0')}.`;
