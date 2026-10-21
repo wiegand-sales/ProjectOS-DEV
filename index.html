@@ -1067,7 +1067,7 @@ let localSettingsTrusted=false;
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-10-21T18:15:00.000Z';
+const BUILD_VERSION='2026-10-21T19:00:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -4567,6 +4567,119 @@ function toggleTaskSection(key){
 // Baut die Zeilen einer Sektion: im zugeklappten Zustand max. 3 Zeilen, mit leeren
 // Platzhalter-Zeilen aufgefuellt, damit alle Boxen zugeklappt gleich hoch sind.
 let taskShowAll={};
+// ── Petrol-Banner fuer "Meine Aufgaben" (Farben, Masse und Grafiken 1:1 wie Sales OS) ──
+// Oben: Gespraeche (Woche), Free Toner zugesagt (Monat), Termine heute. Unten: Aufgaben, Ueberfaellig,
+// Heute, Diese Woche, Naechste Woche, Gesamt - jeweils mit Verlaufslinie und Vortag.
+let tasksHeroActs=null; // {loadedAt, rows} | {loading:true} | {error:true}
+function heroBars(values,color,w,h,hiIndex,labels){
+  w=w||300;h=h||34;
+  const vals=(values||[]).map(v=>v||0);if(!vals.length)return `<svg width="${w}" height="${h}"></svg>`;
+  const max=Math.max(...vals,1);const n=vals.length,gap=4,bw=(w-gap*(n-1))/n;
+  const hi=hiIndex===undefined?n-1:hiIndex;
+  return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" style="display:block;max-width:100%">${vals.map((v,i)=>{const bh=Math.max(2,v/max*h);return `<rect x="${(i*(bw+gap)).toFixed(1)}" y="${(h-bh).toFixed(1)}" width="${bw.toFixed(1)}" height="${bh.toFixed(1)}" fill="${color}" opacity="${i===hi?1:0.35}" rx="2"><title>${labels?esc(labels[i])+': ':''}${v}</title></rect>`;}).join('')}</svg>`;
+}
+function heroSpark(values,color,w,h){
+  w=w||90;h=h||18;const v=(values||[]).filter(x=>x!==null&&x!==undefined);
+  if(v.length<2)return `<svg width="${w}" height="${h}"></svg>`;
+  const min=Math.min(...v),max=Math.max(...v),r=max-min||1,step=w/(v.length-1),pad=4;
+  return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" style="display:block"><polyline points="${v.map((x,i)=>(i*step).toFixed(1)+','+(pad+(1-(x-min)/r)*(h-2*pad)).toFixed(1)).join(' ')}" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+}
+function heroWorkdays(n,fromStr,forward){ // n Arbeitstage (Mo-Fr) bis/ab Datum
+  const out=[];const d=new Date((fromStr||TODAY)+'T00:00:00');
+  while(out.length<n){const dow=d.getDay();if(dow!==0&&dow!==6){forward?out.push(calYmd(d)):out.unshift(calYmd(d));}d.setDate(d.getDate()+(forward?1:-1));}
+  return out;
+}
+async function loadTasksHeroActs(){
+  if(tasksHeroActs&&(tasksHeroActs.loading||(tasksHeroActs.loadedAt&&Date.now()-tasksHeroActs.loadedAt<60000)))return;
+  tasksHeroActs={loading:true};
+  try{
+    const from=new Date(TODAY+'T00:00:00');from.setDate(from.getDate()-63);
+    const rows=await fetchAllRows(`lead_activities?select=author,type,text,date&date=gte.${calYmd(from)}&order=id.asc`,{timeoutMs:20000});
+    tasksHeroActs={loadedAt:Date.now(),rows:rows.filter(r=>r.type==='comment'||/^Status geändert:/.test(r.text||''))};
+  }catch(e){tasksHeroActs={error:true};}
+  if(currentView==='tasks')renderTasksView();
+}
+function tasksHeroHtml(withFollowup,history,q){
+  loadTasksHeroActs();
+  const C={label:'#9fc9cd',sub:'#8fb5b9',unit:'#bcdadd',bar:'#7ED2DB',red:'#e57373',white:'#fff'};
+  const agent=activeTasksAgentFilter;const byMe=r=>agent==='all'||r.author===agent;
+  const acts=tasksHeroActs&&tasksHeroActs.rows;const loading=!acts;
+  const dayOf=r=>calYmd(new Date(r.date));
+  const am=colById('am_order');const isToner=r=>am&&/^Status geändert:/.test(r.text||'')&&(r.text||'').endsWith('→ '+am.name);
+  // 1) Gespraeche diese Woche
+  const wd14=heroWorkdays(14);const mon=calYmd(calMonday(new Date(TODAY+'T00:00:00')));
+  const prevMon=(()=>{const d=new Date(mon+'T00:00:00');d.setDate(d.getDate()-7);return calYmd(d);})();
+  let talks='…',talksAvg='',talksPrev='',talkBars=[];
+  if(!loading){
+    const mine=acts.filter(r=>r.type==='comment'&&byMe(r));
+    talkBars=wd14.map(d=>mine.filter(r=>dayOf(r)===d).length);
+    const wk=mine.filter(r=>dayOf(r)>=mon&&dayOf(r)<=TODAY).length;talks=wk;
+    const elapsed=heroWorkdays(5,mon,true).filter(d=>d<=TODAY).length||1;
+    talksAvg=(wk/elapsed).toLocaleString('de-DE',{maximumFractionDigits:1});
+    talksPrev=mine.filter(r=>dayOf(r)>=prevMon&&dayOf(r)<mon).length;
+  }
+  // 2) Free Toner zugesagt im Monat (Wechsel nach "AM: Auftrag")
+  const ym=TODAY.slice(0,7);const mNames=['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
+  let toner='…',tonerAvg='',tonerTeam='',tonerBars=[],tonerLbl=[];
+  if(!loading){
+    const all=acts.filter(isToner);const mine=all.filter(byMe);
+    toner=mine.filter(r=>dayOf(r).slice(0,7)===ym).length;tonerTeam=all.filter(r=>dayOf(r).slice(0,7)===ym).length;
+    const weeks=[...Array(8)].map((_,i)=>{const d=new Date(mon+'T00:00:00');d.setDate(d.getDate()-7*(7-i));return calYmd(d);});
+    tonerBars=weeks.map((w,i)=>{const end=i<7?weeks[i+1]:'9999';return mine.filter(r=>dayOf(r)>=w&&dayOf(r)<end).length;});
+    tonerLbl=weeks.map(w=>'KW '+calIsoWeek(new Date(w+'T00:00:00')));
+    const wkInMonth=Math.max(1,Math.ceil((+TODAY.slice(8,10))/7));
+    tonerAvg=(toner/wkInMonth).toLocaleString('de-DE',{maximumFractionDigits:1});
+  }
+  // 3) Termine heute
+  const scope=leads.filter(l=>!isClosedLead(l)&&(agent==='all'||(l.members||[]).includes(agent))&&(activeTasksBoardFilter==='all'||leadBoardPart(l)===activeTasksBoardFilter));
+  const timed=scope.map(l=>({l,p:calParse(l.followup)})).filter(x=>x.p);
+  const todayT=timed.filter(x=>x.p.date===TODAY).sort((a,b)=>a.p.min-b.p.min);
+  const nowMin=new Date().getHours()*60+new Date().getMinutes();
+  const next=todayT.find(x=>x.p.min>=nowMin);
+  const untimed=scope.filter(l=>l.followup&&!calParse(l.followup)&&String(l.followup).slice(0,10)===TODAY).length;
+  const wdNext=heroWorkdays(10,TODAY,true);
+  const apptBars=wdNext.map(d=>timed.filter(x=>x.p.date===d).length);
+  const top=(label,val,unit,sub1,sub2,graph)=>`<div style="grid-column:span 1;padding-left:14px;min-width:0">
+      <div style="font-size:10.5px;font-weight:600;color:${C.label};letter-spacing:.04em;margin-bottom:4px">${label.toUpperCase()}</div>
+      <div style="font-size:30px;font-weight:700;line-height:1">${val} <span style="font-size:15px;font-weight:500;color:${C.unit}">${unit}</span></div>
+      <div style="font-size:11px;color:${C.sub};margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${sub1}</div>
+      <div style="font-size:11px;color:${C.sub};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${sub2}</div>
+    </div><div style="grid-column:span 1;display:flex;align-items:center;height:100%;padding:4px 14px;min-width:0">${graph}</div>`;
+  let h=`<div class="tasks-hero" style="background:linear-gradient(180deg,#0c3b40 0%,#164e54 55%,#1d6169 100%);box-shadow:0 12px 28px rgba(15,61,66,0.22);border-radius:16px;padding:22px 26px;color:#fff;margin-bottom:22px;width:100%;box-sizing:border-box">
+    <div style="display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px;padding-bottom:18px;margin-bottom:18px;border-bottom:1px solid rgba(255,255,255,0.14);min-height:118px;align-items:center">`;
+  h+=top(`Gespräche · KW ${calIsoWeek(new Date(TODAY+'T00:00:00'))}`,talks,'Gespräche',loading?'':`Ø ${talksAvg} pro Arbeitstag`,loading?'':`Vorwoche ${talksPrev}`,loading?'':heroBars(talkBars,C.bar,300,34,undefined,wd14.map(d=>fmtDate(d))));
+  h+=top(`Free Toner zugesagt · ${mNames[+ym.slice(5,7)-1]}`,toner,'Zusagen',loading?'':`Ø ${tonerAvg} pro Woche`,loading?'':`Team gesamt ${tonerTeam}`,loading?'':heroBars(tonerBars,C.bar,300,34,undefined,tonerLbl));
+  h+=top('Termine heute',todayT.length,todayT.length===1?'Termin':'Termine',next?`Nächster: ${next.p.time} ${esc(next.l.company)}`:(todayT.length?'Keine weiteren Termine heute':'Keine Termine mit Uhrzeit'),`${untimed} ${untimed===1?'Wiedervorlage':'Wiedervorlagen'} ohne Uhrzeit`,heroBars(apptBars,C.bar,300,34,0,wdNext.map(d=>fmtDate(d))));
+  h+=`</div><div style="display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px">`;
+  // Untere Reihe
+  const curr=history[29],prev=history[28];
+  const series=k=>history.slice(-14).map(x=>x[k]);
+  const assignedOpen=assignedOpenCount(q);
+  const cell=(label,val,prevVal,spark,warn,subTxt)=>{
+    const col=warn?C.red:C.white;
+    const tr=(prevVal===null||prevVal===undefined)?'':(val>prevVal?'\u2191':val<prevVal?'\u2193':'\u2192');
+    return `<div style="padding:4px 14px;position:relative;min-width:0">
+      <div style="font-size:9.5px;font-weight:600;color:${C.label};letter-spacing:.04em">${label.toUpperCase()}</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:4px;gap:6px"><div style="font-size:19px;font-weight:700;color:${col};white-space:nowrap">${val} ${tr}</div>${spark?heroSpark(spark,col,90,18):''}</div>
+      <div style="font-size:10px;color:${C.sub};margin-top:3px">${subTxt!==undefined?subTxt:('Vortag '+prevVal)}</div></div>`;
+  };
+  h+=cell('Aufgaben',assignedOpen.open,null,null,assignedOpen.overdue>0,assignedOpen.overdue?`davon ${assignedOpen.overdue} überfällig`:'offen, zugewiesen');
+  h+=cell('Überfällig',curr.overdue,prev.overdue,series('overdue'),curr.overdue>0);
+  h+=cell('Heute',curr.today,prev.today,series('today'),false);
+  h+=cell('Diese Woche',curr.week,prev.week,series('week'),false);
+  h+=cell('Nächste Woche',curr.nextweek,prev.nextweek,series('nextweek'),false);
+  h+=cell('Gesamt',curr.total,prev.total,series('total'),false);
+  h+=`</div></div>`;
+  return h;
+}
+// Offene zugewiesene Aufgaben - gleiche Filter wie die Liste "Zugewiesene Aufgaben"
+function assignedOpenCount(q){
+  let items=[];leads.forEach(l=>(l.tasks||[]).forEach(t=>{if(t.assigneeId&&!t.done)items.push({t,l});}));
+  if(activeTasksAgentFilter!=='all')items=items.filter(x=>x.t.assigneeId===activeTasksAgentFilter);
+  if(activeTasksBoardFilter!=='all')items=items.filter(x=>leadBoardPart(x.l)===activeTasksBoardFilter);
+  if(q){const pk=phoneQueryKeys(q);items=items.filter(x=>leadMatchesSearch(x.l,q,pk));}
+  return{open:items.length,overdue:items.filter(x=>x.t.dueDate&&daysUntil(x.t.dueDate)<0).length};
+}
 function limitedRowsHtml(rowHtmls,isOpen,key,emptyMsg){
   if(!isOpen)return '';
   if(!rowHtmls.length)return `<div class="task-row-empty">${emptyMsg}</div>`;
@@ -4711,13 +4824,7 @@ function renderTasksView(){
   }
 
   const html=`
-    <div class="dash-kpi-row" style="grid-template-columns:repeat(5,1fr)">
-      ${kpiCard('Überfällig','overdue','var(--red)')}
-      ${kpiCard('Heute','today','var(--red)')}
-      ${kpiCard('Diese Woche','week','var(--green-dark)')}
-      ${kpiCard('Nächste Woche','nextweek','var(--purple)')}
-      ${kpiCard('Gesamt','total','var(--text)')}
-    </div>
+    ${tasksHeroHtml(withFollowup,history,q)}
     ${assignedTasksHtml(q)}
     ${followupGroupHtml('Überfällig',buckets.overdue,'var(--red)','alert-triangle','followup-kpi-overdue','overdue')}
     ${followupGroupHtml('Heute',buckets.today,'var(--amber-dark)','sun','followup-kpi-today','today')}
