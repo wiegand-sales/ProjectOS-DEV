@@ -267,14 +267,20 @@ body{font-family:'Inter',sans-serif;background:linear-gradient(155deg,#f2f3f0 0%
 .ts-res-row:hover{background:#E9F0F1}
 .ts-res-row.dis{opacity:.45;cursor:default}
 .ts-res-row small{grid-column:2;font-size:11px;color:var(--text3)}
-.ts-card{display:grid;grid-template-columns:12px minmax(0,1fr) auto;column-gap:10px;row-gap:2px;align-items:center;border:1px solid var(--border2,#dfe7e6);border-radius:10px;padding:10px 12px;margin-top:7px}
+.ts-card{position:relative;display:grid;grid-template-columns:30px minmax(0,1fr) auto 26px;column-gap:12px;row-gap:3px;align-items:center;border:1px solid var(--border2,#dfe7e6);border-radius:10px;padding:10px 12px;margin-top:7px}
 .ts-card.crrma-warn{border-color:#FAC775}.ts-card.crrma-bad{border-color:#F09595}
-.ts-card .crrma-dot{width:9px;height:9px;border-radius:50%;grid-row:1 / span 2;background:var(--border2,#c9d6d5)}
-.ts-card .t{font-size:13px;font-weight:600;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.ts-card .bin{grid-column:3;justify-self:end;background:none;border:0;color:var(--text3);cursor:pointer;font-size:16px;padding:0}
+.ts-qty{grid-column:1;grid-row:1 / span 2;width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;background:#dfe7e6;color:#33424a;cursor:pointer;user-select:none}
+.ts-qty.crrma-good{background:#c9eedf;color:#04342c}.ts-qty.crrma-warn{background:#fbd99a;color:#412402}.ts-qty.crrma-bad{background:#f7c1c1;color:#501313}
+.ts-qty:hover{box-shadow:0 0 0 2px rgba(32,106,114,.35)}
+.ts-qty-menu{position:absolute;left:8px;top:46px;z-index:70;background:var(--bg,#fff);border:1px solid var(--border2,#dfe7e6);border-radius:9px;box-shadow:0 12px 30px rgba(15,61,66,.16);padding:4px;display:grid;grid-template-columns:repeat(5,30px);gap:3px}
+.ts-qty-menu span{text-align:center;font-size:12px;padding:5px 0;border-radius:6px;cursor:pointer}
+.ts-qty-menu span:hover{background:#E9F0F1}.ts-qty-menu span.on{background:#206A72;color:#fff}
+.ts-res-inline .ts-res{position:static;box-shadow:none;margin-top:6px;max-height:none}
+.ts-card .t{grid-column:2 / span 2;grid-row:1;font-size:13px;font-weight:600;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ts-card .bin{grid-column:4;grid-row:1 / span 2;align-self:center;justify-self:end;background:none;border:0;color:var(--text3);cursor:pointer;font-size:16px;padding:0}
 .ts-card .bin:hover{color:var(--red)}
-.ts-card .sku{grid-column:2;font-size:11px;color:var(--text3)}
-.ts-card .vals{grid-column:3;display:flex;gap:6px;justify-content:flex-end}
+.ts-card .sku{grid-column:2;grid-row:2;font-size:11px;color:var(--text3)}
+.ts-card .vals{grid-column:3;grid-row:2;display:flex;gap:6px;justify-content:flex-end}
 .ts-pill{border-radius:6px;padding:2px 8px;font-size:11px;background:var(--bg2,#f4f6f6);white-space:nowrap}
 .ts-pill.crrma-warn{background:var(--amber-bg);color:var(--amber-dark);font-weight:600}
 .ts-pill.crrma-bad{background:var(--red-bg);color:var(--red-dark);font-weight:600}
@@ -1236,7 +1242,7 @@ let localSettingsTrusted=false;
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-10-22T15:30:00.000Z';
+const BUILD_VERSION='2026-10-22T16:00:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -4262,7 +4268,7 @@ function periodStartDate(p){
 function computeDashboardKpiMetrics(arr){
   const overdue=arr.filter(l=>l.followup&&daysUntil(l.followup)<0).length;
   const forecastSum=arr.reduce((s,l)=>s+(parseFloat(l.forecast)||0),0);
-  const investSum=arr.reduce((s,l)=>s+l.shipPrinter.skus.reduce((ss,x)=>ss+(parseFloat(x.priceEk)||0),0),0);
+  const investSum=arr.reduce((s,l)=>s+shipEkTotal(l),0);
   const shippedCount=arr.filter(l=>l.tonerSent==='Ja').length;
   const investTotal=investSum+shippedCount*SHIPPING_COST_PER_SEND;
   const won=arr.filter(l=>isWon(l)).length;
@@ -4667,7 +4673,7 @@ function renderDashboard(){
   const closedCount=won+lost;
   const winRateClosed=closedCount?Math.round(won/closedCount*100):null;
   const forecastSum=dl.reduce((s,l)=>s+(parseFloat(l.forecast)||0),0);
-  const investSum=dl.reduce((s,l)=>s+l.shipPrinter.skus.reduce((ss,x)=>ss+(parseFloat(x.priceEk)||0),0),0);
+  const investSum=dl.reduce((s,l)=>s+shipEkTotal(l),0);
   const shippedCount=dl.filter(l=>l.tonerSent==='Ja').length;
   const shippingCostSum=shippedCount*SHIPPING_COST_PER_SEND;
 
@@ -4683,7 +4689,7 @@ function renderDashboard(){
   const daysElapsed=Math.max(0,Math.round((today-projStart)/86400000));
   const timeProgress=Math.min(100,Math.round(daysElapsed/daysTotal*100));
   const daysRemaining=Math.round((projEnd-today)/86400000);
-  const allInvestSum=leads.reduce((s,l)=>s+l.shipPrinter.skus.reduce((ss,x)=>ss+(parseFloat(x.priceEk)||0),0),0);
+  const allInvestSum=leads.reduce((s,l)=>s+shipEkTotal(l),0);
   const budgetProgress=PROJECT.budget?Math.round(allInvestSum/PROJECT.budget*100):0;
   const overdueMilestones=PROJECT.milestones.filter(m=>!m.done&&daysUntil(m.targetDate)<0);
   const doneMilestones=PROJECT.milestones.filter(m=>m.done).length;
@@ -4853,7 +4859,7 @@ function renderDashboard(){
   // Finanzielle Auswirkung: Forecast gewonnen vs. verloren, Investition gesamt vs. in verlorene Leads, Netto-Effekt
   const forecastWon=dl.filter(l=>isWon(l)).reduce((s,l)=>s+(parseFloat(l.forecast)||0),0);
   const forecastLost=lostLeads.reduce((s,l)=>s+(parseFloat(l.forecast)||0),0);
-  const investLost=lostLeads.reduce((s,l)=>s+l.shipPrinter.skus.reduce((ss,x)=>ss+(parseFloat(x.priceEk)||0),0),0);
+  const investLost=lostLeads.reduce((s,l)=>s+shipEkTotal(l),0);
   const netEffect=forecastWon-investLost;
 
   // B2B vs. B2C (Kategorien ohne Leads werden nicht angezeigt)
@@ -7261,7 +7267,7 @@ function renderLeadModal(){
     <button class="check-item-del" onclick="deleteCheckItem(${c.id})"><i class="ti ti-x"></i></button>
   </div>`).join('');
 
-  const shipSkuTotal=draftLead.shipPrinter.skus.reduce((s,x)=>s+(parseFloat(x.priceEk)||0),0);
+  const shipSkuTotal=shipEkTotal(draftLead);
   const shipCostApplies=draftLead.tonerSent==='Ja';
   const shipInvestTotal=shipSkuTotal+(shipCostApplies?SHIPPING_COST_PER_SEND:0);
   const shipPrinterHtml=shipArticlesHtml(shipSkuTotal,shipCostApplies,shipInvestTotal);
@@ -7884,19 +7890,23 @@ function updateShipPrinterModel(val){draftLead.shipPrinter.model=val;}
 function updateShipPrinterSku(idx,field,val){draftLead.shipPrinter.skus[idx][field]=val;}
 // ── Toner zusenden (Okt. 2026): Artikel aus dem Artikelstamm suchen, max. 4 je Lead ──
 // Gespeichert wird wie bisher in shipPrinter.skus (sku, priceEk) - zusaetzlich priceVk, title, articleId.
-let shipArtQ='';
+let shipArtQ='';let shipQtyOpen=-1;
+function shipQty(x){const q=parseInt(x&&x.qty,10);return q>0?q:1;}
+function shipEkTotal(l){return ((l&&l.shipPrinter&&l.shipPrinter.skus)||[]).reduce((s,x)=>s+(x.sku?(parseFloat(x.priceEk)||0)*shipQty(x):(parseFloat(x.priceEk)||0)),0);}
+function shipSetQty(i,q){if(modalReadOnly)return;const x=draftLead.shipPrinter.skus[i];if(!x)return;x.qty=Math.max(1,Math.min(10,q|0));shipQtyOpen=-1;autoPersistIfEditing();renderLeadModal();}
+function shipToggleQty(i,e){if(e)e.stopPropagation();if(modalReadOnly)return;shipQtyOpen=shipQtyOpen===i?-1:i;renderLeadModal();}
 const SHIP_ART_MAX=4;
 function shipNum(v){const n=parseFloat(String(v===undefined||v===null?'':v).replace(',','.'));return isNaN(n)?null:n;}
 function shipArticleFor(slot){if(!slot||!slot.sku)return null;return (slot.articleId&&ARTICLES.find(a=>a.id===slot.articleId))||ARTICLES.find(a=>String(a.sku).trim().toLowerCase()===String(slot.sku).trim().toLowerCase())||null;}
 function shipArticlesHtml(skuTotal,costApplies,investTotal){
   const slots=draftLead.shipPrinter.skus.filter(x=>x.sku);
-  const vkTotal=slots.reduce((s,x)=>{const a=shipArticleFor(x);const v=shipNum(a?a.vk:x.priceVk);return s+(v||0);},0);
+  const vkTotal=slots.reduce((s,x)=>{const a=shipArticleFor(x);const v=shipNum(a?a.vk:x.priceVk);return s+(v||0)*shipQty(x);},0);
   const tiles=`<div class="ts-tiles">
     <div class="ts-tile">Patronen EK<b>${fmtEurCent(skuTotal)}</b></div>
     <div class="ts-tile">Versand<b>${fmtEurCent(costApplies?SHIPPING_COST_PER_SEND:0)}</b>${costApplies?'':`<small>zählt ab Versand</small>`}</div>
     <div class="ts-tile main">Investition<b>${fmtEurCent(investTotal)}</b></div>
     <div class="ts-tile">VK gesamt<b>${fmtEurCent(vkTotal)}</b></div></div>`;
-  const search=slots.length<SHIP_ART_MAX&&!modalReadOnly?`<div class="ts-search"><input type="text" id="shipArtSearch" placeholder="Artikel suchen (Titel oder SKU) …" value="${esc(shipArtQ)}" oninput="shipArtSearch(this.value)" onblur="setTimeout(()=>{const r=document.getElementById('shipArtResults');if(r)r.innerHTML='';},180)" autocomplete="off" style="width:100%"><div id="shipArtResults"></div></div>`
+  const search=slots.length<SHIP_ART_MAX&&!modalReadOnly?`<div class="ts-search"><input type="text" id="shipArtSearch" placeholder="Artikel suchen (Titel oder SKU) …" value="${esc(shipArtQ)}" oninput="shipArtSearch(this.value)" onblur="setTimeout(()=>{const r=document.getElementById('shipArtResults');if(r)r.innerHTML='';},180)" autocomplete="off" style="width:100%"><div id="shipArtResults" class="ts-res-inline"></div></div>`
     :(slots.length>=SHIP_ART_MAX?`<div style="font-size:11px;color:var(--text3);margin-bottom:2px">Maximal ${SHIP_ART_MAX} Artikel – zum Tauschen zuerst einen entfernen.</div>`:'');
   const cards=draftLead.shipPrinter.skus.map((x,i)=>{
     if(!x.sku)return '';
@@ -7904,7 +7914,8 @@ function shipArticlesHtml(skuTotal,costApplies,investTotal){
     const rma=a?shipNum(a.crRma):null;const cls=rma===null?'':crRmaCellClass(rma);
     const ek=shipNum(x.priceEk),vk=shipNum(a?a.vk:x.priceVk);
     const title=a&&a.title?a.title:(x.title||'');
-    return `<div class="ts-card ${cls}"><span class="crrma-dot ${cls}"></span><span class="t" title="${esc(title||x.sku)}">${title?esc(title):'<span style="color:var(--text3);font-weight:500">Nicht im Artikelstamm</span>'}</span>${modalReadOnly?'<span></span>':`<button class="bin" onclick="shipArtRemove(${i})" title="Artikel entfernen"><i class="ti ti-trash"></i></button>`}
+    const q=shipQty(x);
+    return `<div class="ts-card ${cls}"><span class="ts-qty ${cls}" onclick="shipToggleQty(${i},event)" title="Menge ändern">${q}×</span>${shipQtyOpen===i?`<div class="ts-qty-menu" onclick="event.stopPropagation()">${[1,2,3,4,5,6,7,8,9,10].map(n=>`<span class="${n===q?'on':''}" onclick="shipSetQty(${i},${n})">${n}</span>`).join('')}</div>`:''}<span class="t" title="${esc(title||x.sku)}">${title?esc(title):'<span style="color:var(--text3);font-weight:500">Nicht im Artikelstamm</span>'}</span>${modalReadOnly?'<span></span>':`<button class="bin" onclick="shipArtRemove(${i})" title="Artikel entfernen"><i class="ti ti-trash"></i></button>`}
       <span class="sku">${esc(x.sku)}</span><span class="vals"><span class="ts-pill">EK ${ek!==null?fmtEurCent(ek):'–'}</span><span class="ts-pill">VK ${vk!==null?fmtEurCent(vk):'–'}</span><span class="ts-pill ${cls}">RMA ${rma!==null?String(rma).replace('.',',')+' %':'–'}</span></span></div>`;
   }).join('');
   return tiles+search+(cards||`<div style="font-size:12px;color:var(--text3);margin-top:6px">Noch keine Artikel – über die Suche hinzufügen.</div>`);
@@ -7916,10 +7927,11 @@ function renderShipArtResults(){
   const q=(shipArtQ||'').toLowerCase().trim();
   if(q.length<2){el.innerHTML='';return;}
   const chosen=new Set(draftLead.shipPrinter.skus.filter(x=>x.sku).map(x=>String(x.sku).toLowerCase()));
-  const hits=ARTICLES.filter(a=>a.sku&&(String(a.sku).toLowerCase().includes(q)||String(a.title||'').toLowerCase().includes(q))).slice(0,12);
+  const all=ARTICLES.filter(a=>a.sku&&(String(a.sku).toLowerCase().includes(q)||String(a.title||'').toLowerCase().includes(q)));
+  const hits=all.slice(0,12);
   if(!hits.length){el.innerHTML=`<div class="ts-res"><div class="ts-res-row dis" style="grid-template-columns:1fr">Kein Artikel gefunden.</div></div>`;return;}
   el.innerHTML=`<div class="ts-res">${hits.map(a=>{const dis=chosen.has(String(a.sku).toLowerCase());const rma=shipNum(a.crRma);const cls=rma===null?'':crRmaCellClass(rma);const ek=shipNum(a.ek),vk=shipNum(a.vk);
-    return `<div class="ts-res-row ${dis?'dis':''}" ${dis?'':`onmousedown="event.preventDefault();shipArtPick('${esc(String(a.id))}')"`}><span class="crrma-dot ${cls}" style="width:8px;height:8px;border-radius:50%;grid-row:1 / span 2"></span><span><b style="font-weight:600">${esc(a.title||a.sku)}</b>${dis?' <span style="font-size:11px;color:var(--text3)">· bereits gewählt</span>':''}</span><span style="grid-row:1 / span 2;display:flex;gap:6px"><span class="ts-pill">EK ${ek!==null?fmtEurCent(ek):'–'}</span><span class="ts-pill">VK ${vk!==null?fmtEurCent(vk):'–'}</span><span class="ts-pill ${cls}">RMA ${rma!==null?String(rma).replace('.',',')+' %':'–'}</span></span><small>${esc(a.sku)}</small></div>`;}).join('')}</div>`;
+    return `<div class="ts-res-row ${dis?'dis':''}" ${dis?'':`onmousedown="event.preventDefault();shipArtPick('${esc(String(a.id))}')"`}><span class="crrma-dot ${cls}" style="width:8px;height:8px;border-radius:50%;grid-column:1;grid-row:1 / span 2;background:${cls?'':'var(--border2,#c9d6d5)'}"></span><span style="grid-column:2;grid-row:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><b style="font-weight:600">${esc(a.title||a.sku)}</b>${dis?' <span style="font-size:11px;color:var(--text3)">· bereits gewählt</span>':''}</span><span style="grid-column:3;grid-row:1 / span 2;display:flex;gap:6px;justify-content:flex-end"><span class="ts-pill">EK ${ek!==null?fmtEurCent(ek):'–'}</span><span class="ts-pill">VK ${vk!==null?fmtEurCent(vk):'–'}</span><span class="ts-pill ${cls}">RMA ${rma!==null?String(rma).replace('.',',')+' %':'–'}</span></span><small>${esc(a.sku)}</small></div>`;}).join('')}${all.length>12?`<div class="ts-res-row dis" style="grid-template-columns:1fr;font-size:11px">+ ${all.length-12} weitere Treffer – Suche genauer eingeben</div>`:''}</div>`;
 }
 function shipArtPick(articleId){
   if(modalReadOnly)return;
@@ -9156,8 +9168,8 @@ const FIELD_REGISTRY={
   competitor:{label:'Wettbewerber',group:'Kundeninformationen',importable:true,aliases:['wettbewerber','competitor'],example:'Wettbewerber GmbH',get:l=>l.competitor||'',set:(l,v)=>l.competitor=v},
   notes:{label:'Notizen',group:'Kundeninformationen',importable:true,aliases:['notizen','notiz','notes','bemerkung','kommentar'],example:'Interessiert, ruft nächste Woche zurück',get:l=>l.notes,set:(l,v)=>l.notes=v},
   shipPrinterModel:{label:'Versand-Drucker',group:'Drucker & Patronen (Versand)',importable:false,get:l=>l.shipPrinter.model},
-  shipSkus:{label:'Versand-SKUs (EK)',group:'Drucker & Patronen (Versand)',importable:false,get:l=>l.shipPrinter.skus.filter(s=>s.sku).map(s=>`${s.sku}${s.priceEk?` (EK ${fmtEur(s.priceEk)||'0 €'})`:''}`).join(', ')},
-  investTotal:{label:'Investition gesamt EK + Versand (EUR)',group:'Drucker & Patronen (Versand)',importable:false,get:l=>{const skuTotal=l.shipPrinter.skus.reduce((s,x)=>s+(parseFloat(x.priceEk)||0),0);const total=skuTotal+(l.tonerSent==='Ja'?SHIPPING_COST_PER_SEND:0);return total?csvEur(total):'';}},
+  shipSkus:{label:'Versand-SKUs (EK)',group:'Drucker & Patronen (Versand)',importable:false,get:l=>l.shipPrinter.skus.filter(s=>s.sku).map(s=>`${shipQty(s)>1?shipQty(s)+'× ':''}${s.sku}${s.priceEk?` (EK ${fmtEur(s.priceEk)||'0 €'})`:''}`).join(', ')},
+  investTotal:{label:'Investition gesamt EK + Versand (EUR)',group:'Drucker & Patronen (Versand)',importable:false,get:l=>{const skuTotal=shipEkTotal(l);const total=skuTotal+(l.tonerSent==='Ja'?SHIPPING_COST_PER_SEND:0);return total?csvEur(total):'';}},
   shippingCost:{label:'Versandkosten (EUR)',group:'Drucker & Patronen (Versand)',importable:false,get:l=>l.tonerSent==='Ja'?csvEur(SHIPPING_COST_PER_SEND):''},
   tonerSent:{label:'Free Toner verschickt',group:'Drucker & Patronen (Versand)',importable:true,aliases:['free toner verschickt'],example:'Ja',get:l=>l.tonerSent,set:(l,v)=>{if(v)l.tonerSent=v;}},
   statusName:{label:'Status',group:'Lead-Status',importable:false,get:l=>colById(l.status).name},
@@ -9682,6 +9694,7 @@ document.addEventListener('click',e=>{
   if(!e.target.closest('.omni-addfilter-wrap')&&filterMenuOpen){filterMenuOpen=false;document.getElementById('filterMenu').classList.remove('show');}
   if(!e.target.closest('.infobtn-wrap')&&overflowMenuOpen){overflowMenuOpen=false;document.getElementById('overflowMenu').classList.remove('show');}
   if(!e.target.closest('.crrma-menu-wrap')&&crrmaMenuOpen){crrmaMenuOpen=false;document.getElementById('crrmaOverflowMenu').classList.remove('show');}
+  if(shipQtyOpen>=0&&!e.target.closest('.ts-qty-menu')&&!e.target.closest('.ts-qty')){shipQtyOpen=-1;if(draftLead)renderLeadModal();}
   if(!e.target.closest('.omni-addfilter-wrap')&&calFilterMenuOpen){calFilterMenuOpen=false;const mc=document.getElementById('calFilterMenu');if(mc)mc.classList.remove('show');}
   if(!e.target.closest('.omni-addfilter-wrap')&&tasksFilterMenuOpen){tasksFilterMenuOpen=false;const m=document.getElementById('tasksFilterMenu');if(m)m.classList.remove('show');}
   if(!e.target.closest('.omni-addfilter-wrap')&&activityFilterMenuOpen){activityFilterMenuOpen=false;const m2=document.getElementById('activityFilterMenu');if(m2)m2.classList.remove('show');}
@@ -10050,7 +10063,7 @@ function wizardTeamOverdueCount(){
 }
 function wizardTeamInvestTotal(){
   const open=leads.filter(l=>!isClosedLead(l));
-  const investSum=open.reduce((s,l)=>s+l.shipPrinter.skus.reduce((ss,x)=>ss+(parseFloat(x.priceEk)||0),0),0);
+  const investSum=open.reduce((s,l)=>s+shipEkTotal(l),0);
   const shippedCount=open.filter(l=>l.tonerSent==='Ja').length;
   return Math.round(investSum+shippedCount*SHIPPING_COST_PER_SEND);
 }
