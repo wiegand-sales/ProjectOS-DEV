@@ -1186,7 +1186,7 @@ let localSettingsTrusted=false;
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-10-22T11:30:00.000Z';
+const BUILD_VERSION='2026-10-22T12:00:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -2878,6 +2878,32 @@ function calJumpMonth(y,m,e){
   renderCalendar();
 }
 // Verschiebt den Follow-up-Termin eines Leads (gleiche Protokollierung wie im Lead-Fenster)
+// ── Doppelbuchungen: Ueberschneidungen im Kalender einer Person ──
+// Kundentermine belegen 25 Min., Aufgaben ihre Dauer (inkl. Serien). exclude: {leadId} oder {taskId}.
+function calConflicts(owner,dateStr,startMin,endMin,exclude){
+  exclude=exclude||{};const out=[];
+  if(!owner||owner==='all')return out;
+  leads.forEach(l=>{
+    if(isClosedLead(l)||!(l.members||[]).includes(owner))return;
+    if(exclude.leadId!==undefined&&String(l.id)===String(exclude.leadId))return;
+    const p=calParse(l.followup);if(!p||p.date!==dateStr)return;
+    if(p.min<endMin&&startMin<p.min+CAL_DUR)out.push({time:p.time,label:l.company});
+  });
+  calTasks.forEach(t=>{
+    if(t.deleted||t.owner!==owner)return;
+    if(exclude.taskId!==undefined&&String(t.id)===String(exclude.taskId))return;
+    if(!calTaskOccursOn(t,dateStr))return;
+    const a=calParseTime(t.start_time),b=calParseTime(t.end_time);
+    if(a<endMin&&startMin<b)out.push({time:t.start_time,label:t.title+' (Aufgabe)'});
+  });
+  return out.sort((x,y)=>x.time.localeCompare(y.time));
+}
+function calConflictText(list){return list.slice(0,3).map(c=>`${c.time} ${c.label}`).join(', ')+(list.length>3?` und ${list.length-3} weitere`:'');}
+function calConflictNoteHtml(list){
+  if(!list.length)return '';
+  return `<div class="ap-note ap-warn"><i class="ti ti-calendar-exclamation"></i><span>Überschneidung mit ${esc(calConflictText(list))}. Speichern ist trotzdem möglich.</span></div>`;
+}
+function calConfirmConflicts(list){return !list.length||confirm(`Überschneidung mit ${calConflictText(list)}.\n\nTrotzdem verschieben?`);}
 function calMoveLead(id,dateStr,minutes){
   const l=leads.find(x=>String(x.id)===String(id));
   if(!l)return false;
@@ -2885,6 +2911,7 @@ function calMoveLead(id,dateStr,minutes){
   if(lock&&lock.agentId!==currentUser){alert(`„${l.company}“ wird gerade von ${lock.agentName||'jemand anderem'} bearbeitet und kann nicht verschoben werden.`);return false;}
   const nv=`${dateStr}T${calFmt(minutes)}`;
   if(nv===l.followup)return false;
+  if(!calConfirmConflicts(calConflicts(calApptPerson(),dateStr,minutes,minutes+CAL_DUR,{leadId:l.id}))){renderCalendar();return false;}
   const old=calParse(l.followup);
   const prevFu=l.followup||'';
   l.followup=nv;
@@ -3102,6 +3129,8 @@ async function calMoveTask(id,dateStr,startMin,occDate){
   const rp=t.repeat||'none';
   if(rp==='daily')newDate=String(t.date).slice(0,10);
   else if(rp==='weekly'&&occDate){const delta=Math.round((new Date(dateStr+'T00:00:00')-new Date(occDate+'T00:00:00'))/86400000);const nd=new Date(String(t.date).slice(0,10)+'T00:00:00');nd.setDate(nd.getDate()+delta);newDate=calYmd(nd);}
+  const chkDate=rp==='none'?newDate:(occDate&&rp==='weekly'?dateStr:(occDate||newDate));
+  if(!calConfirmConflicts(calConflicts(t.owner,chkDate,st,en,{taskId:t.id}))){renderCalendar();return;}
   Object.assign(t,{date:newDate,start_time:calFmt(st),end_time:calFmt(en),updated_at:nowISO()});renderCalendar();
   try{await calTaskWrite('PATCH',{id:t.id,date:t.date,start_time:t.start_time,end_time:t.end_time,updated_at:t.updated_at});}
   catch(e){Object.assign(t,old);renderCalendar();alert('Die Aufgabe konnte nicht verschoben werden. Bitte später erneut versuchen.');}
@@ -3126,6 +3155,7 @@ async function calResizeApply(id,endMin){
   const t=calTasks.find(x=>x.id===id);if(!t)return;
   const en=Math.max(calParseTime(t.start_time)+15,Math.min(CAL_DAY_END*60,endMin));
   if(calFmt(en)===t.end_time){renderCalendar();return;}
+  if(en>calParseTime(t.end_time)&&!calConfirmConflicts(calConflicts(t.owner,String(t.date).slice(0,10),calParseTime(t.end_time),en,{taskId:t.id}))){renderCalendar();return;}
   const old=t.end_time;t.end_time=calFmt(en);t.updated_at=nowISO();renderCalendar();
   try{await calTaskWrite('PATCH',{id:t.id,end_time:t.end_time,updated_at:t.updated_at});}
   catch(err){t.end_time=old;renderCalendar();alert('Die neue Endzeit konnte nicht gespeichert werden.');}
@@ -3201,10 +3231,10 @@ function renderCalTaskForm(el){
     </div>
     <div class="ap-sec"><i class="ti ti-clock"></i> Wann</div>
     <div class="ap-blk"><div class="ap-g3">
-      <div><div class="ap-lbl">Datum</div><input type="date" value="${a.date}" onchange="calAppt.date=this.value"></div>
+      <div><div class="ap-lbl">Datum</div><input type="date" value="${a.date}" onchange="calAppt.date=this.value;renderCalAppt()"></div>
       <div><div class="ap-lbl">Beginn</div><select id="apTStart" onchange="calAppt.time=this.value;if(calParseTime(calAppt.end)<=calParseTime(this.value)){calAppt.end=calFmt(Math.min(CAL_DAY_END*60,calParseTime(this.value)+60));}renderCalAppt()">${times.slice(0,-1).map(t=>`<option ${t===a.time?'selected':''}>${t}</option>`).join('')}</select></div>
-      <div><div class="ap-lbl">Ende</div><select id="apTEnd" onchange="calAppt.end=this.value">${times.filter(t=>calParseTime(t)>calParseTime(a.time)).map(t=>`<option ${t===a.end?'selected':''}>${t}</option>`).join('')}</select></div>
-    </div></div>
+      <div><div class="ap-lbl">Ende</div><select id="apTEnd" onchange="calAppt.end=this.value;renderCalAppt()">${times.filter(t=>calParseTime(t)>calParseTime(a.time)).map(t=>`<option ${t===a.end?'selected':''}>${t}</option>`).join('')}</select></div>
+    </div>${calConflictNoteHtml(calConflicts(calApptPerson(),a.date,calParseTime(a.time),calParseTime(a.end),a.taskId?{taskId:a.taskId}:{}))}</div>
     <div class="ap-sec"><i class="ti ti-repeat"></i> Wiederholen</div>
     <div class="ap-blk">
       <div class="ap-seg" style="margin-top:2px">${[['none','Nie'],['daily','Täglich (Mo–Fr)'],['weekly','Wöchentlich']].map(([k,lab])=>`<button class="${(a.repeat||'none')===k?'on':''}" onclick="calAppt.repeat='${k}';renderCalAppt()">${lab}</button>`).join('')}</div>
@@ -3219,7 +3249,7 @@ function renderCalTaskForm(el){
 }
 function calApptSearch(v){calAppt.q=v;renderCalApptResults();}
 function calApptPick(id){calAppt.leadId=id;calAppt.err='';calAppt.q='';renderCalAppt();}
-function calApptSet(k,v){calAppt[k]=v;if(k==='time'){const e=document.getElementById('apEnd');if(e)e.value=calFmt(calParseTime(v)+CAL_DUR);}}
+function calApptSet(k,v){calAppt[k]=v;if(k==='time'||k==='date')renderCalAppt();}
 function calParseTime(t){const m=/^(\d{2}):(\d{2})/.exec(t||'');return m?(+m[1])*60+(+m[2]):CAL_BOOK_FROM*60;}
 function renderCalAppt(){
   const el=document.getElementById('calApptModalInner');if(!el||!calAppt)return;
@@ -3229,6 +3259,7 @@ function renderCalAppt(){
   const person=calApptPerson();const pa=agentById(person);
   let notes='';
   if(sel&&sel.followup){const p=calParse(sel.followup);notes+=`<div class="ap-note ap-warn"><i class="ti ti-alert-triangle"></i><span>Bestehende FollowUp am ${fmtDate(sel.followup)}${p?' um '+p.time:''} wird durch diesen Termin ersetzt.</span></div>`;}
+  {const st=calParseTime(calAppt.time);notes+=calConflictNoteHtml(calConflicts(person,calAppt.date,st,st+CAL_DUR,sel?{leadId:sel.id}:{}));}
   if(sel&&!(sel.members||[]).includes(person))notes+=`<div class="ap-note ap-info"><i class="ti ti-user-plus"></i><span>${esc(pa?pa.name:'Die Person')} wird als Person zum Lead hinzugefügt, damit der Termin im Kalender erscheint.</span></div>`;
   el.innerHTML=`<div class="ap-head"><i class="ti ti-calendar-plus"></i> Eintrag planen</div>
   <div class="ap-body">
