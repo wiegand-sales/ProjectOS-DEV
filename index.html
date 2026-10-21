@@ -862,12 +862,15 @@ label{font-size:12px;font-weight:500;color:var(--text2);display:block;margin-bot
           <div class="omni-addfilter-wrap">
             <button class="omnibar-btn" onclick="toggleTasksFilterMenu(event)"><i class="ti ti-plus" style="font-size:12px"></i> Filter</button>
             <div class="filtermenu" id="tasksFilterMenu">
-              <h4>Mitarbeiter</h4>
-              <div id="tasksFilterMenuAgents"></div>
+              <div class="fm-sec" id="tfmSecAgents" onclick="toggleTasksFilterSection('agents',event)"><i class="ti ti-user"></i><span>Mitarbeiter</span><span class="fm-sum" id="tfmSumAgents"></span><i class="ti ti-chevron-right fm-chev"></i></div>
+              <div id="tasksFilterMenuAgents" class="fm-body"></div>
+              <div class="fm-sec" id="tfmSecBoard" onclick="toggleTasksFilterSection('board',event)"><i class="ti ti-layout-kanban"></i><span>Board</span><span class="fm-sum" id="tfmSumBoard"></span><i class="ti ti-chevron-right fm-chev"></i></div>
+              <div id="tasksFilterMenuBoard" class="fm-body"></div>
             </div>
           </div>
           <div id="tasksOmniTokens" style="display:flex;gap:8px;align-items:center;flex-wrap:nowrap;overflow-x:auto;max-width:320px;flex-shrink:1;"></div>
           <div class="omni-spacer"></div>
+          <button class="omnibar-btn" onclick="switchView('calendar')" title="Zum Kalender"><i class="ti ti-calendar"></i> Kalender</button>
         </div>
       </div>
       <div class="view-scroll" id="tasksViewContent"></div>
@@ -1064,7 +1067,7 @@ let localSettingsTrusted=false;
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-10-21T17:00:00.000Z';
+const BUILD_VERSION='2026-10-21T18:00:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -2489,6 +2492,8 @@ function runDataIntegrityCheck(){
 let activeAgentFilters=[];
 let activeLabelFilters=[];
 let activeTasksAgentFilter='all';
+let activeTasksBoardFilter='all';
+let tasksFilterSectionOpen='';
 let dragCardId=null;
 let dragColId=null;
 let colMenuOpenId=null;
@@ -2882,6 +2887,13 @@ function openCalAppt(dateStr,time){
   openModal('calApptModal');
   setTimeout(()=>{const i=document.getElementById('apSearch');if(i)i.focus();},30);
 }
+function openCalApptForLead(id){
+  const l=leads.find(x=>String(x.id)===String(id));if(!l)return;
+  const p=calParse(l.followup);const today=calYmd(new Date());
+  const date=p&&p.date>=today?p.date:((l.followup||'').slice(0,10)>=today?(l.followup||'').slice(0,10):today);
+  openCalAppt(date,p?calFmt(Math.max(CAL_BOOK_FROM*60,Math.min(CAL_DAY_END*60-CAL_SNAP,calSnap(p.min)))):'09:00');
+  calAppt.leadId=String(l.id);calAppt.q='';renderCalAppt();
+}
 function calApptResults(){
   const q=(calAppt.q||'').toLowerCase().trim();
   if(q.length<2)return [];
@@ -2966,6 +2978,7 @@ function saveCalAppt(){
   closeModal('calApptModal');
   calAppt=null;
   renderCalendar();
+  if(currentView==='tasks')renderTasksView();
   return true;
 }
 function renderBoardNav(){
@@ -3062,8 +3075,15 @@ function removeContactTime(field){
   draftLead[field]=(draftLead[field]||'').split('T')[0];
   renderLeadModal();
 }
-function daysUntil(d){if(!d)return null;const diff=(new Date(d)-new Date(TODAY))/86400000;return Math.round(diff);}
+// Nur das Datum zaehlt - eine Uhrzeit (z.B. 2026-10-21T14:00) darf die Tage nicht verschieben (bis 21.10.2026 galt 14:00 heute als "morgen").
+function daysUntil(d){if(!d)return null;const diff=(new Date(String(d).slice(0,10))-new Date(TODAY))/86400000;return Math.round(diff);}
 function renderFollowupTimeline(lead){
+  const lostCol=colById(lead.status);
+  const isLost=!!(lostCol&&lostCol.outcome==='lost');
+  const lostDate=isLost?String(lead.closedAt||lead.statusSince||'').slice(0,10):'';
+  if(!lead.firstContact&&isLost&&lostDate){
+    return `<div class="lead-timeline"><div class="timeline-point"><div class="timeline-dot" style="background:var(--red)"></div><div class="timeline-label">Verloren<br><span>${fmtDate(lostDate)}</span></div></div></div>`;
+  }
   if(!lead.firstContact){
     return '<p style="font-size:11px;color:var(--text3)">Noch kein Datum Erstkontakt gesetzt – der Zeitstrahl startet, sobald das erfasst ist.</p>';
   }
@@ -3072,7 +3092,8 @@ function renderFollowupTimeline(lead){
     points.push({label:(lead.followupHistory.length>1?'Follow-up '+(i+1):'Follow-up'),date:h.date,color:'var(--amber)'});
   });
   const daysSince=Math.abs(daysUntil(lead.firstContact));
-  points.push({label:'Heute',date:null,color:'var(--purple)',sub:daysSince+' Tag'+(daysSince===1?'':'e')});
+  if(isLost&&lostDate)points.push({label:'Verloren',date:lostDate,color:'var(--red)'}); // Strahl endet beim Verlieren
+  else points.push({label:'Heute',date:null,color:'var(--purple)',sub:daysSince+' Tag'+(daysSince===1?'':'e')});
 
   let html='<div class="lead-timeline">';
   points.forEach((p,i)=>{
@@ -4460,7 +4481,7 @@ function followupBucketCountsAt(withFollowupAll,offsetDays){
   const refMs=ref.getTime();
   let overdue=0,today=0,week=0,nextweek=0;
   withFollowupAll.forEach(l=>{
-    const diff=Math.round((new Date(l.followup)-refMs)/86400000);
+    const diff=Math.round((new Date(String(l.followup).slice(0,10))-refMs)/86400000);
     if(diff<0)overdue++;
     else if(diff===0)today++;
     else if(diff<=7)week++;
@@ -4505,7 +4526,9 @@ function followupBucket(l){
 function followupRowHtml(l){
   const d=daysUntil(l.followup);
   const cls=d<0?'due-overdue':(d<=2?'due-soon':'due-ok');
-  const label=d<0?`${Math.abs(d)}T überfällig`:(d===0?'heute':fmtDate(l.followup));
+  const ftime=((l.followup||'').split('T')[1]||'').slice(0,5);
+  const label=d<0?`${Math.abs(d)}T überfällig`:((d===0?'heute':fmtDate(l.followup))+(ftime?` · ${ftime}`:''));
+  const part=leadBoardPart(l)==='akquise'?'SQL':'PQL';
   const membersHtml=(l.members||[]).slice(0,3).map(id=>{const a=agentById(id);return a?`<div class="member-av" style="position:static;margin-left:-6px;background:${COLOR_BG[a.color]};color:${COLOR_TEXT[a.color]}" title="${esc(a.name)}">${ini(a.name)}</div>`:'';}).join('');
   return `<div class="task-row" onclick="openLeadModal(${l.id})">
     <span class="task-group-dot" style="background:${COLOR_HEX[colById(l.status).color]};flex-shrink:0"></span>
@@ -4513,9 +4536,11 @@ function followupRowHtml(l){
       <div class="task-row-text">${esc(l.company)}</div>
       <div style="font-size:11px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(l.contact)}${l.customerNumber?' · '+esc(l.customerNumber):''} · ${esc(colById(l.status).name)}</div>
     </div>
+    <span style="font-size:10px;font-weight:700;padding:2px 6px;border-radius:6px;flex-shrink:0;${part==='SQL'?'background:#e3f0f0;color:#0b4f55':'background:#fdf1dc;color:#7a4e07'}">${part}</span>
     <div class="member-stack">${membersHtml}</div>
     <span class="due-badge ${cls}"><i class="ti ti-clock" style="font-size:11px"></i>${label}</span>
     <div class="quick-reschedule" onclick="event.stopPropagation()">
+      <button onclick="openCalApptForLead(${typeof l.id==='number'?l.id:JSON.stringify(String(l.id)).replace(/"/g,'&quot;')})" title="Termin mit Uhrzeit planen"><i class="ti ti-calendar-plus"></i></button>
       <button onclick="quickReschedule(${l.id},1)" title="Auf morgen verschieben">+1T</button>
       <button onclick="quickReschedule(${l.id},3)" title="Um 3 Tage verschieben">+3T</button>
       <button onclick="quickReschedule(${l.id},7)" title="Um 7 Tage verschieben">+7T</button>
@@ -4533,13 +4558,23 @@ function quickReschedule(leadId,days){
   saveState();
   renderTasksView();
 }
-let taskSectionOpen={assigned:true,overdue:true,today:true,week:true,nextweek:true};
+let taskSectionOpen=(()=>{const d={assigned:true,overdue:true,today:true,week:true,nextweek:true};try{return Object.assign(d,JSON.parse(localStorage.getItem('projectos_task_sections')||'{}'));}catch(e){return d;}})();
 function toggleTaskSection(key){
+  setTimeout(()=>{try{localStorage.setItem('projectos_task_sections',JSON.stringify(taskSectionOpen));}catch(e){}},0);
   taskSectionOpen[key]=!taskSectionOpen[key];
   renderTasksView();
 }
 // Baut die Zeilen einer Sektion: im zugeklappten Zustand max. 3 Zeilen, mit leeren
 // Platzhalter-Zeilen aufgefuellt, damit alle Boxen zugeklappt gleich hoch sind.
+let taskShowAll={};
+function limitedRowsHtml(rowHtmls,isOpen,key,emptyMsg){
+  if(!isOpen)return '';
+  if(!rowHtmls.length)return `<div class="task-row-empty">${emptyMsg}</div>`;
+  const all=!!taskShowAll[key];const LIM=10;
+  let html=(all?rowHtmls:rowHtmls.slice(0,LIM)).join('');
+  if(rowHtmls.length>LIM)html+=`<button class="btn" style="margin-top:8px;width:100%;justify-content:center" onclick="taskShowAll['${key}']=!taskShowAll['${key}'];renderTasksView()">${all?'Weniger anzeigen':`Alle anzeigen (${rowHtmls.length})`}</button>`;
+  return html;
+}
 function collapsibleRowsHtml(rowHtmls,isOpen,minRows,emptyMsg){
   if(isOpen)return rowHtmls.length?rowHtmls.join(''):`<div class="task-row-empty">${emptyMsg}</div>`;
   const visible=rowHtmls.slice(0,minRows);
@@ -4552,7 +4587,7 @@ function followupGroupHtml(title,items,colorVar,icon,accentClass,sectionKey){
   const rowHtmls=items.map(followupRowHtml);
   return `<div class="info-section followup-group ${accentClass}">
     <div class="section-hdr" style="margin-top:0;cursor:pointer" onclick="toggleTaskSection('${sectionKey}')"><span style="display:flex;align-items:center;gap:6px"><i class="ti ti-${icon}" style="color:${colorVar};font-size:16px"></i>${title}</span> <span style="display:flex;align-items:center;gap:8px"><span class="task-group-count">${items.length} Lead${items.length===1?'':'s'}</span><i class="ti ti-chevron-${isOpen?'up':'down'}" style="font-size:14px;color:var(--text3)"></i></span></div>
-    ${collapsibleRowsHtml(rowHtmls,isOpen,3,'Keine Leads in diesem Zeitraum.')}
+    ${limitedRowsHtml(rowHtmls,isOpen,sectionKey,'Keine Leads in diesem Zeitraum.')}
   </div>`;
 }
 function renderTasksAgentChips(){
@@ -4564,14 +4599,31 @@ function renderTasksAgentChips(){
     html+=`<div class="filtermenu-item ${active?'active':''}" onclick="setTasksAgentFilter('${a.id}')"><span>${esc(a.name)}</span>${active?'<i class="ti ti-check"></i>':''}</div>`;
   });
   el.innerHTML=html;
+  const eb=document.getElementById('tasksFilterMenuBoard');
+  if(eb)eb.innerHTML=[['all','Alle Boards'],['akquise',BOARD_PARTS.akquise],['vertrieb',BOARD_PARTS.vertrieb]].map(([v,lab])=>`<div class="filtermenu-item ${activeTasksBoardFilter===v?'active':''}" onclick="event.stopPropagation();setTasksBoardFilter('${v}')"><span>${esc(lab)}</span>${activeTasksBoardFilter===v?'<i class="ti ti-check"></i>':''}</div>`).join('');
   renderTasksOmniTokens();
+}
+function setTasksBoardFilter(v){activeTasksBoardFilter=v;renderTasksAgentChips();renderTasksView();}
+function toggleTasksFilterSection(k,e){if(e)e.stopPropagation();tasksFilterSectionOpen=tasksFilterSectionOpen===k?'':k;applyTasksFilterSections();}
+function applyTasksFilterSections(){
+  [['agents','Agents'],['board','Board']].forEach(([k,id])=>{
+    const sec=document.getElementById('tfmSec'+id),body=document.getElementById(id==='Agents'?'tasksFilterMenuAgents':'tasksFilterMenuBoard');
+    if(sec)sec.classList.toggle('open',tasksFilterSectionOpen===k);
+    if(body)body.classList.toggle('open',tasksFilterSectionOpen===k);
+  });
+  const a=activeTasksAgentFilter==='all'?null:agentById(activeTasksAgentFilter);
+  const sa=document.getElementById('tfmSumAgents');if(sa)sa.textContent=a?a.name:'Alle';
+  const sb=document.getElementById('tfmSumBoard');if(sb)sb.textContent=activeTasksBoardFilter==='all'?'Alle':BOARD_PARTS[activeTasksBoardFilter];
+  document.getElementById('tfmSecAgents')&&document.getElementById('tfmSecAgents').classList.toggle('active',!!a);
+  document.getElementById('tfmSecBoard')&&document.getElementById('tfmSecBoard').classList.toggle('active',activeTasksBoardFilter!=='all');
 }
 function renderTasksOmniTokens(){
   const el=document.getElementById('tasksOmniTokens');
   if(!el)return;
-  if(activeTasksAgentFilter==='all'){el.innerHTML='';return;}
-  const a=AGENTS.find(a=>a.id===activeTasksAgentFilter);
-  el.innerHTML=a?`<div class="omni-token"><i class="ti ti-user" style="font-size:12px"></i>${esc(a.name)}<i class="ti ti-x" onclick="setTasksAgentFilter('all')"></i></div>`:'';
+  applyTasksFilterSections();
+  const a=activeTasksAgentFilter==='all'?null:AGENTS.find(a=>a.id===activeTasksAgentFilter);
+  el.innerHTML=(a?`<div class="omni-token"><i class="ti ti-user" style="font-size:12px"></i>${esc(a.name)}<i class="ti ti-x" onclick="setTasksAgentFilter('all')"></i></div>`:'')
+    +(activeTasksBoardFilter!=='all'?`<div class="omni-token"><i class="ti ti-layout-kanban" style="font-size:12px"></i>${esc(BOARD_PARTS[activeTasksBoardFilter])}<i class="ti ti-x" onclick="setTasksBoardFilter('all')"></i></div>`:'');
 }
 let tasksFilterMenuOpen=false;
 function toggleTasksFilterMenu(e){
@@ -4592,6 +4644,8 @@ function assignedTasksHtml(q){
     });
   });
   if(activeTasksAgentFilter!=='all')items=items.filter(t=>t.assigneeId===activeTasksAgentFilter);
+  if(activeTasksBoardFilter!=='all')items=items.filter(t=>leadBoardPart(t.lead)===activeTasksBoardFilter);
+  items=items.filter(t=>!t.done); // erledigte Aufgaben verschwinden aus der Liste
   if(q){const pk=phoneQueryKeys(q);items=items.filter(t=>leadMatchesSearch(t.lead,q,pk));}
   items.sort((a,b)=>{
     if(a.done!==b.done)return a.done?1:-1;
@@ -4620,7 +4674,7 @@ function assignedTasksHtml(q){
   });
   return `<div class="info-section">
     <div class="section-hdr" style="margin-top:0;cursor:pointer" onclick="toggleTaskSection('assigned')"><span style="display:flex;align-items:center;gap:6px"><i class="ti ti-user-check" style="color:var(--purple);font-size:16px"></i>Zugewiesene Aufgaben</span> <span style="display:flex;align-items:center;gap:8px"><span class="task-group-count">${openCount} offen</span><i class="ti ti-chevron-${isOpen?'up':'down'}" style="font-size:14px;color:var(--text3)"></i></span></div>
-    ${collapsibleRowsHtml(rowHtmls,isOpen,3,'Keine zugewiesenen Aufgaben.')}
+    ${limitedRowsHtml(rowHtmls,isOpen,'assigned','Keine offenen zugewiesenen Aufgaben.')}
   </div>`;
 }
 function toggleAssignedTask(leadId,taskId){
@@ -4632,15 +4686,17 @@ function toggleAssignedTask(leadId,taskId){
 }
 function renderTasksView(){
   const q=(document.getElementById('tasksSearch').value||'').toLowerCase().trim();
-  let withFollowup=leads.filter(l=>l.followup);
+  // Nur echte Aufgaben: Wiedervorlage + Erstkontakt erfolgt, Lead nicht verloren (Okt. 2026)
+  let withFollowup=leads.filter(l=>l.followup&&l.firstContact&&!isLostStatus(l.status));
   if(activeTasksAgentFilter!=='all')withFollowup=withFollowup.filter(l=>(l.members||[]).includes(activeTasksAgentFilter));
+  if(activeTasksBoardFilter!=='all')withFollowup=withFollowup.filter(l=>leadBoardPart(l)===activeTasksBoardFilter);
   if(q){const pk=phoneQueryKeys(q);withFollowup=withFollowup.filter(l=>leadMatchesSearch(l,q,pk));}
   const buckets={overdue:[],today:[],week:[],nextweek:[]};
   withFollowup.forEach(l=>{const b=followupBucket(l);if(b)buckets[b].push(l);});
   ['overdue','today','week','nextweek'].forEach(k=>buckets[k].sort((a,b)=>a.followup.localeCompare(b.followup)));
 
   const history=Array.from({length:30},(_,i)=>29-i).map(o=>followupBucketCountsAt(withFollowup,o));
-  const curr=history[6],prev=history[5];
+  const curr=history[29],prev=history[28]; // heute und Vortag (bis 21.10.2026 faelschlich Stand vor 23 Tagen)
   function kpiCard(label,key,colorVar){
     const series=history.map(h=>h[key]);
     const currVal=curr[key],prevVal=prev[key];
@@ -5820,6 +5876,8 @@ function trackClosedStage(lead,oldStatus,newStatus){
     lead.closedFromStage=oldStatus;
     lead.closedAt=nowISO();
   }
+  // Verloren: Wiedervorlage entfaellt - der Lead taucht nicht mehr in Aufgaben/Kalender auf.
+  if(newCol&&newCol.outcome==='lost'&&oldStatus!==newStatus)lead.followup='';
 }
 function trackStatusSince(lead,oldStatus,newStatus){
   if(oldStatus!==newStatus)lead.statusSince=TODAY;
