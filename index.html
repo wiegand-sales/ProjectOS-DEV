@@ -209,6 +209,9 @@ body{font-family:'Inter',sans-serif;background:linear-gradient(155deg,#f2f3f0 0%
 .next-sec .day-sub span{margin-left:auto;font-weight:600;letter-spacing:0;text-transform:none;color:var(--text3)}
 .next-sec .d3{border-top-color:var(--border2,#e4ebea)}
 .next-sec .d3-head{color:var(--text3)}
+.ass-sec .d3-head{color:var(--text3)}
+.ass-sec .d3{border-top-color:var(--border2,#e4ebea)}
+.ass-sec .d3 .f{color:#a32d2d}.ass-sec .d3 .f.h{color:#8a5a0b}.ass-sec .d3 .f.nt{color:var(--text3)}
 .d3 .f.nt{color:var(--text3);font-weight:600}
 .board-part-hint{flex:0 0 260px;align-self:flex-start;border:1.5px dashed var(--purple-dark);border-radius:var(--r-md);padding:16px;background:var(--purple-bg);font-size:13px;color:var(--purple-dark);display:flex;flex-direction:column;gap:10px;}
 .board-part-hint button{align-self:flex-start;}
@@ -1155,7 +1158,7 @@ let localSettingsTrusted=false;
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-10-21T22:00:00.000Z';
+const BUILD_VERSION='2026-10-21T22:15:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -5056,44 +5059,30 @@ function setTasksAgentFilter(id){
   renderTasksView();
 }
 function assignedTasksHtml(q){
+  // Gleiche Tabelle wie "Heute zu erledigen": Faellig | Aufgabe · Firma | Telefon | Letzter Kommentar | Erledigt
   let items=[];
-  leads.forEach(l=>{
-    (l.tasks||[]).forEach(t=>{
-      if(t.assigneeId)items.push(Object.assign({},t,{lead:l}));
-    });
-  });
+  leads.forEach(l=>{(l.tasks||[]).forEach(t=>{if(t.assigneeId)items.push(Object.assign({},t,{lead:l}));});});
   if(activeTasksAgentFilter!=='all')items=items.filter(t=>t.assigneeId===activeTasksAgentFilter);
   if(activeTasksBoardFilter!=='all')items=items.filter(t=>leadBoardPart(t.lead)===activeTasksBoardFilter);
   items=items.filter(t=>!t.done); // erledigte Aufgaben verschwinden aus der Liste
   if(q){const pk=phoneQueryKeys(q);items=items.filter(t=>leadMatchesSearch(t.lead,q,pk));}
-  items.sort((a,b)=>{
-    if(a.done!==b.done)return a.done?1:-1;
-    return (a.dueDate||'9999-99-99').localeCompare(b.dueDate||'9999-99-99');
-  });
-  const openCount=items.filter(t=>!t.done).length;
+  items.sort((a,b)=>(a.dueDate||'9999-99-99').localeCompare(b.dueDate||'9999-99-99'));
+  const openCount=items.length;
   const isOpen=taskSectionOpen.assigned;
-  const rowHtmls=items.map(t=>{
+  const all=!!taskShowAll.assigned;const shown=all?items:items.slice(0,3);
+  if(isOpen)loadTasksLastComments(shown.map(t=>String(t.lead.id)));
+  const idA=x=>typeof x==='number'?x:JSON.stringify(String(x)).replace(/"/g,'&quot;');
+  const rows=shown.map(t=>{
     const a=agentById(t.assigneeId);
-    let dueBadge='';
-    if(t.dueDate){
-      const d=daysUntil(t.dueDate);
-      const cls=t.done?'due-ok':(d<0?'due-overdue':(d<=2?'due-soon':'due-ok'));
-      const dlabel=d<0?`${Math.abs(d)}T überfällig`:(d===0?'heute':fmtDate(t.dueDate));
-      dueBadge=`<span class="due-badge ${cls}"><i class="ti ti-clock" style="font-size:11px"></i>${dlabel}</span>`;
-    }
-    return `<div class="task-row" onclick="openLeadModal(${t.lead.id})">
-      <input type="checkbox" ${t.done?'checked':''} onclick="event.stopPropagation();toggleAssignedTask(${t.lead.id},${t.id})" style="flex-shrink:0">
-      <div class="member-av" style="position:static;margin:0;background:${COLOR_BG[a?a.color:'gray']};color:${COLOR_TEXT[a?a.color:'gray']}" title="${a?esc(a.name):''}">${a?ini(a.name):'?'}</div>
-      <div style="flex:1;min-width:0">
-        <div class="task-row-text ${t.done?'done':''}">${esc(t.text)}</div>
-        <div style="font-size:11px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(t.lead.company)}</div>
-      </div>
-      ${dueBadge}
-    </div>`;
-  });
-  return `<div class="info-section">
+    let f='<span class="f nt">–</span>';
+    if(t.dueDate){const d=daysUntil(t.dueDate);f=d<0?`<span class="f">seit ${Math.abs(d)} T</span>`:d===0?'<span class="f h">heute</span>':`<span class="f nt">${fmtDate(t.dueDate).slice(0,6)}</span>`;}
+    const av=`<div class="member-av" style="position:static;margin:0;flex-shrink:0;width:22px;height:22px;font-size:9px;background:${COLOR_BG[a?a.color:'gray']};color:${COLOR_TEXT[a?a.color:'gray']}" title="${a?esc(a.name):''}">${a?ini(a.name):'?'}</div>`;
+    return `<div class="d3" onclick="openLeadModal(${idA(t.lead.id)})">${f}<div class="c">${av}<div><b>${esc(t.text)}</b><small>${esc([t.lead.company,a?'für '+a.name:''].filter(Boolean).join(' · '))}</small></div></div>${d3PhoneHtml(t.lead)}${d3CommentHtml(t.lead)}<span style="display:flex;justify-content:flex-end" onclick="event.stopPropagation()"><button class="q-btn" onclick="toggleAssignedTask(${idA(t.lead.id)},${idA(t.id)})" title="Als erledigt markieren"><i class="ti ti-check"></i> Erledigt</button></span></div>`;
+  }).join('');
+  const body=!isOpen?'':(items.length?`<div class="day-list"><div class="d3-head" style="margin:0 -14px"><span>Fällig</span><span>Aufgabe · Firma</span><span>Telefon</span><span>Letzter Kommentar</span><span></span></div>${rows}${items.length>3?`<div class="d2 more" onclick="taskShowAll.assigned=!taskShowAll.assigned;renderTasksView()">${all?'Weniger anzeigen':`Alle anzeigen (${items.length})`}</div>`:''}</div>`:`<div class="task-row-empty">Keine offenen zugewiesenen Aufgaben.</div>`);
+  return `<div class="info-section ass-sec">
     <div class="section-hdr" style="margin-top:0;cursor:pointer" onclick="toggleTaskSection('assigned')"><span style="display:flex;align-items:center;gap:6px"><i class="ti ti-user-check" style="color:var(--purple);font-size:16px"></i>Zugewiesene Aufgaben</span> <span style="display:flex;align-items:center;gap:8px"><span class="task-group-count">${openCount} offen</span><i class="ti ti-chevron-${isOpen?'up':'down'}" style="font-size:14px;color:var(--text3)"></i></span></div>
-    ${limitedRowsHtml(rowHtmls,isOpen,'assigned','Keine offenen zugewiesenen Aufgaben.',3)}
+    ${body}
   </div>`;
 }
 function toggleAssignedTask(leadId,taskId){
