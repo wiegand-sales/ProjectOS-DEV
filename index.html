@@ -1186,7 +1186,7 @@ let localSettingsTrusted=false;
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-10-22T09:30:00.000Z';
+const BUILD_VERSION='2026-10-22T10:00:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -2957,7 +2957,7 @@ function renderCalendar(){
         return calEventHtml(e,`top:${top}px;height:${ht}px;left:calc(${w*e.lane}% + 2px);width:calc(${w}% - 4px);right:auto`);}).join('');
       if(d===todayStr){const n=new Date();const nm=n.getHours()*60+n.getMinutes();if(nm>=startH*60&&nm<=endH*60)inner+=`<div class="cal-now" style="top:${(nm-startH*60)/60*CAL_HOUR_PX}px"></div>`;}
       if(CAL_BOOK_FROM>startH)inner=`<div class="cal-closed" style="height:${(CAL_BOOK_FROM-startH)*CAL_HOUR_PX}px"></div>`+inner;
-      h+=`<div class="cal-day ${d===todayStr?'today':''}" style="height:${(endH-startH)*CAL_HOUR_PX}px" data-date="${d}" ondragover="calDragOver(event)" ondragleave="calDragLeave(event)" ondrop="calDropWeek(event,'${d}',${startH},${endH})">${inner}</div>`;
+      h+=`<div class="cal-day ${d===todayStr?'today':''}" style="height:${(endH-startH)*CAL_HOUR_PX}px" data-date="${d}" onclick="calSlotClick(event,'${d}',${startH})" ondragover="calDragOver(event)" ondragleave="calDragLeave(event)" ondrop="calDropWeek(event,'${d}',${startH},${endH})">${inner}</div>`;
     });
     h+=`</div></div>${calPlanPanel?calPlanPanelHtml():''}</div>`;
   } else {
@@ -3170,32 +3170,32 @@ function renderCalApptResults(){
 function renderCalTaskForm(el){
   const a=calAppt;const times=calTaskTimes();
   const sel=a.leadId?leads.find(l=>String(l.id)===String(a.leadId)):null;
-  el.innerHTML=`<div class="ap-head" style="background:#3c3489"><i class="ti ti-checklist"></i> ${a.taskId?'Aufgabe bearbeiten':'Eintrag planen'}</div>
+  el.innerHTML=`<div class="ap-head"><i class="ti ti-checklist"></i> ${a.taskId?'Aufgabe bearbeiten':'Eintrag planen'}</div>
   <div class="ap-body">
-    ${a.taskId?'':`<div class="ap-seg"><button onclick="calApptKind('lead')"><i class="ti ti-user"></i> Kundentermin</button><button class="on task" onclick="calApptKind('task')"><i class="ti ti-checklist"></i> Aufgabe</button></div>`}
-    <div class="ap-sec" style="color:#3c3489"><i class="ti ti-pencil"></i> Was</div>
-    <div class="ap-blk" style="border-left-color:#534ab7">
+    ${a.taskId?'':`<div class="ap-seg"><button onclick="calApptKind('lead')"><i class="ti ti-user"></i> Kundentermin</button><button class="on" onclick="calApptKind('task')"><i class="ti ti-checklist"></i> Aufgabe</button></div>`}
+    <div class="ap-sec"><i class="ti ti-pencil"></i> Was</div>
+    <div class="ap-blk">
       <div class="ap-lbl">Titel</div><input type="text" id="apTitle" placeholder="z. B. Angebote vorbereiten" value="${esc(a.title||'')}" oninput="calAppt.title=this.value">
       <div class="ap-lbl">Lead verknüpfen <small>(optional)</small></div>
       ${sel?`<div class="ap-res"><div class="ap-row on"><i class="ti ti-circle-check"></i><div>${esc(sel.company)}<small>${esc([sel.contact,sel.customerNumber].filter(Boolean).join(' · '))}</small></div><span class="ap-badge" style="cursor:pointer" onclick="event.stopPropagation();calAppt.leadId=null;renderCalAppt()">entfernen</span></div></div>`
         :`<input type="text" id="apSearch" placeholder="Suche" value="${esc(a.q||'')}" oninput="calApptSearch(this.value)"><div id="apResults"></div>`}
     </div>
-    <div class="ap-sec" style="color:#3c3489"><i class="ti ti-clock"></i> Wann</div>
-    <div class="ap-blk" style="border-left-color:#534ab7"><div class="ap-g3">
+    <div class="ap-sec"><i class="ti ti-clock"></i> Wann</div>
+    <div class="ap-blk"><div class="ap-g3">
       <div><div class="ap-lbl">Datum</div><input type="date" value="${a.date}" onchange="calAppt.date=this.value"></div>
       <div><div class="ap-lbl">Beginn</div><select id="apTStart" onchange="calAppt.time=this.value;if(calParseTime(calAppt.end)<=calParseTime(this.value)){calAppt.end=calFmt(Math.min(CAL_DAY_END*60,calParseTime(this.value)+60));}renderCalAppt()">${times.slice(0,-1).map(t=>`<option ${t===a.time?'selected':''}>${t}</option>`).join('')}</select></div>
       <div><div class="ap-lbl">Ende</div><select id="apTEnd" onchange="calAppt.end=this.value">${times.filter(t=>calParseTime(t)>calParseTime(a.time)).map(t=>`<option ${t===a.end?'selected':''}>${t}</option>`).join('')}</select></div>
     </div></div>
-    <div class="ap-sec" style="color:#3c3489"><i class="ti ti-repeat"></i> Wiederholen</div>
-    <div class="ap-blk" style="border-left-color:#534ab7">
-      <div class="ap-seg" style="margin-top:2px">${[['none','Nie'],['daily','Täglich (Mo–Fr)'],['weekly','Wöchentlich']].map(([k,lab])=>`<button class="${(a.repeat||'none')===k?'on task':''}" onclick="calAppt.repeat='${k}';renderCalAppt()">${lab}</button>`).join('')}</div>
+    <div class="ap-sec"><i class="ti ti-repeat"></i> Wiederholen</div>
+    <div class="ap-blk">
+      <div class="ap-seg" style="margin-top:2px">${[['none','Nie'],['daily','Täglich (Mo–Fr)'],['weekly','Wöchentlich']].map(([k,lab])=>`<button class="${(a.repeat||'none')===k?'on':''}" onclick="calAppt.repeat='${k}';renderCalAppt()">${lab}</button>`).join('')}</div>
       ${(a.repeat||'none')!=='none'?`<div class="ap-lbl">Wiederholen bis <small>(optional, sonst ohne Ende)</small></div><input type="date" value="${esc(a.until||'')}" onchange="calAppt.until=this.value">${a.taskId?`<div style="font-size:11px;color:var(--text3);margin-top:6px">Änderungen an Uhrzeit, Titel oder Notiz gelten für alle Termine der Serie.</div>`:''}`:''}
     </div>
-    <div class="ap-sec" style="color:#3c3489"><i class="ti ti-notes"></i> Notiz</div>
-    <div class="ap-blk" style="border-left-color:#534ab7"><textarea rows="2" placeholder="optional" oninput="calAppt.note=this.value">${esc(a.note||'')}</textarea></div>
+    <div class="ap-sec"><i class="ti ti-notes"></i> Notiz</div>
+    <div class="ap-blk"><textarea rows="2" placeholder="optional" oninput="calAppt.note=this.value">${esc(a.note||'')}</textarea></div>
     ${a.err?`<div class="ap-note ap-err"><i class="ti ti-alert-circle"></i><span>${esc(a.err)}</span></div>`:''}
   </div>
-  <div class="modal-actions" style="justify-content:flex-start"><button class="btn" onclick="closeModal('calApptModal')">Abbrechen</button><button class="btn ap-primary" style="background:#534ab7!important;border-color:#534ab7!important" onclick="saveCalTask()"><i class="ti ti-check"></i> ${a.taskId?'Speichern':'Aufgabe speichern'}</button>${a.taskId?`<span style="flex:1"></span>${(()=>{const t=calTasks.find(x=>x.id===a.taskId);return t&&t.repeat&&t.repeat!=='none'?`<button class="btn" style="color:#a32d2d" onclick="deleteCalTask('one')"><i class="ti ti-calendar-minus"></i> Nur diesen Tag</button><button class="btn" style="color:#a32d2d" onclick="deleteCalTask('all')"><i class="ti ti-trash"></i> Ganze Serie</button>`:`<button class="btn" style="color:#a32d2d" onclick="deleteCalTask('all')"><i class="ti ti-trash"></i> Löschen</button>`;})()}`:''}</div>`;
+  <div class="modal-actions" style="justify-content:flex-start"><button class="btn" onclick="closeModal('calApptModal')">Abbrechen</button><button class="btn ap-primary" onclick="saveCalTask()"><i class="ti ti-check"></i> ${a.taskId?'Speichern':'Aufgabe speichern'}</button>${a.taskId?`<span style="flex:1"></span>${(()=>{const t=calTasks.find(x=>x.id===a.taskId);return t&&t.repeat&&t.repeat!=='none'?`<button class="btn" style="color:#a32d2d" onclick="deleteCalTask('one')"><i class="ti ti-calendar-minus"></i> Nur diesen Tag</button><button class="btn" style="color:#a32d2d" onclick="deleteCalTask('all')"><i class="ti ti-trash"></i> Ganze Serie</button>`:`<button class="btn" style="color:#a32d2d" onclick="deleteCalTask('all')"><i class="ti ti-trash"></i> Löschen</button>`;})()}`:''}</div>`;
   if(!sel)renderCalApptResults();
 }
 function calApptSearch(v){calAppt.q=v;renderCalApptResults();}
