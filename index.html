@@ -1002,6 +1002,18 @@ label{font-size:12px;font-weight:500;color:var(--text2);display:block;margin-bot
         <div class="omnibar-flex">
           <i class="ti ti-search omni-search-icon"></i>
           <input type="text" class="omni-input" id="calendarSearch" placeholder="Suche" oninput="renderCalendar()">
+          <div class="omni-addfilter-wrap">
+            <button class="omnibar-btn" onclick="toggleCalFilterMenu(event)"><i class="ti ti-plus" style="font-size:12px"></i> Filter</button>
+            <div class="filtermenu" id="calFilterMenu">
+              <div class="fm-sec" id="cfmSecAgents" onclick="toggleCalFilterSection('agents',event)"><i class="ti ti-user"></i><span>Mitarbeiter</span><span class="fm-sum" id="cfmSumAgents"></span><i class="ti ti-chevron-right fm-chev"></i></div>
+              <div id="calFilterMenuAgents" class="fm-body"></div>
+              <div class="fm-sec" id="cfmSecBoard" onclick="toggleCalFilterSection('board',event)"><i class="ti ti-layout-kanban"></i><span>Board</span><span class="fm-sum" id="cfmSumBoard"></span><i class="ti ti-chevron-right fm-chev"></i></div>
+              <div id="calFilterMenuBoard" class="fm-body"></div>
+              <div class="fm-sec" id="cfmSecKind" onclick="toggleCalFilterSection('kind',event)"><i class="ti ti-category"></i><span>Art</span><span class="fm-sum" id="cfmSumKind"></span><i class="ti ti-chevron-right fm-chev"></i></div>
+              <div id="calFilterMenuKind" class="fm-body"></div>
+            </div>
+          </div>
+          <div id="calOmniTokens" style="display:flex;gap:8px;align-items:center;flex-wrap:nowrap;overflow-x:auto;max-width:360px;flex-shrink:1;"></div>
           <div class="omni-spacer"></div>
           <div id="calTopActions" style="display:flex;gap:8px;align-items:center;flex-shrink:0"></div>
         </div>
@@ -1191,7 +1203,7 @@ let localSettingsTrusted=false;
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-10-22T13:00:00.000Z';
+const BUILD_VERSION='2026-10-22T13:30:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -2807,7 +2819,8 @@ function calParse(fu){
 function calEvents(){
   const q=((document.getElementById('calendarSearch')||{}).value||'').toLowerCase().trim();
   const pk=phoneQueryKeys(q);
-  return leads.filter(l=>!isClosedLead(l)&&calParse(l.followup)&&(calAgent==='all'||(l.members||[]).includes(calAgent))&&leadMatchesSearch(l,q,pk))
+  if(calKindFilter==='task')return [];
+  return leads.filter(l=>!isClosedLead(l)&&calParse(l.followup)&&(calAgent==='all'||(l.members||[]).includes(calAgent))&&calFilterLeadOk(l)&&leadMatchesSearch(l,q,pk))
     .map(l=>Object.assign({lead:l},calParse(l.followup)));
 }
 function calFmt(min){return String(Math.floor(min/60)).padStart(2,'0')+':'+String(min%60).padStart(2,'0');}
@@ -2821,6 +2834,41 @@ function calNav(delta){
 function calToday(){const t=new Date();calWeekStart=calYmd(calMonday(t));calYear=t.getFullYear();calMonth=t.getMonth();renderCalendar();}
 function calOpenWeekOf(dateStr){calWeekStart=calYmd(calMonday(new Date(dateStr+'T00:00:00')));setCalView('week');}
 function calSetAgent(v){calAgent=v;renderCalendar();}
+// ── Filter im Kalender: Mitarbeiter (nur Admins), Board (SQL/PQL), Art (Kundentermin/Aufgabe) ──
+let calBoardFilter='all',calKindFilter='all',calFilterMenuOpen=false,calFilterSectionOpen='';
+function toggleCalFilterMenu(e){if(e)e.stopPropagation();calFilterMenuOpen=!calFilterMenuOpen;renderCalFilterMenu();document.getElementById('calFilterMenu').classList.toggle('show',calFilterMenuOpen);}
+function toggleCalFilterSection(k,e){if(e)e.stopPropagation();calFilterSectionOpen=calFilterSectionOpen===k?'':k;renderCalFilterMenu();}
+function setCalBoardFilter(v){calBoardFilter=v;renderCalendar();}
+function setCalKindFilter(v){calKindFilter=v;renderCalendar();}
+function calFilterLeadOk(l){return calBoardFilter==='all'||!l||leadBoardPart(l)===calBoardFilter;}
+function renderCalFilterMenu(){
+  const item=(on,label,fn)=>`<div class="filtermenu-item ${on?'active':''}" onclick="event.stopPropagation();${fn}"><span>${esc(label)}</span>${on?'<i class="ti ti-check"></i>':''}</div>`;
+  const admin=isAdmin();
+  const secA=document.getElementById('cfmSecAgents'),bodyA=document.getElementById('calFilterMenuAgents');
+  if(secA){secA.style.display=admin?'':'none';}
+  if(bodyA)bodyA.innerHTML=admin?(item(calAgent==='all','Alle','calSetAgent(\'all\')')+activeAgents().map(a=>item(calAgent===a.id,a.name,`calSetAgent('${a.id}')`)).join('')):'';
+  const bodyB=document.getElementById('calFilterMenuBoard');
+  if(bodyB)bodyB.innerHTML=[['all','Alle Boards'],['akquise',BOARD_PARTS.akquise],['vertrieb',BOARD_PARTS.vertrieb]].map(([v,l])=>item(calBoardFilter===v,l,`setCalBoardFilter('${v}')`)).join('');
+  const bodyK=document.getElementById('calFilterMenuKind');
+  if(bodyK)bodyK.innerHTML=[['all','Alle'],['lead','Kundentermine'],['task','Aufgaben']].map(([v,l])=>item(calKindFilter===v,l,`setCalKindFilter('${v}')`)).join('');
+  [['agents','Agents'],['board','Board'],['kind','Kind']].forEach(([k,id])=>{
+    const sec=document.getElementById('cfmSec'+id),body=document.getElementById('calFilterMenu'+id);
+    if(sec)sec.classList.toggle('open',calFilterSectionOpen===k);if(body)body.classList.toggle('open',calFilterSectionOpen===k);
+  });
+  const ag=calAgent==='all'?'Alle':((agentById(calAgent)||{}).name||'');
+  const set=(id,txt,act)=>{const el=document.getElementById('cfmSum'+id);if(el)el.textContent=txt;const sec=document.getElementById('cfmSec'+id);if(sec)sec.classList.toggle('active',!!act);};
+  set('Agents',ag,admin&&calAgent!==currentUser);
+  set('Board',calBoardFilter==='all'?'Alle':BOARD_PARTS[calBoardFilter],calBoardFilter!=='all');
+  set('Kind',calKindFilter==='all'?'Alle':(calKindFilter==='lead'?'Kundentermine':'Aufgaben'),calKindFilter!=='all');
+  const tok=document.getElementById('calOmniTokens');
+  if(tok){
+    let h='';
+    if(admin&&calAgent!==currentUser)h+=`<div class="omni-token"><i class="ti ti-user" style="font-size:12px"></i>${esc(ag)}<i class="ti ti-x" onclick="calSetAgent(currentUser)"></i></div>`;
+    if(calBoardFilter!=='all')h+=`<div class="omni-token"><i class="ti ti-layout-kanban" style="font-size:12px"></i>${esc(BOARD_PARTS[calBoardFilter])}<i class="ti ti-x" onclick="setCalBoardFilter('all')"></i></div>`;
+    if(calKindFilter!=='all')h+=`<div class="omni-token"><i class="ti ti-category" style="font-size:12px"></i>${calKindFilter==='lead'?'Kundentermine':'Aufgaben'}<i class="ti ti-x" onclick="setCalKindFilter('all')"></i></div>`;
+    tok.innerHTML=h;
+  }
+}
 // ── Seitenleiste "Zu planen": FollowUps ohne Uhrzeit (ueberfaellig, heute, diese Woche)
 // und Termine am Wochenende. Ziehen auf eine Uhrzeit = Termin; Klick oeffnet den Lead.
 function calTogglePlanPanel(){calPlanPanel=!calPlanPanel;try{localStorage.setItem('projectos_cal_plan',calPlanPanel?'1':'0');}catch(e){}renderCalendar();}
@@ -2835,6 +2883,7 @@ function calPlanItems(){
   leads.forEach(l=>{
     if(isClosedLead(l)||!l.followup)return;
     if(!(calAgent==='all'||(l.members||[]).includes(calAgent)))return;
+    if(!calFilterLeadOk(l))return;
     if(!leadMatchesSearch(l,q,pk))return;
     const p=calParse(l.followup);
     const date=(l.followup||'').slice(0,10);
@@ -3033,9 +3082,10 @@ function renderCalendar(){
   if(!evs.length)h+=`<div style="margin-top:12px;font-size:12px;color:var(--text3)">Keine Termine mit Uhrzeit. Termine erscheinen hier, sobald bei einem Follow-up eine Uhrzeit eingetragen ist.</div>`;
   h+=`</div>`;
   el.innerHTML=h;
+  renderCalFilterMenu();
   // Personenauswahl, "Zu planen" und "+ Termin" sitzen rechts in der Suchleiste - wie im Board
   const top=document.getElementById('calTopActions');
-  if(top)top.innerHTML=`${agentSel}
+  if(top)top.innerHTML=`
     ${calViewMode==='week'?`<button class="omnibar-btn ${calPlanPanel?'on':''}" onclick="calTogglePlanPanel()" title="Seitenleiste ein-/ausblenden"><i class="ti ti-list-check"></i> Zu planen <b>${calPlanItems().length}</b></button>`:''}
     <button class="omnibar-btn primary" onclick="openCalAppt()"><i class="ti ti-plus"></i> Termin</button>`;
 }
@@ -3107,7 +3157,12 @@ function calTaskOccursOn(t,ds){
 }
 function calTaskEvents(dates){
   const out=[];
+  if(calKindFilter==='lead')return out;
+  const q=((document.getElementById('calendarSearch')||{}).value||'').toLowerCase().trim();const pk=phoneQueryKeys(q);
   calTasks.filter(t=>!t.deleted&&(calAgent==='all'||t.owner===calAgent)).forEach(t=>{
+    const lead=t.lead_id?leads.find(l=>String(l.id)===String(t.lead_id)):null;
+    if(lead&&!calFilterLeadOk(lead))return;
+    if(q&&!((t.title||'').toLowerCase().includes(q)||(lead&&leadMatchesSearch(lead,q,pk))))return;
     const a=calParseTime(t.start_time),b=calParseTime(t.end_time);
     (dates||[]).forEach(ds=>{if(calTaskOccursOn(t,ds))out.push({task:t,date:ds,min:a,dur:Math.max(15,b-a),time:t.start_time});});
   });
@@ -9473,6 +9528,7 @@ document.addEventListener('click',e=>{
   if(!e.target.closest('.omni-addfilter-wrap')&&filterMenuOpen){filterMenuOpen=false;document.getElementById('filterMenu').classList.remove('show');}
   if(!e.target.closest('.infobtn-wrap')&&overflowMenuOpen){overflowMenuOpen=false;document.getElementById('overflowMenu').classList.remove('show');}
   if(!e.target.closest('.crrma-menu-wrap')&&crrmaMenuOpen){crrmaMenuOpen=false;document.getElementById('crrmaOverflowMenu').classList.remove('show');}
+  if(!e.target.closest('.omni-addfilter-wrap')&&calFilterMenuOpen){calFilterMenuOpen=false;const mc=document.getElementById('calFilterMenu');if(mc)mc.classList.remove('show');}
   if(!e.target.closest('.omni-addfilter-wrap')&&tasksFilterMenuOpen){tasksFilterMenuOpen=false;const m=document.getElementById('tasksFilterMenu');if(m)m.classList.remove('show');}
   if(!e.target.closest('.omni-addfilter-wrap')&&activityFilterMenuOpen){activityFilterMenuOpen=false;const m2=document.getElementById('activityFilterMenu');if(m2)m2.classList.remove('show');}
   if(!e.target.closest('.omni-addfilter-wrap')&&dashboardFilterMenuOpen){dashboardFilterMenuOpen=false;const m3=document.getElementById('dashboardFilterMenu');if(m3)m3.classList.remove('show');}
