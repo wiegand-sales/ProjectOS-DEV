@@ -246,6 +246,15 @@ body{font-family:'Inter',sans-serif;background:linear-gradient(155deg,#f2f3f0 0%
 .cal-day.hol{background-color:rgba(0,0,0,.055)}
 .cal-cell.hol{background:#f1f1f1}
 .cal-cell .hn{font-size:10px;font-weight:600;color:var(--text3);margin:-2px 0 3px}
+.stage-bar{display:flex;gap:2px;overflow-x:auto;padding-bottom:2px}
+.stage-seg{min-width:68px;height:30px;border-radius:6px;color:#fff;font-size:11px;font-weight:600;display:flex;flex-direction:column;justify-content:center;padding:0 8px;white-space:nowrap;overflow:hidden;cursor:default}
+.stage-seg small{font-size:10px;font-weight:500;opacity:.85}
+.stage-seg.cur{box-shadow:inset 0 0 0 2px rgba(255,255,255,.55)}
+.stage-end{flex:0 0 auto;min-width:76px;height:30px;border-radius:6px;font-size:11px;font-weight:700;display:flex;flex-direction:column;justify-content:center;padding:0 9px;white-space:nowrap}
+.stage-end small{font-size:10px;font-weight:500}
+.stage-tbl{width:100%;border-collapse:collapse;font-size:12px;margin-top:8px}
+.stage-tbl th{text-align:left;font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;padding:5px 6px;border-bottom:1px solid var(--border2,#e4ebea)}
+.stage-tbl td{padding:6px;border-bottom:1px solid var(--border2,#e4ebea)}
 .board-part-hint{flex:0 0 260px;align-self:flex-start;border:1.5px dashed var(--purple-dark);border-radius:var(--r-md);padding:16px;background:var(--purple-bg);font-size:13px;color:var(--purple-dark);display:flex;flex-direction:column;gap:10px;}
 .board-part-hint button{align-self:flex-start;}
 .nav-icon-badge{width:36px;height:36px;border-radius:9px;background:linear-gradient(180deg,#27808a 0%,#206A72 100%);box-shadow:0 6px 16px rgba(32,106,114,.3);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
@@ -1204,7 +1213,7 @@ let localSettingsTrusted=false;
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-10-22T14:00:00.000Z';
+const BUILD_VERSION='2026-10-22T15:00:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -3494,6 +3503,40 @@ function removeContactTime(field){
 }
 // Nur das Datum zaehlt - eine Uhrzeit (z.B. 2026-10-21T14:00) darf die Tage nicht verschieben (bis 21.10.2026 galt 14:00 heute als "morgen").
 function daysUntil(d){if(!d)return null;const diff=(new Date(String(d).slice(0,10))-new Date(TODAY))/86400000;return Math.round(diff);}
+// ── Listen-Verlauf (Okt. 2026): in welchen Listen der Lead war und wie lange ──
+// Quelle: Verlaufseintraege "Status geaendert: A → B" (Datum + Person). Breite = Verweildauer,
+// mit Mindestbreite; Gewonnen/Verloren erscheinen als fester Abschluss.
+let leadStageDetailsOpen=false;
+function leadStageSegments(lead){
+  const ch=(lead.activity||[]).map(a=>{const m=/^Status geändert: (.+?) → (.+?)(?: \(Liste gelöscht\))?$/.exec(a.text||'');return m?{from:m[1].trim(),to:m[2].trim(),date:String(a.date||''),by:a.author}:null;})
+    .filter(x=>x&&x.date).sort((a,b)=>a.date.localeCompare(b.date));
+  const cur=colById(lead.status);
+  let start=String(lead.createdAt||'');
+  if(!start||(ch[0]&&ch[0].date<start))start=ch[0]?ch[0].date:String(lead.statusSince||lead.firstContact||TODAY);
+  const segs=[];let name=ch.length?ch[0].from:(cur?cur.name:'');let from=start,by=null;
+  ch.forEach(c=>{segs.push({name,from,to:c.date,by});name=c.to;from=c.date;by=c.by;});
+  segs.push({name:cur?cur.name:name,from,to:null,by,current:true});
+  return segs;
+}
+function stageShort(n){const i=String(n).indexOf(': ');return i>0?String(n).slice(i+2):String(n);}
+function stageColor(name){const c=COLUMNS.find(x=>x.name===name);return c&&COLOR_TEXT[c.color]?COLOR_TEXT[c.color]:'#888780';}
+function renderLeadStageBar(lead){
+  const segs=leadStageSegments(lead);
+  if(!segs.length)return '';
+  const cur=colById(lead.status);const closed=!!(cur&&(cur.outcome==='won'||cur.outcome==='lost'));
+  const dayDiff=(a,b)=>Math.max(0,Math.round((new Date(String(b).slice(0,10)+'T00:00:00')-new Date(String(a).slice(0,10)+'T00:00:00'))/86400000));
+  const bars=segs.filter(x=>!(closed&&x.current));
+  const endSeg=closed?segs[segs.length-1]:null;
+  const ag=id=>{const a=agentById(id);return a?a.name:'';};
+  const html=bars.map(x=>{const d=dayDiff(x.from,x.to||TODAY);const tip=`${x.name}\n${fmtDate(String(x.from).slice(0,10))} – ${x.to?fmtDate(String(x.to).slice(0,10)):'heute'} · ${d} ${d===1?'Tag':'Tage'}${x.by?'\nverschoben von '+ag(x.by):''}`;
+      return `<div class="stage-seg ${x.current?'cur':''}" style="flex:${Math.max(1,d)} 0 68px;background:${stageColor(x.name)}" title="${esc(tip)}">${esc(stageShort(x.name))}<small>${x.current?'seit ':''}${d} T</small></div>`;}).join('')
+    +(endSeg?`<div class="stage-end" style="${cur.outcome==='won'?'background:#e3f5ee;color:#0b5e45':'background:#fcebeb;color:#a32d2d'}" title="${esc(endSeg.name+' · '+fmtDate(String(endSeg.from).slice(0,10)))}"><span><i class="ti ti-${cur.outcome==='won'?'circle-check':'circle-x'}"></i> ${cur.outcome==='won'?'Gewonnen':'Verloren'}</span><small>${fmtDate(String(endSeg.from).slice(0,10))}</small></div>`:'');
+  const rows=segs.map(x=>{const d=dayDiff(x.from,x.to||TODAY);const isEnd=closed&&x.current;return `<tr ${x.current?'style="font-weight:600"':''}><td><span style="display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:6px;background:${isEnd?(cur.outcome==='won'?'#0f6e56':'#e24b4a'):stageColor(x.name)}"></span>${esc(x.name)}</td><td>${fmtDate(String(x.from).slice(0,10))}</td><td>${isEnd?'–':(x.to?fmtDate(String(x.to).slice(0,10)):'heute')}</td><td>${isEnd?'–':d+' '+(d===1?'Tag':'Tage')}</td><td>${esc(ag(x.by)||(x===segs[0]?'Anlage':''))}</td></tr>`;}).join('');
+  const n=segs.length-1;
+  return `<div style="margin-bottom:10px"><div class="stage-bar">${html}</div>
+    ${n>0?`<div style="font-size:11px;margin-top:5px"><a href="#" style="color:#206A72;font-weight:600" onclick="event.preventDefault();leadStageDetailsOpen=!leadStageDetailsOpen;renderLeadModal()">${leadStageDetailsOpen?'Listenwechsel ausblenden':`Alle Listenwechsel anzeigen (${n})`}</a></div>`:''}
+    ${leadStageDetailsOpen&&n>0?`<table class="stage-tbl"><thead><tr><th>Liste</th><th>Von</th><th>Bis</th><th>Dauer</th><th>Verschoben von</th></tr></thead><tbody>${rows}</tbody></table>`:''}</div>`;
+}
 function renderFollowupTimeline(lead){
   const lostCol=colById(lead.status);
   const isLost=!!(lostCol&&lostCol.outcome==='lost');
@@ -7554,6 +7597,8 @@ function renderLeadModal(){
         <div class="info-section" style="${(memberPopoverOpen||labelPopoverOpen)?'position:relative;z-index:50':''}">
           <div class="section-hdr">Lead-Status</div>
           <div style="margin-bottom:12px">
+            <span class="small-label">Listen</span>
+            ${renderLeadStageBar(draftLead)}
             <span class="small-label">Zeitstrahl</span>
             ${renderFollowupTimeline(draftLead)}
           </div>
