@@ -255,6 +255,29 @@ body{font-family:'Inter',sans-serif;background:linear-gradient(155deg,#f2f3f0 0%
 .stage-tbl{width:100%;border-collapse:collapse;font-size:12px;margin-top:8px}
 .stage-tbl th{text-align:left;font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;padding:5px 6px;border-bottom:1px solid var(--border2,#e4ebea)}
 .stage-tbl td{padding:6px;border-bottom:1px solid var(--border2,#e4ebea)}
+.ts-tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-bottom:10px}
+.ts-tile{background:#E9F0F1;border-radius:10px;padding:8px 11px;font-size:10px;font-weight:600;color:#0e4f55;text-transform:uppercase;letter-spacing:.03em}
+.ts-tile b{display:block;font-size:17px;font-weight:700;margin-top:2px;text-transform:none;letter-spacing:0}
+.ts-tile small{display:block;font-size:10px;font-weight:500;text-transform:none;letter-spacing:0;opacity:.75}
+.ts-tile.main{background:#206A72;color:#d6ecee}.ts-tile.main b{color:#fff}
+.ts-search{position:relative;margin-bottom:4px}
+.ts-res{position:absolute;left:0;right:0;top:100%;margin-top:4px;background:var(--bg,#fff);border:1px solid var(--border2,#dfe7e6);border-radius:10px;box-shadow:0 12px 30px rgba(15,61,66,.14);z-index:60;max-height:300px;overflow-y:auto}
+.ts-res-row{display:grid;grid-template-columns:10px minmax(0,1fr) auto;column-gap:10px;align-items:center;padding:8px 12px;border-top:1px solid var(--border2,#eef2f2);cursor:pointer;font-size:12px}
+.ts-res-row:first-child{border-top:0}
+.ts-res-row:hover{background:#E9F0F1}
+.ts-res-row.dis{opacity:.45;cursor:default}
+.ts-res-row small{grid-column:2;font-size:11px;color:var(--text3)}
+.ts-card{display:grid;grid-template-columns:12px minmax(0,1fr) auto;column-gap:10px;row-gap:2px;align-items:center;border:1px solid var(--border2,#dfe7e6);border-radius:10px;padding:10px 12px;margin-top:7px}
+.ts-card.crrma-warn{border-color:#FAC775}.ts-card.crrma-bad{border-color:#F09595}
+.ts-card .crrma-dot{width:9px;height:9px;border-radius:50%;grid-row:1 / span 2;background:var(--border2,#c9d6d5)}
+.ts-card .t{font-size:13px;font-weight:600;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ts-card .bin{grid-column:3;justify-self:end;background:none;border:0;color:var(--text3);cursor:pointer;font-size:16px;padding:0}
+.ts-card .bin:hover{color:var(--red)}
+.ts-card .sku{grid-column:2;font-size:11px;color:var(--text3)}
+.ts-card .vals{grid-column:3;display:flex;gap:6px;justify-content:flex-end}
+.ts-pill{border-radius:6px;padding:2px 8px;font-size:11px;background:var(--bg2,#f4f6f6);white-space:nowrap}
+.ts-pill.crrma-warn{background:var(--amber-bg);color:var(--amber-dark);font-weight:600}
+.ts-pill.crrma-bad{background:var(--red-bg);color:var(--red-dark);font-weight:600}
 .board-part-hint{flex:0 0 260px;align-self:flex-start;border:1.5px dashed var(--purple-dark);border-radius:var(--r-md);padding:16px;background:var(--purple-bg);font-size:13px;color:var(--purple-dark);display:flex;flex-direction:column;gap:10px;}
 .board-part-hint button{align-self:flex-start;}
 .nav-icon-badge{width:36px;height:36px;border-radius:9px;background:linear-gradient(180deg,#27808a 0%,#206A72 100%);box-shadow:0 6px 16px rgba(32,106,114,.3);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
@@ -1213,7 +1236,7 @@ let localSettingsTrusted=false;
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-10-22T15:00:00.000Z';
+const BUILD_VERSION='2026-10-22T15:30:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -7241,18 +7264,7 @@ function renderLeadModal(){
   const shipSkuTotal=draftLead.shipPrinter.skus.reduce((s,x)=>s+(parseFloat(x.priceEk)||0),0);
   const shipCostApplies=draftLead.tonerSent==='Ja';
   const shipInvestTotal=shipSkuTotal+(shipCostApplies?SHIPPING_COST_PER_SEND:0);
-  const shipPrinterHtml=`
-    <div class="field" style="margin-bottom:8px;position:relative">
-      <input type="text" id="shipPrinterModelInput" placeholder="Modell, z. B. HP LaserJet Pro M404" value="${draftLead.shipPrinter.model}" oninput="handlePrinterModelInput(this,'ship',null)" onblur="setTimeout(closePrinterModelPopover,150)" style="width:100%">
-    </div>
-    <div class="sku-grid">
-      ${['I','II','III','IV'].map((rn,i)=>`<div><label>SKU ${rn}</label><input type="text" placeholder="SKU ${rn}" value="${draftLead.shipPrinter.skus[i].sku||''}" oninput="updateShipPrinterSku(${i},'sku',this.value)" style="width:100%"></div>`).join('')}
-    </div>
-    <div class="sku-grid" style="margin-top:6px">
-      ${['I','II','III','IV'].map((rn,i)=>`<div><label>Preis EK ${rn} (EUR)</label><input type="number" min="0" step="0.5" placeholder="0" value="${draftLead.shipPrinter.skus[i].priceEk||''}" oninput="updateShipPrinterSku(${i},'priceEk',this.value)" style="width:100%"></div>`).join('')}
-    </div>
-    ${shipCostApplies?`<p style="font-size:11px;color:var(--text2);margin-top:8px">Versandkosten (pauschal): <strong>${fmtEur(SHIPPING_COST_PER_SEND)}</strong></p>`:''}
-    ${shipInvestTotal?`<p style="font-size:11px;color:var(--text2);margin-top:4px">Investition gesamt (Patronen${shipCostApplies?' + Versand':''}): <strong>${fmtEur(shipInvestTotal)}</strong></p>`:''}`;
+  const shipPrinterHtml=shipArticlesHtml(shipSkuTotal,shipCostApplies,shipInvestTotal);
 
   const topArticlesHtml=draftLead.topArticles.map((a,i)=>`
     <div class="field-row-3" style="${i===draftLead.topArticles.length-1?'margin-bottom:0':''}">
@@ -7588,9 +7600,9 @@ function renderLeadModal(){
 
         <div class="info-section">
           <div class="section-hdr">
-            <span>Drucker &amp; Patronen (Versand)</span>
+            <span style="display:flex;align-items:center;gap:6px"><i class="ti ti-package" style="font-size:15px;color:var(--purple)"></i>Toner zusenden</span>
+            <span style="font-size:11px;font-weight:500;color:var(--text3);text-transform:none;letter-spacing:0">${draftLead.shipPrinter.skus.filter(x=>x.sku).length} von 4 Artikeln</span>
           </div>
-          <p style="font-size:11px;color:var(--text3);margin:-4px 0 8px">Welcher Drucker erhält den kostenlosen Toner – inkl. deinem Einkaufspreis je SKU (Investitionskosten).</p>
           ${shipPrinterHtml}
         </div>
 
@@ -7870,6 +7882,64 @@ function closePrinterModelPopover(){
 }
 function updateShipPrinterModel(val){draftLead.shipPrinter.model=val;}
 function updateShipPrinterSku(idx,field,val){draftLead.shipPrinter.skus[idx][field]=val;}
+// ── Toner zusenden (Okt. 2026): Artikel aus dem Artikelstamm suchen, max. 4 je Lead ──
+// Gespeichert wird wie bisher in shipPrinter.skus (sku, priceEk) - zusaetzlich priceVk, title, articleId.
+let shipArtQ='';
+const SHIP_ART_MAX=4;
+function shipNum(v){const n=parseFloat(String(v===undefined||v===null?'':v).replace(',','.'));return isNaN(n)?null:n;}
+function shipArticleFor(slot){if(!slot||!slot.sku)return null;return (slot.articleId&&ARTICLES.find(a=>a.id===slot.articleId))||ARTICLES.find(a=>String(a.sku).trim().toLowerCase()===String(slot.sku).trim().toLowerCase())||null;}
+function shipArticlesHtml(skuTotal,costApplies,investTotal){
+  const slots=draftLead.shipPrinter.skus.filter(x=>x.sku);
+  const vkTotal=slots.reduce((s,x)=>{const a=shipArticleFor(x);const v=shipNum(a?a.vk:x.priceVk);return s+(v||0);},0);
+  const tiles=`<div class="ts-tiles">
+    <div class="ts-tile">Patronen EK<b>${fmtEurCent(skuTotal)}</b></div>
+    <div class="ts-tile">Versand<b>${fmtEurCent(costApplies?SHIPPING_COST_PER_SEND:0)}</b>${costApplies?'':`<small>zählt ab Versand</small>`}</div>
+    <div class="ts-tile main">Investition<b>${fmtEurCent(investTotal)}</b></div>
+    <div class="ts-tile">VK gesamt<b>${fmtEurCent(vkTotal)}</b></div></div>`;
+  const search=slots.length<SHIP_ART_MAX&&!modalReadOnly?`<div class="ts-search"><input type="text" id="shipArtSearch" placeholder="Artikel suchen (Titel oder SKU) …" value="${esc(shipArtQ)}" oninput="shipArtSearch(this.value)" onblur="setTimeout(()=>{const r=document.getElementById('shipArtResults');if(r)r.innerHTML='';},180)" autocomplete="off" style="width:100%"><div id="shipArtResults"></div></div>`
+    :(slots.length>=SHIP_ART_MAX?`<div style="font-size:11px;color:var(--text3);margin-bottom:2px">Maximal ${SHIP_ART_MAX} Artikel – zum Tauschen zuerst einen entfernen.</div>`:'');
+  const cards=draftLead.shipPrinter.skus.map((x,i)=>{
+    if(!x.sku)return '';
+    const a=shipArticleFor(x);
+    const rma=a?shipNum(a.crRma):null;const cls=rma===null?'':crRmaCellClass(rma);
+    const ek=shipNum(x.priceEk),vk=shipNum(a?a.vk:x.priceVk);
+    const title=a&&a.title?a.title:(x.title||'');
+    return `<div class="ts-card ${cls}"><span class="crrma-dot ${cls}"></span><span class="t" title="${esc(title||x.sku)}">${title?esc(title):'<span style="color:var(--text3);font-weight:500">Nicht im Artikelstamm</span>'}</span>${modalReadOnly?'<span></span>':`<button class="bin" onclick="shipArtRemove(${i})" title="Artikel entfernen"><i class="ti ti-trash"></i></button>`}
+      <span class="sku">${esc(x.sku)}</span><span class="vals"><span class="ts-pill">EK ${ek!==null?fmtEurCent(ek):'–'}</span><span class="ts-pill">VK ${vk!==null?fmtEurCent(vk):'–'}</span><span class="ts-pill ${cls}">RMA ${rma!==null?String(rma).replace('.',',')+' %':'–'}</span></span></div>`;
+  }).join('');
+  return tiles+search+(cards||`<div style="font-size:12px;color:var(--text3);margin-top:6px">Noch keine Artikel – über die Suche hinzufügen.</div>`);
+}
+function fmtEurCent(v){return Number(v).toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2})+' €';}
+function shipArtSearch(v){shipArtQ=v;renderShipArtResults();}
+function renderShipArtResults(){
+  const el=document.getElementById('shipArtResults');if(!el)return;
+  const q=(shipArtQ||'').toLowerCase().trim();
+  if(q.length<2){el.innerHTML='';return;}
+  const chosen=new Set(draftLead.shipPrinter.skus.filter(x=>x.sku).map(x=>String(x.sku).toLowerCase()));
+  const hits=ARTICLES.filter(a=>a.sku&&(String(a.sku).toLowerCase().includes(q)||String(a.title||'').toLowerCase().includes(q))).slice(0,12);
+  if(!hits.length){el.innerHTML=`<div class="ts-res"><div class="ts-res-row dis" style="grid-template-columns:1fr">Kein Artikel gefunden.</div></div>`;return;}
+  el.innerHTML=`<div class="ts-res">${hits.map(a=>{const dis=chosen.has(String(a.sku).toLowerCase());const rma=shipNum(a.crRma);const cls=rma===null?'':crRmaCellClass(rma);const ek=shipNum(a.ek),vk=shipNum(a.vk);
+    return `<div class="ts-res-row ${dis?'dis':''}" ${dis?'':`onmousedown="event.preventDefault();shipArtPick('${esc(String(a.id))}')"`}><span class="crrma-dot ${cls}" style="width:8px;height:8px;border-radius:50%;grid-row:1 / span 2"></span><span><b style="font-weight:600">${esc(a.title||a.sku)}</b>${dis?' <span style="font-size:11px;color:var(--text3)">· bereits gewählt</span>':''}</span><span style="grid-row:1 / span 2;display:flex;gap:6px"><span class="ts-pill">EK ${ek!==null?fmtEurCent(ek):'–'}</span><span class="ts-pill">VK ${vk!==null?fmtEurCent(vk):'–'}</span><span class="ts-pill ${cls}">RMA ${rma!==null?String(rma).replace('.',',')+' %':'–'}</span></span><small>${esc(a.sku)}</small></div>`;}).join('')}</div>`;
+}
+function shipArtPick(articleId){
+  if(modalReadOnly)return;
+  const a=ARTICLES.find(x=>String(x.id)===String(articleId));if(!a)return;
+  const sk=draftLead.shipPrinter.skus;
+  if(sk.some(x=>x.sku&&String(x.sku).toLowerCase()===String(a.sku).toLowerCase()))return;
+  const i=sk.findIndex(x=>!x.sku);if(i<0)return;
+  const ek=shipNum(a.ek),vk=shipNum(a.vk);
+  sk[i]={sku:a.sku,priceEk:ek!==null?String(ek):'',priceVk:vk!==null?String(vk):'',title:a.title||'',articleId:a.id};
+  shipArtQ='';
+  autoPersistIfEditing();renderLeadModal();
+  setTimeout(()=>{const inp=document.getElementById('shipArtSearch');if(inp)inp.focus();},0);
+}
+function shipArtRemove(i){
+  if(modalReadOnly)return;
+  const sk=draftLead.shipPrinter.skus.filter((x,k)=>k!==i&&x.sku);
+  while(sk.length<SHIP_ART_MAX)sk.push({sku:'',priceEk:'',priceVk:''});
+  draftLead.shipPrinter.skus=sk;
+  autoPersistIfEditing();renderLeadModal();
+}
 function updateTopArticle(idx,field,val){draftLead.topArticles[idx][field]=val;}
 
 // Kundenbedarf-Drucker (Forecast-Tab, mehrere Drucker, mit benötigter Anzahl je SKU)
