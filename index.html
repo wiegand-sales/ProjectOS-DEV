@@ -181,6 +181,29 @@ body{font-family:'Inter',sans-serif;background:linear-gradient(155deg,#f2f3f0 0%
 .pv-line b{color:var(--text);font-weight:700}
 .pv-line .it{cursor:pointer}
 .pv-line .it span{color:#206A72;font-weight:700}
+.d3-head,.d3{display:grid;grid-template-columns:78px minmax(0,1.1fr) 150px minmax(0,1.7fr) 66px;gap:14px;align-items:center}
+.d3-head{font-size:10px;font-weight:700;color:#a32d2d;text-transform:uppercase;letter-spacing:.05em;padding:8px 14px 4px}
+.d3-head.t{color:#206A72}
+.d3{padding:9px 0;border-top:1px solid #f1e3e3;font-size:13px;cursor:pointer}
+.day-list>.d3:first-child{border-top:0}
+.d3 .f{font-size:12px;font-weight:700;color:#a32d2d;white-space:nowrap;font-variant-numeric:tabular-nums}
+.d3 .f.h{color:#8a5a0b}.d3 .f.tm{color:#206A72;font-size:13px}
+.d3 .c{min-width:0;display:flex;align-items:center;gap:8px}
+.d3 .c .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.d3 .c div{min-width:0}
+.d3 .c b{display:block;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.d3 .c small{display:block;font-size:11px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.d3 .ph{font-size:12px;color:#206A72;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-decoration:none;display:inline-flex;align-items:center;gap:4px}
+.d3 .ph:hover{text-decoration:underline}
+.d3 .cm{font-size:12px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.d3 .cm b{font-weight:700;color:var(--text);margin-right:5px}
+.d3 .cm.e{color:var(--text3)}
+.d3 .act{display:flex;gap:4px;justify-content:flex-end;opacity:0;transition:opacity .12s}
+.d3:hover .act{opacity:1}
+@media (hover:none){.d3 .act{opacity:1}}
+.d3.miss .f,.d3.miss .c b{color:#a32d2d}
+.d3.next{background:#e3f0f0;margin:0 -14px;padding:9px 14px;border-radius:8px}
+@media (max-width:1100px){.d3-head,.d3{grid-template-columns:70px minmax(0,1fr) 130px minmax(0,1fr) 60px}}
 .board-part-hint{flex:0 0 260px;align-self:flex-start;border:1.5px dashed var(--purple-dark);border-radius:var(--r-md);padding:16px;background:var(--purple-bg);font-size:13px;color:var(--purple-dark);display:flex;flex-direction:column;gap:10px;}
 .board-part-hint button{align-self:flex-start;}
 .nav-icon-badge{width:36px;height:36px;border-radius:9px;background:linear-gradient(180deg,#27808a 0%,#206A72 100%);box-shadow:0 6px 16px rgba(32,106,114,.3);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
@@ -1126,7 +1149,7 @@ let localSettingsTrusted=false;
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-10-21T20:45:00.000Z';
+const BUILD_VERSION='2026-10-21T21:15:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -4778,6 +4801,40 @@ function queueTagHtml(it){
   return `<span class="q-tag a">heute</span>`;
 }
 function leadIdArg(l){return typeof l.id==='number'?l.id:JSON.stringify(String(l.id)).replace(/"/g,'&quot;');}
+// Letzter Kommentar je Lead fuer die sichtbaren Zeilen (ein gemeinsamer Abruf, 60 s gemerkt).
+// Ein gerade im Lead-Fenster geschriebener Kommentar (im Speicher) hat Vorrang.
+let tasksLastComments={};let tasksLastCommentsAt=0;let tasksLastCommentsLoading=false;
+function lastCommentFor(l){
+  const mem=(l.activity||[]).filter(a=>a.type==='comment').sort((a,b)=>String(b.date).localeCompare(String(a.date)))[0];
+  const db=tasksLastComments[String(l.id)];
+  if(mem&&(!db||String(mem.date)>String(db.date)))return mem;
+  return db;
+}
+async function loadTasksLastComments(ids){
+  if(Date.now()-tasksLastCommentsAt>60000){tasksLastComments={};tasksLastCommentsAt=Date.now();}
+  const missing=ids.filter(id=>!(id in tasksLastComments));
+  if(!missing.length||tasksLastCommentsLoading)return;
+  tasksLastCommentsLoading=true;
+  missing.forEach(id=>{tasksLastComments[id]=undefined;});
+  try{
+    for(const part of chunkList(missing,100)){
+      const rows=await fetchAllRows(`lead_activities?lead_id=in.(${part.map(x=>'"'+x+'"').join(',')})&type=eq.comment&select=lead_id,text,date&order=date.desc,id.desc`,{timeoutMs:15000});
+      part.forEach(id=>{tasksLastComments[id]=rows.find(r=>String(r.lead_id)===id)||false;});
+    }
+  }catch(e){missing.forEach(id=>{if(tasksLastComments[id]===undefined)tasksLastComments[id]=false;});}
+  tasksLastCommentsLoading=false;
+  if(currentView==='tasks')renderTasksView();
+}
+function d3CommentHtml(l){
+  const c=lastCommentFor(l);
+  if(c===undefined)return `<div class="cm e">…</div>`;
+  if(!c)return `<div class="cm e">Noch kein Kommentar</div>`;
+  const d=String(c.date).slice(0,10);
+  return `<div class="cm" title="${esc(c.text)}"><b>${d.slice(8,10)}.${d.slice(5,7)}.</b>${esc(c.text)}</div>`;
+}
+function d3PhoneHtml(l){
+  return l.phone?`<a class="ph" href="tel:${esc(String(l.phone).replace(/[^\d+]/g,''))}" onclick="event.stopPropagation()" title="Anrufen"><i class="ti ti-phone"></i>${esc(l.phone)}</a>`:`<span style="color:var(--text3);font-size:12px">–</span>`;
+}
 function tasksTodayLayoutHtml(withFollowup,q){
   // Variante B (Okt. 2026): ein Kasten ueber die volle Breite - oben "Offen, ohne feste Uhrzeit",
   // darunter "Termine" nach Uhrzeit mit Jetzt-Linie. Darunter Zugewiesene Aufgaben + Vorschau.
@@ -4795,7 +4852,8 @@ function tasksTodayLayoutHtml(withFollowup,q){
     var box=`<div class="today-box done"><div class="today-hd"><i class="ti ti-circle-check"></i> Alles erledigt für heute<span class="n">0</span></div><div style="font-size:12px;color:#0b5e45;margin-top:6px">Keine offenen Wiedervorlagen und keine Termine mehr für heute.</div></div>`;
   }else{
     const all=!!taskShowAll.queue;const shown=all?open:open.slice(0,5);
-    const openHtml=open.length?`<div class="day-list">${shown.map(it=>`<div class="d2" onclick="openLeadModal(${leadIdArg(it.l)})">${dot(it.l)}<div class="c"><b>${esc(it.l.company)}</b><small>${sub(it.l)}</small></div>${acts(it.l)}<span class="age" ${it.kind==='today'?'style="color:#8a5a0b"':''}>${it.kind==='overdue'?`seit ${it.days} T`:'heute'}</span></div>`).join('')}${open.length>5?`<div class="d2 more" onclick="taskShowAll.queue=!taskShowAll.queue;renderTasksView()">${all?'Weniger anzeigen':`+ ${open.length-5} weitere`}</div>`:''}</div>`
+    loadTasksLastComments([...shown.map(x=>String(x.l.id)),...appts.map(x=>String(x.l.id))]);
+    const openHtml=open.length?`<div class="day-list"><div class="d3-head" style="margin:0 -14px"><span>Fällig</span><span>Firma · Kontakt</span><span>Telefon</span><span>Letzter Kommentar</span><span></span></div>${shown.map(it=>`<div class="d3" onclick="openLeadModal(${leadIdArg(it.l)})"><span class="f ${it.kind==='today'?'h':''}">${it.kind==='overdue'?`seit ${it.days} T`:'heute'}</span><div class="c">${dot(it.l)}<div><b>${esc(it.l.company)}</b><small>${sub(it.l)}</small></div></div>${d3PhoneHtml(it.l)}${d3CommentHtml(it.l)}${acts(it.l)}</div>`).join('')}${open.length>5?`<div class="d2 more" onclick="taskShowAll.queue=!taskShowAll.queue;renderTasksView()">${all?'Weniger anzeigen':`+ ${open.length-5} weitere`}</div>`:''}</div>`
       :`<div class="day-list"><div class="d2 more" style="cursor:default">Nichts offen ohne Uhrzeit.</div></div>`;
     let apptHtml='';let lineDone=false;let nextDone=false;
     appts.forEach(x=>{
@@ -4804,13 +4862,13 @@ function tasksTodayLayoutHtml(withFollowup,q){
       const isNext=!missed&&!nextDone&&lineDone;if(isNext)nextDone=true;
       const inMin=x.p.min-nowMin;
       const note=missed?'verpasst':running?'läuft gerade':(isNext?(inMin<60?`in ${inMin} Min`:`in ${Math.floor(inMin/60)} Std${inMin%60?' '+(inMin%60)+' Min':''}`):'');
-      apptHtml+=`<div class="d2 ${missed?'miss':''} ${isNext?'next':''}" onclick="openLeadModal(${leadIdArg(x.l)})"><span class="tm">${x.p.time}</span>${dot(x.l)}<div class="c"><b>${esc(x.l.company)}</b><small>${[note,sub(x.l)].filter(Boolean).join(' · ')}</small></div>${acts(x.l)}</div>`;
+      apptHtml+=`<div class="d3 ${missed?'miss':''} ${isNext?'next':''}" onclick="openLeadModal(${leadIdArg(x.l)})"><span class="f tm">${x.p.time}</span><div class="c">${dot(x.l)}<div><b>${esc(x.l.company)}</b><small>${[note,sub(x.l)].filter(Boolean).join(' · ')}</small></div></div>${d3PhoneHtml(x.l)}${d3CommentHtml(x.l)}${acts(x.l)}</div>`;
     });
     if(appts.length&&!lineDone)apptHtml+=`<div class="now-line">jetzt ${calFmt(nowMin)}</div>`;
     var box=`<div class="today-box">
       <div class="today-hd"><i class="ti ti-list-check"></i> Heute zu erledigen<span class="n">${open.length} offen · ${appts.length} ${appts.length===1?'Termin':'Termine'}</span>${total?`<button class="today-go" style="margin-left:12px" onclick="startWorkMode()"><i class="ti ti-player-play"></i> Jetzt abarbeiten${missedN?` (${total})`:''}</button>`:''}</div>
       <div class="day-sub">Offen, ohne feste Uhrzeit</div>${openHtml}
-      <div class="day-sub t">Termine</div>${appts.length?`<div class="day-list">${apptHtml}</div>`:`<div class="day-list"><div class="d2 more" style="cursor:default">Keine Termine mit Uhrzeit · <a href="#" onclick="event.preventDefault();switchView('calendar')" style="color:#206A72;font-weight:600;margin-left:4px">Im Kalender planen</a></div></div>`}
+      <div class="day-sub t">Termine</div>${appts.length?`<div class="day-list"><div class="d3-head t" style="margin:0 -14px"><span>Uhrzeit</span><span>Firma · Kontakt</span><span>Telefon</span><span>Letzter Kommentar</span><span></span></div>${apptHtml}</div>`:`<div class="day-list"><div class="d2 more" style="cursor:default">Keine Termine mit Uhrzeit · <a href="#" onclick="event.preventDefault();switchView('calendar')" style="color:#206A72;font-weight:600;margin-left:4px">Im Kalender planen</a></div></div>`}
     </div>`;
   }
   // Vorschau naechste 3 Arbeitstage als eine Zeile
