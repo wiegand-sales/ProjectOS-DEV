@@ -1186,7 +1186,7 @@ let localSettingsTrusted=false;
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-10-22T10:15:00.000Z';
+const BUILD_VERSION='2026-10-22T11:00:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -3031,6 +3031,7 @@ async function loadCalTasks(force){
   }catch(e){calTasksError=true;}
   calTasksLoadedAt=Date.now();calTasksLoading=false;
   if(currentView==='calendar')renderCalendar();
+  if(currentView==='tasks')renderTasksView();
 }
 // Sichtbare Tage der aktuellen Ansicht (Woche: Mo-Fr, Monat: alle Werktage des Monats)
 function calVisibleDates(){
@@ -4932,7 +4933,7 @@ function tasksHeroHtml(withFollowup,history,q){
   // 3) Termine heute
   const scope=leads.filter(l=>!isClosedLead(l)&&(agent==='all'||(l.members||[]).includes(agent))&&(activeTasksBoardFilter==='all'||leadBoardPart(l)===activeTasksBoardFilter));
   const timed=scope.map(l=>({l,p:calParse(l.followup)})).filter(x=>x.p);
-  const todayT=timed.filter(x=>x.p.date===TODAY).sort((a,b)=>a.p.min-b.p.min);
+  const todayT=timed.filter(x=>x.p.date===TODAY).concat(calTasksForDay(agent,TODAY).map(x=>({l:{company:x.t.title},p:x.p}))).sort((a,b)=>a.p.min-b.p.min);
   const nowMin=new Date().getHours()*60+new Date().getMinutes();
   const next=todayT.find(x=>x.p.min>=nowMin);
   const untimed=scope.filter(l=>l.followup&&!calParse(l.followup)&&String(l.followup).slice(0,10)===TODAY).length;
@@ -4984,6 +4985,22 @@ function assignedOpenCount(q){
 // Termine MIT Uhrzeit stehen in der Zeitleiste "Termine heute" - verstreicht einer ungenutzt
 // (Start + 25 Min.), rutscht er als "Termin HH:MM verpasst" in die Liste.
 // Termine mit Uhrzeit sind immer bewusste Verabredungen - sie zaehlen auch ohne Erstkontakt.
+// Heutige eigene Kalender-Aufgaben (inkl. Serien) fuer "Meine Aufgaben", Banner, Assistent, Erinnerung
+function calTasksForDay(owner,ds){
+  return calTasks.filter(t=>!t.deleted&&(owner==='all'||t.owner===owner)&&calTaskOccursOn(t,ds)).map(t=>{
+    const lead=t.lead_id?leads.find(l=>String(l.id)===String(t.lead_id)):null;
+    return{t,lead,p:{date:ds,min:calParseTime(t.start_time),time:t.start_time,end:t.end_time,dur:Math.max(15,calParseTime(t.end_time)-calParseTime(t.start_time))}};
+  }).sort((a,b)=>a.p.min-b.p.min);
+}
+function tasksTodayCalTasks(){
+  loadCalTasks();
+  const q=((document.getElementById('tasksSearch')||{}).value||'').toLowerCase().trim();const pk=phoneQueryKeys(q);
+  return calTasksForDay(activeTasksAgentFilter,TODAY).filter(x=>{
+    if(activeTasksBoardFilter!=='all'&&x.lead&&leadBoardPart(x.lead)!==activeTasksBoardFilter)return false;
+    if(q&&!((x.t.title||'').toLowerCase().includes(q)||(x.lead&&leadMatchesSearch(x.lead,q,pk))))return false;
+    return true;
+  });
+}
 function tasksTodayAppts(){
   return tasksBaseFollowups(true).map(l=>({l,p:calParse(l.followup)})).filter(x=>x.p&&x.p.date===TODAY).sort((a,b)=>a.p.min-b.p.min);
 }
@@ -5051,32 +5068,40 @@ function tasksTodayLayoutHtml(withFollowup,q){
   const missedN=queue.length-open.length;
   const now=new Date();const nowMin=now.getHours()*60+now.getMinutes();
   const appts=tasksTodayAppts();
+  const calT=tasksTodayCalTasks();
   const colName=l=>{const c=colById(l.status);return c?c.name:'';};
   const dot=l=>`<span class="dot" style="background:${leadBoardPart(l)==='akquise'?'#0e6870':'#ba7517'}" title="${BOARD_PARTS[leadBoardPart(l)]}"></span>`;
   const acts=l=>`<span class="act" onclick="event.stopPropagation()"><button class="q-btn" onclick="quickNotReached(${leadIdArg(l)})" title="Nicht erreicht: Kommentar + FollowUp in ${PROJECT.notReachedFollowupDays!==undefined?PROJECT.notReachedFollowupDays:6} Arbeitstagen"><i class="ti ti-phone-off"></i></button><button class="q-btn" onclick="quickReschedule(${leadIdArg(l)},1)" title="Nächster Arbeitstag">+1T</button><button class="q-btn" onclick="openCalApptForLead(${leadIdArg(l)})" title="Termin planen"><i class="ti ti-calendar-plus"></i></button></span>`;
   const sub=l=>esc([colName(l),l.contact].filter(Boolean).join(' · '));
   const total=queue.length;
-  if(!total&&!appts.length){
+  if(!total&&!appts.length&&!calT.length){
     var box=`<div class="today-box done"><div class="today-hd"><i class="ti ti-circle-check"></i> Alles erledigt für heute<span class="n">0</span></div><div style="font-size:12px;color:#0b5e45;margin-top:6px">Keine offenen FollowUps und keine Termine mehr für heute.</div></div>`;
   }else{
     const all=!!taskShowAll.queue;const shown=all?open:open.slice(0,5);
-    loadTasksLastComments([...shown.map(x=>String(x.l.id)),...appts.map(x=>String(x.l.id))]);
+    loadTasksLastComments([...shown.map(x=>String(x.l.id)),...appts.map(x=>String(x.l.id)),...calT.filter(x=>x.lead).map(x=>String(x.lead.id))]);
     const openHtml=open.length?`<div class="day-list"><div class="d3-head" style="margin:0 -14px"><span>Fällig</span><span>Firma · Kontakt</span><span>Telefon</span><span>Letzter Kommentar</span><span></span></div>${shown.map(it=>`<div class="d3" onclick="openLeadModal(${leadIdArg(it.l)})"><span class="f ${it.kind==='today'?'h':''}">${it.kind==='overdue'?`seit ${it.days} T`:'heute'}</span><div class="c">${dot(it.l)}<div><b>${esc(it.l.company)}</b><small>${sub(it.l)}</small></div></div>${d3PhoneHtml(it.l)}${d3CommentHtml(it.l)}${acts(it.l)}</div>`).join('')}${open.length>5?`<div class="d2 more" onclick="taskShowAll.queue=!taskShowAll.queue;renderTasksView()">${all?'Weniger anzeigen':`+ ${open.length-5} weitere`}</div>`:''}</div>`
       :`<div class="day-list"><div class="d2 more" style="cursor:default">Nichts offen ohne Uhrzeit.</div></div>`;
     let apptHtml='';let lineDone=false;let nextDone=false;
-    appts.forEach(x=>{
-      const missed=x.p.min+CAL_DUR<nowMin;const running=!missed&&x.p.min<=nowMin;
-      if(!lineDone&&x.p.min+CAL_DUR>=nowMin){apptHtml+=`<div class="now-line">jetzt ${calFmt(nowMin)}</div>`;lineDone=true;}
-      const isNext=!missed&&!nextDone&&lineDone;if(isNext)nextDone=true;
+    const dayItems=[...appts.map(x=>Object.assign({kind:'lead',dur:CAL_DUR},x)),...calT.map(x=>Object.assign({kind:'task',dur:x.p.dur},x))].sort((a,b)=>a.p.min-b.p.min);
+    dayItems.forEach(x=>{
+      const isTask=x.kind==='task';
+      const missed=!isTask&&x.p.min+CAL_DUR<nowMin;const over=isTask&&x.p.min+x.dur<nowMin;const running=!missed&&!over&&x.p.min<=nowMin;
+      if(!lineDone&&x.p.min+x.dur>=nowMin){apptHtml+=`<div class="now-line">jetzt ${calFmt(nowMin)}</div>`;lineDone=true;}
+      const isNext=!missed&&!over&&!nextDone&&lineDone;if(isNext)nextDone=true;
       const inMin=x.p.min-nowMin;
       const note=missed?'verpasst':running?'läuft gerade':(isNext?(inMin<60?`in ${inMin} Min`:`in ${Math.floor(inMin/60)} Std${inMin%60?' '+(inMin%60)+' Min':''}`):'');
+      if(isTask){
+        const L=x.lead;
+        apptHtml+=`<div class="d3 ${isNext?'next':''}" style="${over?'opacity:.55':''}" onclick="openCalTaskEdit('${esc(x.t.id)}','${TODAY}')"><span class="f tm" style="color:#534ab7">${x.p.time}</span><div class="c"><span class="dot" style="background:#534ab7" title="Aufgabe"></span><div><b>${esc(x.t.title)}</b><small>${[note,'Aufgabe bis '+x.p.end,L?L.company:''].filter(Boolean).map(esc).join(' · ')}</small></div></div>${L?d3PhoneHtml(L):'<span style="color:var(--text3);font-size:12px">–</span>'}${L?d3CommentHtml(L):(x.t.note?`<div class="cm" title="${esc(x.t.note)}">${esc(x.t.note)}</div>`:'<div class="cm e">–</div>')}<span></span></div>`;
+        return;
+      }
       apptHtml+=`<div class="d3 ${missed?'miss':''} ${isNext?'next':''}" onclick="openLeadModal(${leadIdArg(x.l)})"><span class="f tm">${x.p.time}</span><div class="c">${dot(x.l)}<div><b>${esc(x.l.company)}</b><small>${[note,sub(x.l)].filter(Boolean).join(' · ')}</small></div></div>${d3PhoneHtml(x.l)}${d3CommentHtml(x.l)}${acts(x.l)}</div>`;
     });
-    if(appts.length&&!lineDone)apptHtml+=`<div class="now-line">jetzt ${calFmt(nowMin)}</div>`;
+    if(dayItems.length&&!lineDone)apptHtml+=`<div class="now-line">jetzt ${calFmt(nowMin)}</div>`;
     var box=`<div class="today-box">
-      <div class="today-hd"><i class="ti ti-list-check"></i> Meine Aufgaben<span class="n">${open.length} offen · ${appts.length} ${appts.length===1?'Termin':'Termine'}</span>${total?`<button class="today-go" style="margin-left:12px" onclick="startWorkMode()"><i class="ti ti-player-play"></i> Jetzt abarbeiten${missedN?` (${total})`:''}</button>`:''}</div>
+      <div class="today-hd"><i class="ti ti-list-check"></i> Meine Aufgaben<span class="n">${open.length} offen · ${appts.length+calT.length} ${appts.length+calT.length===1?'Termin':'Termine'}</span>${total?`<button class="today-go" style="margin-left:12px" onclick="startWorkMode()"><i class="ti ti-player-play"></i> Jetzt abarbeiten${missedN?` (${total})`:''}</button>`:''}</div>
       <div class="day-sub">Offen, ohne feste Uhrzeit</div>${openHtml}
-      <div class="day-sub t">Termine</div>${appts.length?`<div class="day-list"><div class="d3-head t" style="margin:0 -14px"><span>Uhrzeit</span><span>Firma · Kontakt</span><span>Telefon</span><span>Letzter Kommentar</span><span></span></div>${apptHtml}</div>`:`<div class="day-list"><div class="d2 more" style="cursor:default">Keine Termine mit Uhrzeit · <a href="#" onclick="event.preventDefault();switchView('calendar')" style="color:#206A72;font-weight:600;margin-left:4px">Im Kalender planen</a></div></div>`}
+      <div class="day-sub t">Termine</div>${(appts.length+calT.length)?`<div class="day-list"><div class="d3-head t" style="margin:0 -14px"><span>Uhrzeit</span><span>Firma · Kontakt</span><span>Telefon</span><span>Letzter Kommentar</span><span></span></div>${apptHtml}</div>`:`<div class="day-list"><div class="d2 more" style="cursor:default">Keine Termine mit Uhrzeit · <a href="#" onclick="event.preventDefault();switchView('calendar')" style="color:#206A72;font-weight:600;margin-left:4px">Im Kalender planen</a></div></div>`}
     </div>`;
   }
   // Naechste 3 Arbeitstage - gleicher Aufbau wie "Heute zu erledigen" (Tabelle je Tag)
@@ -9727,22 +9752,24 @@ function apptRemindedSave(m){try{const cut=Date.now()-2*86400000;Object.keys(m).
 function dueApptReminders(nowDate){
   const now=nowDate||new Date();const today=calYmd(now);const nowMin=now.getHours()*60+now.getMinutes()+now.getSeconds()/60;
   const done=apptRemindedLoad();
-  return leads.filter(l=>!isClosedLead(l)&&(l.members||[]).includes(currentUser)).map(l=>({l,p:calParse(l.followup)}))
-    .filter(x=>x.p&&x.p.date===today&&x.p.min-nowMin>0&&x.p.min-nowMin<=APPT_REMIND_MIN&&!done[String(x.l.id)+'|'+x.l.followup])
-    .sort((a,b)=>a.p.min-b.p.min);
+  const leadsDue=leads.filter(l=>!isClosedLead(l)&&(l.members||[]).includes(currentUser)).map(l=>({l,p:calParse(l.followup),key:String(l.id)+'|'+l.followup}))
+    .filter(x=>x.p&&x.p.date===today&&x.p.min-nowMin>0&&x.p.min-nowMin<=APPT_REMIND_MIN&&!done[x.key]);
+  const tasksDue=calTasksForDay(currentUser,today).map(x=>Object.assign(x,{key:'task|'+x.t.id+'|'+today+'|'+x.t.start_time}))
+    .filter(x=>x.p.min-nowMin>0&&x.p.min-nowMin<=APPT_REMIND_MIN&&!done[x.key]);
+  return leadsDue.concat(tasksDue).sort((a,b)=>a.p.min-b.p.min);
 }
 function checkApptReminders(nowDate){
   if(!currentUser||!leads.length)return;
   const due=dueApptReminders(nowDate);
   if(!due.length)return;
-  const m=apptRemindedLoad();due.forEach(x=>{m[String(x.l.id)+'|'+x.l.followup]=Date.now();});apptRemindedSave(m);
+  const m=apptRemindedLoad();due.forEach(x=>{m[x.key]=Date.now();});apptRemindedSave(m);
   const body=document.getElementById('apptReminderBody');if(!body)return;
   const now=nowDate||new Date();const nowMin=now.getHours()*60+now.getMinutes();
   const idArg=l=>typeof l.id==='number'?l.id:JSON.stringify(String(l.id)).replace(/"/g,'&quot;');
   body.innerHTML=`<div class="wizard-icon"><i class="ti ti-bell-ringing"></i></div>
     <div class="wizard-title">${due.length===1?`Termin in ${Math.max(1,Math.round(due[0].p.min-nowMin))} Minuten`:`${due.length} Termine in Kürze`}</div>
-    ${due.map(x=>{const c=colById(x.l.status);return wizardRow(`<span style="color:#9fe1cb;margin-right:8px">${x.p.time}</span>${esc(x.l.company)}`,esc([x.l.contact,x.l.phone,c?c.name:''].filter(Boolean).join(' · ')),'<i class="ti ti-arrow-right"></i>',`closeApptReminder();openLeadModal(${idArg(x.l)})`);}).join('')}
-    <div class="wizard-sub">Klick öffnet den Lead.</div>`;
+    ${due.map(x=>{if(x.t)return wizardRow(`<span style="color:#c9c4ff;margin-right:8px">${x.p.time}</span>${esc(x.t.title)}`,esc(['Aufgabe bis '+x.p.end,x.lead?x.lead.company:''].filter(Boolean).join(' · ')),'<i class="ti ti-arrow-right"></i>',`closeApptReminder();switchView('calendar');openCalTaskEdit('${esc(x.t.id)}','${x.p.date}')`);const c=colById(x.l.status);return wizardRow(`<span style="color:#9fe1cb;margin-right:8px">${x.p.time}</span>${esc(x.l.company)}`,esc([x.l.contact,x.l.phone,c?c.name:''].filter(Boolean).join(' · ')),'<i class="ti ti-arrow-right"></i>',`closeApptReminder();openLeadModal(${idArg(x.l)})`);}).join('')}
+    <div class="wizard-sub">Klick öffnet den Eintrag.</div>`;
   document.getElementById('apptReminderOverlay').classList.remove('hidden');
 }
 function closeApptReminder(){document.getElementById('apptReminderOverlay').classList.add('hidden');}
@@ -9781,12 +9808,13 @@ function renderAmWizardPage(body){
         :'<div class="wizard-sub">Alles im grünen Bereich – aktuell keine überfälligen Follow-ups.</div>'}`;
   }else if(pageKey==='today'){
     const today=TODAY;
-    const timed=scope.map(l=>({l,p:calParse(l.followup)})).filter(x=>x.p&&x.p.date===today).sort((a,b)=>a.p.min-b.p.min);
+    loadCalTasks();
+    const timed=scope.map(l=>({l,p:calParse(l.followup)})).filter(x=>x.p&&x.p.date===today).concat(calTasksForDay(currentUser,today)).sort((a,b)=>a.p.min-b.p.min);
     const untimed=scope.filter(l=>l.followup&&!calParse(l.followup)&&(l.followup||'').slice(0,10)===today).length;
     body.innerHTML=`
       <div class="wizard-icon"><i class="ti ti-calendar-time"></i></div>
       <div class="wizard-title" style="margin-bottom:8px">Heute geplant${timed.length?` · ${timed.length} ${timed.length===1?'Termin':'Termine'}`:''}</div>
-      ${timed.length?timed.slice(0,6).map(x=>wizardRow(`<span style="color:#9fe1cb;margin-right:8px">${x.p.time}</span>${esc(x.l.company)}`,esc(colName(x.l)),'',`wizardOpenLead(${idArg(x.l)})`)).join('')+(timed.length>6?`<div class="wizard-sub">+${timed.length-6} weitere im Kalender</div>`:'')
+      ${timed.length?timed.slice(0,6).map(x=>x.t?wizardRow(`<span style="color:#c9c4ff;margin-right:8px">${x.p.time}</span>${esc(x.t.title)}`,esc('Aufgabe bis '+x.p.end),'',`closeLoginWizard();switchView('calendar');openCalTaskEdit('${esc(x.t.id)}','${today}')`):wizardRow(`<span style="color:#9fe1cb;margin-right:8px">${x.p.time}</span>${esc(x.l.company)}`,esc(colName(x.l)),'',`wizardOpenLead(${idArg(x.l)})`)).join('')+(timed.length>6?`<div class="wizard-sub">+${timed.length-6} weitere im Kalender</div>`:'')
         :'<div class="wizard-sub">Für heute sind noch keine Termine mit Uhrzeit geplant.</div>'}
       ${untimed?`<button class="wizard-next-btn" style="margin-top:6px;background:transparent;color:#fff;border:1px solid rgba(255,255,255,.4)" onclick="wizardJumpToPlanning()">${untimed} ${untimed===1?'FollowUp':'FollowUps'} noch ohne Uhrzeit <i class="ti ti-arrow-right"></i></button>`:''}`;
   }else if(pageKey==='yesterday'){
