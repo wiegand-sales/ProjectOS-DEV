@@ -204,6 +204,13 @@ body{font-family:'Inter',sans-serif;background:linear-gradient(155deg,#f2f3f0 0%
 .d3.miss .f,.d3.miss .c b{color:#a32d2d}
 .d3.next{background:#e3f0f0;margin:0 -14px;padding:9px 14px;border-radius:8px}
 @media (max-width:1100px){.d3-head,.d3{grid-template-columns:70px minmax(0,1fr) 130px minmax(0,1fr) 60px}}
+.next-box{background:#eef6f6;border:1px solid #c4dede;border-radius:14px;padding:14px 16px;margin:14px 0 22px}
+.next-box .today-hd{color:#174c52}
+.next-box .day-sub{color:#206A72;display:flex;align-items:center}
+.next-box .day-sub span{margin-left:auto;font-weight:600;letter-spacing:0;text-transform:none;color:var(--text3)}
+.next-box .d3{border-top-color:#e1eded}
+.next-box .d3-head{color:#206A72}
+.d3 .f.nt{color:var(--text3);font-weight:600}
 .board-part-hint{flex:0 0 260px;align-self:flex-start;border:1.5px dashed var(--purple-dark);border-radius:var(--r-md);padding:16px;background:var(--purple-bg);font-size:13px;color:var(--purple-dark);display:flex;flex-direction:column;gap:10px;}
 .board-part-hint button{align-self:flex-start;}
 .nav-icon-badge{width:36px;height:36px;border-radius:9px;background:linear-gradient(180deg,#27808a 0%,#206A72 100%);box-shadow:0 6px 16px rgba(32,106,114,.3);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
@@ -1149,7 +1156,7 @@ let localSettingsTrusted=false;
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-10-21T21:15:00.000Z';
+const BUILD_VERSION='2026-10-21T21:45:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -4871,12 +4878,26 @@ function tasksTodayLayoutHtml(withFollowup,q){
       <div class="day-sub t">Termine</div>${appts.length?`<div class="day-list"><div class="d3-head t" style="margin:0 -14px"><span>Uhrzeit</span><span>Firma · Kontakt</span><span>Telefon</span><span>Letzter Kommentar</span><span></span></div>${apptHtml}</div>`:`<div class="day-list"><div class="d2 more" style="cursor:default">Keine Termine mit Uhrzeit · <a href="#" onclick="event.preventDefault();switchView('calendar')" style="color:#206A72;font-weight:600;margin-left:4px">Im Kalender planen</a></div></div>`}
     </div>`;
   }
-  // Vorschau naechste 3 Arbeitstage als eine Zeile
+  // Naechste 3 Arbeitstage - gleicher Aufbau wie "Heute zu erledigen" (Tabelle je Tag)
   const tmr=(()=>{const d=new Date(TODAY+'T00:00:00');d.setDate(d.getDate()+1);return calYmd(d);})();
   const days=heroWorkdays(3,tmr,true);const wdN=['So','Mo','Di','Mi','Do','Fr','Sa'];
-  const pv=`<div class="pv-line"><b>Nächste 3 Tage</b>${days.map(d=>{const list=withFollowup.filter(l=>String(l.followup).slice(0,10)===d);const first=list.map(l=>({l,p:calParse(l.followup)})).filter(x=>x.p).sort((a,b)=>a.p.min-b.p.min)[0];
-      const dd=new Date(d+'T00:00:00');const lab=wdN[dd.getDay()]+' '+String(dd.getDate()).padStart(2,'0')+'.'+String(dd.getMonth()+1).padStart(2,'0')+'.';
-      return `<span class="it" ${first?`onclick="openLeadModal(${leadIdArg(first.l)})"`:''}>${lab} · ${list.length?`${list.length} ${list.length===1?'Wiedervorlage':'Wiedervorlagen'}${first?`, erster Termin <span>${first.p.time}</span>`:''}`:'nichts geplant'}</span>`;}).join('')}</div>`;
+  const timedAll=tasksBaseFollowups(true).map(l=>({l,p:calParse(l.followup)})).filter(x=>x.p);
+  let nextTotal=0;const nextIds=[];
+  const dayBlocks=days.map(d=>{
+    const timed=timedAll.filter(x=>x.p.date===d).sort((a,b)=>a.p.min-b.p.min);
+    const untimed=withFollowup.filter(l=>!calParse(l.followup)&&String(l.followup).slice(0,10)===d).sort((a,b)=>String(a.company).localeCompare(String(b.company)));
+    const items=[...timed.map(x=>({l:x.l,time:x.p.time})),...untimed.map(l=>({l,time:null}))];
+    nextTotal+=items.length;
+    const key='nd_'+d;const allD=!!taskShowAll[key];const shownD=allD?items:items.slice(0,5);
+    shownD.forEach(it=>nextIds.push(String(it.l.id)));
+    const dd=new Date(d+'T00:00:00');const lab=(d===tmr?'Morgen · ':'')+wdN[dd.getDay()]+' '+String(dd.getDate()).padStart(2,'0')+'.'+String(dd.getMonth()+1).padStart(2,'0')+'.';
+    const nT=timed.length,nU=untimed.length;
+    const head=`<div class="day-sub">${lab}<span>${items.length?[nT?`${nT} ${nT===1?'Termin':'Termine'}`:'',nU?`${nU} ohne Uhrzeit`:''].filter(Boolean).join(' · '):'nichts geplant'}</span></div>`;
+    if(!items.length)return head;
+    return head+`<div class="day-list"><div class="d3-head" style="margin:0 -14px"><span>Uhrzeit</span><span>Firma · Kontakt</span><span>Telefon</span><span>Letzter Kommentar</span><span></span></div>${shownD.map(it=>`<div class="d3" onclick="openLeadModal(${leadIdArg(it.l)})"><span class="f ${it.time?'tm':'nt'}">${it.time||'ohne Zeit'}</span><div class="c">${dot(it.l)}<div><b>${esc(it.l.company)}</b><small>${sub(it.l)}</small></div></div>${d3PhoneHtml(it.l)}${d3CommentHtml(it.l)}${acts(it.l)}</div>`).join('')}${items.length>5?`<div class="d2 more" onclick="taskShowAll['${key}']=!taskShowAll['${key}'];renderTasksView()">${allD?'Weniger anzeigen':`+ ${items.length-5} weitere`}</div>`:''}</div>`;
+  }).join('');
+  loadTasksLastComments(nextIds);
+  const pv=`<div class="next-box"><div class="today-hd"><i class="ti ti-calendar-week"></i> Nächste 3 Tage<span class="n">${nextTotal} ${nextTotal===1?'Wiedervorlage':'Wiedervorlagen'}</span></div>${dayBlocks}</div>`;
   return `${box}<div style="margin-top:14px">${assignedTasksHtml(q)}</div>${pv}`;
 }
 // ── Abarbeiten-Modus: geht "Heute zu erledigen" Lead fuer Lead durch ──
