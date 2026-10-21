@@ -9207,7 +9207,7 @@ async function bootstrapApp(){
     sbInitialSyncDone=true;
   }
   pendingLoginWizard=false;
-  maybeShowDailyWizard(); // Assistent: einmal taeglich ab 09:00 Uhr (nicht mehr nur nach Passwort-Anmeldung)
+  maybeDailyWizard(); // einmal taeglich ab 09:00 Uhr (statt nur nach Passwort-Anmeldung)
   setTimeout(()=>{sbPoll();window.__sbPollInterval=setInterval(sbPoll,5000);},Math.random()*5000);
   window.__versionCheckInterval=setInterval(checkForNewVersion,60000);
   window.__autoBackupInterval=setInterval(maybeRunClientAutoBackup,60000);
@@ -9487,28 +9487,10 @@ function wizardPageCount(){
   const me=agentById(currentUser);
   return(me&&me.role==='am')?amWizardPages().length:6;
 }
-// ── Taeglicher Assistent (Okt. 2026) ──
-// Erscheint einmal pro Tag und Person ab 09:00 Uhr: ist das Board um 9 Uhr offen, genau dann,
-// sonst beim ersten Oeffnen danach. Ist gerade ein Fenster offen, wartet er bis es geschlossen ist.
-const DAILY_WIZARD_HOUR=9;
-function dailyWizardKey(){return 'projectos_wizard_shown_'+(currentUser||'');}
-function maybeShowDailyWizard(nowDate){
-  if(!currentUser||!agentById(currentUser))return false;
-  const now=nowDate||new Date();
-  if(now.getHours()<DAILY_WIZARD_HOUR)return false;
-  const today=calYmd(now);
-  try{if(localStorage.getItem(dailyWizardKey())===today)return false;}catch(e){}
-  const busy=[...document.querySelectorAll('.modal-overlay,.wizard-overlay')].some(el=>!el.classList.contains('hidden'));
-  if(busy)return false;
-  openLoginWizard();
-  return true;
-}
-setInterval(()=>{try{maybeShowDailyWizard();}catch(e){}},30000);
 function openLoginWizard(){
   const me=agentById(currentUser);
   if(!me)return;
   wizardPage=0;
-  try{localStorage.setItem(dailyWizardKey(),calYmd(new Date()));}catch(e){}
   if(me.role==='am')loadWizardYesterday();
   renderWizardPage();
   document.getElementById('loginWizardOverlay').classList.remove('hidden');
@@ -9724,6 +9706,24 @@ function continueOffline(){
   showApp(true);
 }
 let pendingLoginWizard=false;
+// Taeglicher Assistent (Okt. 2026): einmal pro Tag und Person ab 09:00 Uhr - beim ersten Oeffnen
+// nach 9 Uhr oder punkt 9, wenn das Board schon offen ist. Wartet, solange ein anderes Fenster offen ist.
+const WIZARD_HOUR=9;
+function maybeDailyWizard(){
+  try{
+    if(!currentUser||!agentById(currentUser))return;
+    const now=new Date();
+    if(now.getHours()<WIZARD_HOUR)return;
+    const key='projectos_wizard_day_'+currentUser,today=calYmd(now);
+    if(localStorage.getItem(key)===today)return;
+    const ls=document.getElementById('loginScreen');if(ls&&!ls.classList.contains('hidden'))return;
+    const busy=[...document.querySelectorAll('.modal-overlay,.wizard-overlay')].some(o=>!o.classList.contains('hidden'));
+    if(busy)return; // naechster Versuch in einer Minute
+    localStorage.setItem(key,today);
+    openLoginWizard();
+  }catch(e){}
+}
+setInterval(()=>{try{maybeDailyWizard();}catch(e){}},60000);
 function showApp(isFreshLogin){
   document.getElementById('loginScreen').classList.add('hidden');
   document.querySelector('.app-shell').classList.remove('hidden');
@@ -9732,7 +9732,7 @@ function showApp(isFreshLogin){
     if(isFreshLogin)pendingLoginWizard=true;
     bootstrapApp();
   }else if(isFreshLogin){
-    maybeShowDailyWizard();
+    maybeDailyWizard();
   }
   if(isFreshLogin){
     setTimeout(()=>{
