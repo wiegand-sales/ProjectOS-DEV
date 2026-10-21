@@ -1191,7 +1191,7 @@ let localSettingsTrusted=false;
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-10-22T12:30:00.000Z';
+const BUILD_VERSION='2026-10-22T13:00:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -3139,7 +3139,7 @@ async function calMoveTask(id,dateStr,startMin,occDate){
   const chkDate=rp==='none'?newDate:(occDate&&rp==='weekly'?dateStr:(occDate||newDate));
   if(!calConfirmConflicts(calConflicts(t.owner,chkDate,st,en,{taskId:t.id}))){renderCalendar();return;}
   Object.assign(t,{date:newDate,start_time:calFmt(st),end_time:calFmt(en),updated_at:nowISO()});renderCalendar();
-  try{await calTaskWrite('PATCH',{id:t.id,date:t.date,start_time:t.start_time,end_time:t.end_time,updated_at:t.updated_at});}
+  try{await calTaskWrite('PATCH',{id:t.id,date:t.date,start_time:t.start_time,end_time:t.end_time,updated_at:t.updated_at});syncLeadTaskFromCal(t);}
   catch(e){Object.assign(t,old);renderCalendar();alert('Die Aufgabe konnte nicht verschoben werden. Bitte später erneut versuchen.');}
 }
 // Ende ziehen: untere Kante einer Aufgabe in der Wochenansicht, Raster 15 Min.
@@ -3164,7 +3164,7 @@ async function calResizeApply(id,endMin){
   if(calFmt(en)===t.end_time){renderCalendar();return;}
   if(en>calParseTime(t.end_time)&&!calConfirmConflicts(calConflicts(t.owner,String(t.date).slice(0,10),calParseTime(t.end_time),en,{taskId:t.id}))){renderCalendar();return;}
   const old=t.end_time;t.end_time=calFmt(en);t.updated_at=nowISO();renderCalendar();
-  try{await calTaskWrite('PATCH',{id:t.id,end_time:t.end_time,updated_at:t.updated_at});}
+  try{await calTaskWrite('PATCH',{id:t.id,end_time:t.end_time,updated_at:t.updated_at});syncLeadTaskFromCal(t);}
   catch(err){t.end_time=old;renderCalendar();alert('Die neue Endzeit konnte nicht gespeichert werden.');}
 }
 function calTaskTimes(){const o=[];for(let m=CAL_DAY_START*60;m<=CAL_DAY_END*60;m+=15)o.push(calFmt(m));return o;}
@@ -3189,6 +3189,14 @@ async function saveCalTask(){
     const out=await calTaskWrite(a.taskId?'PATCH':'POST',rec);
     const saved=(Array.isArray(out)&&out[0])||rec;
     const i=calTasks.findIndex(x=>x.id===rec.id);if(i>=0)calTasks[i]=Object.assign(calTasks[i],saved);else calTasks.push(saved);
+    const ev=calTasks.find(x=>x.id===rec.id);
+    if(a.taskId)syncLeadTaskFromCal(ev);
+    else if(rec.lead_id&&rp==='none'){
+      // neue Kalender-Aufgabe mit Lead: erscheint auch in dessen Aufgabenliste
+      const l=leads.find(x=>String(x.id)===String(rec.lead_id));
+      if(l){if(!Array.isArray(l.tasks))l.tasks=[];l.tasks.push({id:genId(),text:rec.title,dueDate:rec.date,done:false,createdBy:currentUser,createdAt:nowISO(),assigneeId:rec.owner,calEventId:rec.id,calDate:rec.date,calStart:rec.start_time,calEnd:rec.end_time});
+        const ac={id:Date.now()+Math.random(),type:'activity',author:currentUser,text:`Aufgabe hinzugefügt (Kalender): ${rec.title}`,date:nowISO()};if(!Array.isArray(l.activity))l.activity=[];l.activity.unshift(ac);pushActivityToDb(l.id,ac);saveState();}
+    }
   }catch(e){a.err='Speichern fehlgeschlagen. Bitte prüfen, ob die Tabelle für Kalender-Aufgaben eingerichtet ist, und erneut versuchen.';renderCalAppt();return false;}
   closeModal('calApptModal');calAppt=null;renderCalendar();
   return true;
@@ -3207,6 +3215,7 @@ async function deleteCalTask(scope){
   if(!confirm(series?'Die ganze Serie aus dem Kalender löschen?':'Diese Aufgabe aus dem Kalender löschen?'))return;
   try{await calTaskWrite('PATCH',{id:a.taskId,deleted:true,updated_at:nowISO()});}
   catch(e){a.err='Löschen fehlgeschlagen. Bitte erneut versuchen.';renderCalAppt();return;}
+  const gone=calTasks.find(x=>x.id===a.taskId);if(gone)syncLeadTaskFromCal(gone,true);
   calTasks=calTasks.filter(x=>x.id!==a.taskId);closeModal('calApptModal');calAppt=null;renderCalendar();
 }
 function calApptResults(){
@@ -5398,6 +5407,7 @@ function toggleAssignedTask(leadId,taskId){
   const l=leads.find(x=>x.id===leadId);
   const t=l&&l.tasks.find(x=>x.id===taskId);
   if(t)t.done=!t.done;
+  if(t&&t.calEventId){const ce=calTasks.find(x=>x.id===t.calEventId);if(ce)ce.deleted=t.done;taskCalWrite('PATCH',{id:t.calEventId,deleted:t.done,updated_at:nowISO()});}
   saveState();
   renderTasksView();
 }
@@ -7247,13 +7257,15 @@ function renderLeadModal(){
         <input type="checkbox" ${t.done?'checked':''} onchange="toggleTask(${t.id})" style="margin-top:3px;flex-shrink:0">
         <div style="flex:1;min-width:0">
           <span class="check-item-text ${t.done?'done':''}" style="font-size:13px">${esc(t.text)}</span>
-          ${(dueBadge||assigneeBadge)?`<div style="margin-top:4px;display:flex;gap:6px;flex-wrap:wrap">${assigneeBadge}${dueBadge}</div>`:''}
+          ${(dueBadge||assigneeBadge||t.calDate)?`<div style="margin-top:4px;display:flex;gap:6px;flex-wrap:wrap">${assigneeBadge}${t.calDate?taskCalChipHtml(t):dueBadge}</div>`:''}
         </div>
         <button class="icon-btn icon-btn-danger" onclick="deleteTask(${t.id})" title="Löschen"><i class="ti ti-trash"></i></button>
       </div>
     </div>`;
   }).join('')||`<div class="activity-item" style="padding-left:0">Noch keine Aufgaben.</div>`;
   const openTaskCount=(draftLead.tasks||[]).filter(t=>!t.done).length;
+  const leadSeries=calTasks.filter(e=>!e.deleted&&e.repeat&&e.repeat!=='none'&&String(e.lead_id)===String(draftLead.id));
+  const seriesHtml=leadSeries.length?`<div style="margin-top:8px">${leadSeries.map(e=>`<div class="activity-item" style="padding-left:0;display:flex;gap:6px;align-items:center;cursor:pointer" onclick="closeModal('leadModal');switchView('calendar')"><i class="ti ti-repeat" style="color:#534ab7"></i><span><b>${esc(e.title)}</b> · Serie im Kalender (${e.repeat==='daily'?'täglich':'wöchentlich'} ${esc(e.start_time)}–${esc(e.end_time)})</span></div>`).join('')}</div>`:'';
 
   const forecastComputedNow=draftLead.demandPrinters.reduce((sum,p)=>sum+p.skus.reduce((s,x)=>s+(parseFloat(x.priceVk)||0)*(parseFloat(x.qty)||0),0),0);
   const actualComputedNow=draftLead.actualPrinters.reduce((sum,p)=>sum+p.skus.reduce((s,x)=>s+(parseFloat(x.priceVk)||0)*(parseFloat(x.qty)||0),0),0);
@@ -7324,8 +7336,9 @@ function renderLeadModal(){
           <div id="taskMentionPopoverContainer">${renderTaskMentionPopoverHtml()}</div>
         </div>
         <div id="taskFormError" style="display:none;color:var(--red);font-size:11px;margin-bottom:6px"></div>
+        ${taskCalFormHtml()}
         <div class="field-row-2" style="margin-bottom:0;align-items:end">
-          <div><label>Frist</label><input type="date" id="newTaskDue" style="width:100%"></div>
+          <div style="${draftTaskCal&&draftTaskCal.on?'visibility:hidden':''}"><label>Frist</label><input type="date" id="newTaskDue" style="width:100%"></div>
           <div><label style="visibility:hidden">Aktion</label>
             <button class="btn btn-petrol-muted" style="width:100%;justify-content:center" onclick="addTask()"><i class="ti ti-plus"></i> Aufgabe erstellen</button>
           </div>
@@ -7334,7 +7347,7 @@ function renderLeadModal(){
 
       <div class="info-section">
         <div class="section-hdr" style="margin-top:0">${openTaskCount?`${openTaskCount} offene Aufgabe(n)`:'Keine offenen Aufgaben'}</div>
-        ${tasksHtml}
+        ${tasksHtml}${seriesHtml}
       </div>
     </div>`;
   }else if(rightTab==='files'){
@@ -8033,6 +8046,51 @@ function selectTaskMention(agentId){
   const ta2=document.getElementById('newTaskText');
   if(ta2&&newCaret!==null){ta2.focus();ta2.selectionStart=ta2.selectionEnd=newCaret;}
 }
+// ── Lead-Aufgabe mit Zeit im Kalender (Okt. 2026) ──
+// Eine Aufgabe, zwei Ansichten: die Lead-Aufgabe ist das Original (Haken, @Person, Frist), der
+// Kalender-Eintrag in calendar_events wird mitgefuehrt (task.calEventId). Abhaken blendet ihn aus.
+let draftTaskCal=null; // {on,date,start,end}
+function taskCalToggle(on){
+  if(!draftTaskCal)draftTaskCal={on:false,date:TODAY,start:'09:00',end:'10:00'};
+  draftTaskCal.on=on;renderLeadModal();
+}
+function taskCalSet(k,v){
+  if(!draftTaskCal)return;draftTaskCal[k]=v;
+  if(k==='start'&&calParseTime(draftTaskCal.end)<=calParseTime(v))draftTaskCal.end=calFmt(Math.min(CAL_DAY_END*60,calParseTime(v)+60));
+  if(k!=='date')renderLeadModal();
+}
+function taskCalFormHtml(){
+  const c=draftTaskCal||{on:false,date:TODAY,start:'09:00',end:'10:00'};const times=calTaskTimes();
+  return `<label style="display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600;margin:4px 0 8px;cursor:pointer"><input type="checkbox" ${c.on?'checked':''} onchange="taskCalToggle(this.checked)"><i class="ti ti-calendar-event" style="color:#534ab7"></i> Zeit im Kalender blocken</label>
+  ${c.on?`<div class="field-row-3" style="display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:8px;margin-bottom:10px">
+    <div><label>Datum</label><input type="date" value="${c.date}" onchange="taskCalSet('date',this.value)" style="width:100%"></div>
+    <div><label>Beginn</label><select onchange="taskCalSet('start',this.value)" style="width:100%">${times.slice(0,-1).map(t=>`<option ${t===c.start?'selected':''}>${t}</option>`).join('')}</select></div>
+    <div><label>Ende</label><select onchange="taskCalSet('end',this.value)" style="width:100%">${times.filter(t=>calParseTime(t)>calParseTime(c.start)).map(t=>`<option ${t===c.end?'selected':''}>${t}</option>`).join('')}</select></div>
+  </div>`:''}`;
+}
+function taskCalChipHtml(t){
+  if(!t.calDate)return '';
+  const d=new Date(t.calDate+'T00:00:00');const wd=['So','Mo','Di','Mi','Do','Fr','Sa'][d.getDay()];
+  return `<span class="due-badge" style="background:#eeedfe;color:#3c3489"><i class="ti ti-calendar-event" style="font-size:11px"></i>${wd} ${fmtDate(t.calDate).slice(0,6)} · ${esc(t.calStart)}–${esc(t.calEnd)}</span>`;
+}
+async function taskCalWrite(method,rec){try{await calTaskWrite(method,rec);return true;}catch(e){alert('Der Kalender-Eintrag konnte nicht gespeichert werden. Die Aufgabe ist im Lead gespeichert – bitte später erneut versuchen.');return false;}}
+// Kalender -> Lead: Aenderung eines Kalender-Eintrags in die verknuepfte Lead-Aufgabe uebernehmen
+function syncLeadTaskFromCal(ev,remove){
+  if(!ev||!ev.lead_id)return;
+  const l=leads.find(x=>String(x.id)===String(ev.lead_id));if(!l)return;
+  const t=(l.tasks||[]).find(x=>x.calEventId===ev.id);if(!t)return;
+  if(remove){
+    l.tasks=l.tasks.filter(x=>x!==t);
+    const a={id:Date.now()+Math.random(),type:'activity',author:currentUser,text:`Aufgabe entfernt (Kalender): ${t.text}`,date:nowISO()};if(!Array.isArray(l.activity))l.activity=[];l.activity.unshift(a);pushActivityToDb(l.id,a);
+  }else{
+    const moved=t.calDate!==String(ev.date).slice(0,10)||t.calStart!==ev.start_time||t.calEnd!==ev.end_time;
+    t.calDate=String(ev.date).slice(0,10);t.calStart=ev.start_time;t.calEnd=ev.end_time;t.dueDate=t.calDate;
+    if(ev.title&&ev.title!==t.text)t.text=ev.title;
+    if(moved){const a={id:Date.now()+Math.random(),type:'activity',author:currentUser,text:`Aufgabe im Kalender verschoben: ${t.text} → ${fmtDate(t.calDate)} ${t.calStart}–${t.calEnd}`,date:nowISO()};if(!Array.isArray(l.activity))l.activity=[];l.activity.unshift(a);pushActivityToDb(l.id,a);}
+  }
+  if(draftLead&&String(draftLead.id)===String(l.id)){const dt=(draftLead.tasks||[]).find(x=>x.calEventId===ev.id);if(dt){if(remove)draftLead.tasks=draftLead.tasks.filter(x=>x!==dt);else Object.assign(dt,{calDate:t.calDate,calStart:t.calStart,calEnd:t.calEnd,dueDate:t.dueDate,text:t.text});}}
+  saveState();
+}
 function addTask(){
   const textEl=document.getElementById('newTaskText');
   const dueEl=document.getElementById('newTaskDue');
@@ -8045,7 +8103,18 @@ function addTask(){
     return;
   }
   clearTaskFormError();
-  draftLead.tasks.push({id:genId(),text,dueDate:dueEl.value,done:false,createdBy:currentUser,createdAt:nowISO(),assigneeId:pendingTaskAssigneeId||null});
+  const cal=draftTaskCal&&draftTaskCal.on?draftTaskCal:null;
+  if(cal&&(!/^\d{4}-\d{2}-\d{2}$/.test(cal.date||'')||calParseTime(cal.end)<=calParseTime(cal.start))){
+    const errEl=document.getElementById('taskFormError');if(errEl){errEl.style.display='block';errEl.textContent='Bitte Datum sowie Beginn und Ende (Ende nach Beginn) für den Kalender wählen.';}return;
+  }
+  const newTask={id:genId(),text,dueDate:cal?cal.date:dueEl.value,done:false,createdBy:currentUser,createdAt:nowISO(),assigneeId:pendingTaskAssigneeId||null};
+  if(cal){
+    newTask.calDate=cal.date;newTask.calStart=cal.start;newTask.calEnd=cal.end;newTask.calEventId='lt'+Date.now()+Math.random().toString(36).slice(2,6);
+    const rec={id:newTask.calEventId,owner:newTask.assigneeId||currentUser,title:text,date:cal.date,start_time:cal.start,end_time:cal.end,lead_id:String(editingLeadId||draftLead.id),note:null,repeat:'none',created_by:currentUser,updated_at:nowISO()};
+    taskCalWrite('POST',rec).then(okk=>{if(okk){calTasks=calTasks.filter(x=>x.id!==rec.id);calTasks.push(Object.assign({deleted:false},rec));}});
+    draftTaskCal={on:false,date:TODAY,start:'09:00',end:'10:00'};
+  }
+  draftLead.tasks.push(newTask);
   const _act3={id:Date.now()+Math.random(),type:'activity',author:currentUser,text:`Aufgabe hinzugefügt: ${text}`,date:nowISO()};draftLead.activity.unshift(_act3);pushActivityToDb(editingLeadId||draftLead.id,_act3);
   textEl.value='';
   dueEl.value='';
@@ -8059,6 +8128,7 @@ function toggleTask(id){
   const t=draftLead.tasks.find(x=>x.id===id);
   if(t){
     t.done=!t.done;
+    if(t.calEventId){const ce=calTasks.find(x=>x.id===t.calEventId);if(ce)ce.deleted=t.done;taskCalWrite('PATCH',{id:t.calEventId,deleted:t.done,updated_at:nowISO()});}
     const _act4={id:Date.now()+Math.random(),type:'activity',author:currentUser,text:`Aufgabe ${t.done?'erledigt':'wieder geöffnet'}: ${t.text}`,date:nowISO()};draftLead.activity.unshift(_act4);pushActivityToDb(editingLeadId||draftLead.id,_act4);
   }
   autoPersistIfEditing();
@@ -8066,6 +8136,7 @@ function toggleTask(id){
 }
 function deleteTask(id){
   const t=draftLead.tasks.find(x=>x.id===id);
+  if(t&&t.calEventId){calTasks=calTasks.filter(x=>x.id!==t.calEventId);taskCalWrite('PATCH',{id:t.calEventId,deleted:true,updated_at:nowISO()});}
   draftLead.tasks=draftLead.tasks.filter(x=>x.id!==id);
   if(t){const _act5={id:Date.now()+Math.random(),type:'activity',author:currentUser,text:`Aufgabe entfernt: ${t.text}`,date:nowISO()};draftLead.activity.unshift(_act5);pushActivityToDb(editingLeadId||draftLead.id,_act5);}
   autoPersistIfEditing();
