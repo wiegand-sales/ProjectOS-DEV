@@ -400,6 +400,7 @@ table.vt col.c1{width:34%}table.vt col.c2,table.vt col.c3{width:16%}table.vt col
 .ts-card.t3 .t3-left{grid-column:2;grid-row:2;justify-content:flex-start}
 .ts-card.t3 .t3-skus{grid-column:3;grid-row:2;display:flex;gap:6px;justify-content:flex-end;align-items:center;flex-wrap:wrap}
 .ts-card.t3 .ts-qty{font-size:13px}
+.left-coll-body{margin-top:2px}
 .kd-coll-hdr{width:100%;display:flex;align-items:center;gap:8px;border:0;background:transparent;padding:0;cursor:pointer;font-family:inherit;text-align:left}
 .kd-coll-hdr .ttl{font:inherit;color:inherit;letter-spacing:inherit;text-transform:inherit}
 .kd-coll-hdr .sum{margin-left:auto;font-size:11px;font-weight:500;text-transform:none;letter-spacing:0;color:#66767b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:60%}
@@ -1363,7 +1364,7 @@ let localSettingsTrusted=false;
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-10-22T20:00:00.000Z';
+const BUILD_VERSION='2026-10-22T20:15:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -3698,7 +3699,7 @@ function leadTonerSentDate(lead){
   return a?String(a.date).slice(0,10):'';
 }
 function leadScrollToCustomer(){
-  if(!leadKundeOpen){leadKundeOpen=true;renderLeadModal();}
+  if(!leftOpen.kunde){leftOpen.kunde=true;try{localStorage.setItem('projectos_left_open',JSON.stringify(leftOpen));}catch(e){}renderLeadModal();}
   const el=document.getElementById('fCustomerNumber');if(!el)return;
   try{el.scrollIntoView({behavior:'smooth',block:'center'});}catch(e){}
   const sec=el.closest('.info-section');if(sec){sec.style.boxShadow='0 0 0 3px rgba(32,106,114,.35)';setTimeout(()=>{sec.style.boxShadow='';},1400);}
@@ -3787,7 +3788,17 @@ function renderLeadStageBar(lead,opts){
 }
 // ── Lead-Status (Okt. 2026): Symbol-Felder, Verlaeufe als Tabellen, Schnellknoepfe ──
 let leadStatusOpen={fu:false,lw:false};
-let leadKundeOpen=false;
+// Linke Seite: jeder Bereich zuklappbar, Zustand je Benutzer gemerkt
+let leftOpen=(()=>{const d={status:true,toner:true,top:true,kunde:false};try{return Object.assign(d,JSON.parse(localStorage.getItem('projectos_left_open')||'{}'));}catch(e){return d;}})();
+function toggleLeftColl(k){leftOpen[k]=!leftOpen[k];try{localStorage.setItem('projectos_left_open',JSON.stringify(leftOpen));}catch(e){}renderLeadModal();}
+function leftCollHdr(k,title,sum){
+  return `<button type="button" class="kd-coll-hdr section-hdr ${leftOpen[k]?'open':''}" onclick="toggleLeftColl('${k}')" aria-expanded="${leftOpen[k]}" style="${leftOpen[k]?'':'margin-bottom:0'}"><span class="ttl">${title}</span><span class="sum">${esc(sum||'')}</span><i class="ti ti-chevron-down" style="margin-left:8px"></i></button>`;
+}
+function leadStatusSummary(){
+  const col=colById(draftLead.status);const parts=[col?col.name:''];
+  if(draftLead.followup&&!(col&&(col.outcome==='won'||col.outcome==='lost'))){const d=String(draftLead.followup).slice(0,10);const p=calParse(draftLead.followup);const wd=['So','Mo','Di','Mi','Do','Fr','Sa'][new Date(d+'T00:00:00').getDay()];parts.push(`FollowUp ${wd} ${fmtDate(d).slice(0,6)}${p?' '+p.time:''}`);}
+  return parts.filter(Boolean).join(' · ');
+}
 function toggleStatusColl(k){leadStatusOpen[k]=!leadStatusOpen[k];renderLeadModal();}
 function statusSymbolField(kind,popoverHtml){
   const isM=kind==='members';
@@ -7797,7 +7808,8 @@ function renderLeadModal(){
     <div class="modal-grid" ${modalReadOnly?'style="pointer-events:none;user-select:none;opacity:.7"':''}>
       <div class="modal-left">
         <div class="info-section" style="${(memberPopoverOpen||labelPopoverOpen)?'position:relative;z-index:50':''}">
-          <div class="section-hdr">Lead-Status</div>
+          ${leftCollHdr('status','Lead-Status',leadStatusSummary())}
+          <div ${leftOpen.status?'':'hidden'} class="left-coll-body">
           <div class="field" style="margin-bottom:12px">
             <label>Notiz</label>
             <textarea placeholder="Interne Notiz…" oninput="draftLead.notes=this.value" style="min-height:58px">${esc(draftLead.notes)}</textarea>
@@ -7868,26 +7880,25 @@ function renderLeadModal(){
             </div>
           </div>
           ${statusHistoryBlocks(draftLead)}
+          </div>
         </div>
 
         <div class="info-section">
-          <div class="section-hdr">
-            <span>Toner zusenden</span>
-            <span style="font-size:11px;font-weight:500;color:var(--text3);text-transform:none;letter-spacing:0">${draftLead.shipPrinter.skus.filter(x=>x.sku).length} von 4 Artikeln</span>
-          </div>
+          ${leftCollHdr('toner','Toner zusenden',`${draftLead.shipPrinter.skus.filter(x=>x.sku).length} von 4 Artikeln`)}
+          <div ${leftOpen.toner?'':'hidden'} class="left-coll-body">
           ${shipPrinterHtml}
+          </div>
         </div>
 
         <div class="info-section">
-          <div class="section-hdr">
-            <span>Gekaufte Artikel</span>
-            <span style="font-size:11px;font-weight:500;color:var(--text3);text-transform:none;letter-spacing:0">${draftLead.topArticles.filter(topFilled).length} von 3 Artikeln</span>
-          </div>
+          ${leftCollHdr('top','Gekaufte Artikel',`${draftLead.topArticles.filter(topFilled).length} von 3 Artikeln`)}
+          <div ${leftOpen.top?'':'hidden'} class="left-coll-body">
           ${top3Html()}
+          </div>
         </div>
         <div class="info-section" style="margin-bottom:0">
-          <button type="button" class="kd-coll-hdr section-hdr ${leadKundeOpen?'open':''}" onclick="leadKundeOpen=!leadKundeOpen;renderLeadModal()" aria-expanded="${leadKundeOpen}" style="margin-bottom:0"><span class="ttl">Kundeninformationen</span><span class="sum">${esc([draftLead.contact,draftLead.customerNumber?'Kd-Nr. '+draftLead.customerNumber:'',String(draftLead.address||'').split(',').pop().trim()].filter(Boolean).join(' · '))}</span><i class="ti ti-chevron-down" style="margin-left:8px"></i></button>
-          <div id="kdBody" ${leadKundeOpen?'':'hidden'} style="margin-top:12px">
+          <button type="button" class="kd-coll-hdr section-hdr ${leftOpen.kunde?'open':''}" onclick="toggleLeftColl('kunde')" aria-expanded="${leftOpen.kunde}" style="margin-bottom:0"><span class="ttl">Kundeninformationen</span><span class="sum">${esc([draftLead.contact,draftLead.customerNumber?'Kd-Nr. '+draftLead.customerNumber:'',String(draftLead.address||'').split(',').pop().trim()].filter(Boolean).join(' · '))}</span><i class="ti ti-chevron-down" style="margin-left:8px"></i></button>
+          <div id="kdBody" ${leftOpen.kunde?'':'hidden'} style="margin-top:12px">
           <div class="field-row-2">
             <div><label>Kundennummer</label><input type="text" inputmode="numeric" placeholder="z. B. 10234" value="${esc(draftLead.customerNumber)}" oninput="draftLead.customerNumber=this.value;clearModalError()" style="width:100%" id="fCustomerNumber"></div>
             <div><label>Art</label>
