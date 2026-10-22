@@ -439,6 +439,11 @@ button.ts-pill.fc-vk.mod::after{content:"";position:absolute;top:-3px;right:-3px
 .kd-coll-hdr .sum{margin-left:auto;font-size:11px;font-weight:500;text-transform:none;letter-spacing:0;color:#66767b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:60%}
 .kd-coll-hdr i{color:#66767b;transition:transform .15s}
 .kd-coll-hdr.open i{transform:rotate(180deg)}
+.lbl-row{position:relative}
+.lbl-grip{cursor:grab;color:var(--text3);display:inline-flex;align-items:center;margin-right:2px}
+.lbl-row.lbl-dragging{opacity:.45}
+.lbl-row.lbl-drop-before{box-shadow:inset 0 2px 0 #206A72}
+.lbl-row.lbl-drop-after{box-shadow:inset 0 -2px 0 #206A72}
 .board-part-hint{flex:0 0 260px;align-self:flex-start;border:1.5px dashed var(--purple-dark);border-radius:var(--r-md);padding:16px;background:var(--purple-bg);font-size:13px;color:var(--purple-dark);display:flex;flex-direction:column;gap:10px;}
 .board-part-hint button{align-self:flex-start;}
 .nav-icon-badge{width:36px;height:36px;border-radius:9px;background:linear-gradient(180deg,#27808a 0%,#206A72 100%);box-shadow:0 6px 16px rgba(32,106,114,.3);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
@@ -1405,7 +1410,7 @@ let localSettingsTrusted=false;
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-10-22T23:45:00.000Z';
+const BUILD_VERSION='2026-10-23T08:00:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -3662,6 +3667,27 @@ function requireAdmin(actionLabel){
 }
 function roleLabel(r){return r==='admin'?'Admin':r==='am'?'Account Manager':'Sales Agent';}
 function labelById(id){return LABELS.find(l=>l.id===id);}
+// Reihenfolge der Labels = Reihenfolge in den Einstellungen (Okt. 2026)
+function orderedLabelIds(ids){const pos=id=>{const i=LABELS.findIndex(x=>x.id===id);return i<0?1e9:i;};return (ids||[]).filter(id=>labelById(id)).slice().sort((a,b)=>pos(a)-pos(b));}
+let labelDragId=null;
+function moveLabel(id,delta){
+  const i=LABELS.findIndex(x=>x.id===id),j=i+delta;
+  if(i<0||j<0||j>=LABELS.length)return;
+  const [lb]=LABELS.splice(i,1);LABELS.splice(j,0,lb);
+  saveState();refreshLabelUi();
+}
+function labelDragStart(e,id){labelDragId=id;try{e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',id);}catch(x){}const r=e.target.closest('.settings-row');if(r)r.classList.add('lbl-dragging');}
+function labelDragOver(e,id){if(!labelDragId||labelDragId===id)return;e.preventDefault();const r=e.currentTarget;const rect=r.getBoundingClientRect();const after=e.clientY>rect.top+rect.height/2;document.querySelectorAll('.lbl-drop-before,.lbl-drop-after').forEach(x=>x.classList.remove('lbl-drop-before','lbl-drop-after'));r.classList.add(after?'lbl-drop-after':'lbl-drop-before');}
+function labelDrop(e,id){
+  e.preventDefault();const r=e.currentTarget;const after=r.classList.contains('lbl-drop-after');
+  document.querySelectorAll('.lbl-drop-before,.lbl-drop-after,.lbl-dragging').forEach(x=>x.classList.remove('lbl-drop-before','lbl-drop-after','lbl-dragging'));
+  if(!labelDragId||labelDragId===id){labelDragId=null;return;}
+  const from=LABELS.findIndex(x=>x.id===labelDragId);if(from<0){labelDragId=null;return;}
+  const [lb]=LABELS.splice(from,1);let to=LABELS.findIndex(x=>x.id===id);if(after)to++;
+  LABELS.splice(to,0,lb);labelDragId=null;
+  saveState();refreshLabelUi();
+}
+function labelDragEnd(){labelDragId=null;document.querySelectorAll('.lbl-drop-before,.lbl-drop-after,.lbl-dragging').forEach(x=>x.classList.remove('lbl-drop-before','lbl-drop-after','lbl-dragging'));}
 function fmtDate(d){if(!d)return'';const p=d.split('T')[0].split('-');return`${p[2]}.${p[1]}.${p[0]}`;}
 const WEEKDAYS_DE=['So','Mo','Di','Mi','Do','Fr','Sa'];
 function fmtWeekday(d){if(!d)return'';return WEEKDAYS_DE[new Date(d).getDay()];}
@@ -3765,7 +3791,7 @@ function renderLeadBanner(){
   const dotColor=col?stageColor(col.name):'#888780';
   const phone=String(l.phone||'').trim(),mail=String(l.email||'').trim();
   // Labels (2 Plaetze)
-  const ids=(l.labelIds||[]).filter(id=>labelById(id));
+  const ids=orderedLabelIds(l.labelIds);
   const labSlot=i=>{
     if(i===1&&ids.length>2){const rest=ids.slice(1).map(id=>labelById(id).name).join(', ');return `<button type="button" class="lbn-lab" style="background:rgba(255,255,255,.18)" title="${esc(rest)}" onclick="leadScrollToCustomer()">+${ids.length-1} Labels</button>`;}
     const id=ids[i];
@@ -3864,7 +3890,7 @@ function statusSymbolField(kind,popoverHtml){
     const title=ags.map(a=>a.name).join(', ');
     return `<div class="sym-field"><button type="button" class="sym-box ${open?'open':''}" ${modalReadOnly?'disabled':''} onclick="event.stopPropagation();toggleMemberPopover()" title="${esc(title)}" aria-haspopup="listbox" aria-expanded="${open}">${inner}${chev}</button>${popoverHtml}</div>`;
   }
-  const lbs=(draftLead.labelIds||[]).map(id=>labelById(id)).filter(Boolean);
+  const lbs=orderedLabelIds(draftLead.labelIds).map(id=>labelById(id));
   inner=lbs.length?`<span class="sym-dots">${lbs.slice(0,6).map(lb=>`<i style="background:${lb.color}" title="${esc(lb.name)}"></i>`).join('')}</span><span class="sym-cnt">${lbs.length===1?esc(lbs[0].name):lbs.length+' Labels'}</span>`:'<span class="ph">Label wählen …</span>';
   return `<div class="sym-field"><button type="button" class="sym-box ${open?'open':''}" ${modalReadOnly?'disabled':''} onclick="event.stopPropagation();toggleLabelPopover()" title="${esc(lbs.map(x=>x.name).join(', '))}" aria-haspopup="listbox" aria-expanded="${open}">${inner}${chev}</button>${popoverHtml}</div>`;
 }
@@ -6528,9 +6554,13 @@ function renderSettings(){
       </div>`;
     }
     const useCount=leads.filter(l=>(l.labelIds||[]).includes(lb.id)).length;
-    return `<div class="settings-row">
+    const li=LABELS.indexOf(lb);
+    return `<div class="settings-row lbl-row" draggable="true" ondragstart="labelDragStart(event,'${lb.id}')" ondragover="labelDragOver(event,'${lb.id}')" ondrop="labelDrop(event,'${lb.id}')" ondragend="labelDragEnd()">
+      <span class="lbl-grip" title="Ziehen zum Sortieren" aria-hidden="true"><i class="ti ti-grip-vertical"></i></span>
       <span class="label-chip" style="background:${lb.color}">${esc(lb.name)}</span>
       <span style="flex:1;font-size:11px;color:var(--text2)">${useCount} Lead(s)</span>
+      <button class="check-item-del" onclick="moveLabel('${lb.id}',-1)" title="Nach oben" aria-label="${esc(lb.name)} nach oben" ${li===0?'disabled style="opacity:.3;cursor:default"':''}><i class="ti ti-chevron-up"></i></button>
+      <button class="check-item-del" onclick="moveLabel('${lb.id}',1)" title="Nach unten" aria-label="${esc(lb.name)} nach unten" ${li===LABELS.length-1?'disabled style="opacity:.3;cursor:default"':''}><i class="ti ti-chevron-down"></i></button>
       <button class="check-item-del" onclick="startEditLabelSettings('${lb.id}')" title="Umbenennen"><i class="ti ti-pencil"></i></button>
       <button class="check-item-del" onclick="deleteLabelGlobal('${lb.id}')" title="Löschen"><i class="ti ti-trash"></i></button>
     </div>`;
@@ -6650,7 +6680,7 @@ function renderSettings(){
         </div>
         <div class="info-section">
           <div class="section-hdr" style="margin-top:0">Labels</div>
-          <p style="font-size:11px;color:var(--text3);margin:-4px 0 8px">Werden auf Lead-Karten zur Kategorisierung genutzt.</p>
+          <p style="font-size:11px;color:var(--text3);margin:-4px 0 8px">Reihenfolge per Ziehen am Griff oder mit den Pfeilen ändern – so erscheinen sie auch auf den Leads. Werden auf Lead-Karten zur Kategorisierung genutzt.</p>
           ${labelsHtml}
           <p style="font-size:11px;color:var(--text3);margin-top:10px">Neue Labels legst du direkt in einer Lead-Karte an (Bereich "Labels").</p>
         </div>
@@ -6967,7 +6997,7 @@ function createAgent(){
 function startEditLabelSettings(id){editingLabelId=id;renderSettings();const el=document.getElementById('editLabelInput_'+id);if(el){el.focus();el.select();}}
 
 function cardHtml(l,isFirst,isLast){
-  const labelsHtml=(l.labelIds||[]).map(id=>{const lb=labelById(id);return lb?`<span class="label-chip" style="background:${lb.color}">${esc(lb.name)}</span>`:'';}).join('');
+  const labelsHtml=orderedLabelIds(l.labelIds).map(id=>{const lb=labelById(id);return lb?`<span class="label-chip" style="background:${lb.color}">${esc(lb.name)}</span>`:'';}).join('');
   const membersHtml=(l.members||[]).slice(0,4).map(id=>{const a=agentById(id);return a?`<div class="member-av" style="background:${COLOR_BG[a.color]};color:${COLOR_TEXT[a.color]}" title="${esc(a.name)}">${ini(a.name)}</div>`:'';}).join('');
   const checkTotal=(l.checklist||[]).length;
   const checkDone=(l.checklist||[]).filter(c=>c.done).length;
@@ -7568,7 +7598,7 @@ function renderLeadModal(){
   const checkDone=draftLead.checklist.filter(c=>c.done).length;
   const pct=checkTotal?Math.round(checkDone/checkTotal*100):0;
 
-  const labelChips=draftLead.labelIds.map(id=>{const lb=labelById(id);return lb?`<span class="label-chip" style="background:${lb.color}">${esc(lb.name)}</span>`:'';}).join('');
+  const labelChips=orderedLabelIds(draftLead.labelIds).map(id=>{const lb=labelById(id);return lb?`<span class="label-chip" style="background:${lb.color}">${esc(lb.name)}</span>`:'';}).join('');
   const memberChips=draftLead.members.map(id=>{
     const a=agentById(id);if(!a)return'';
     return `<span class="member-chip"><span class="member-av" style="position:static;margin:0;background:${COLOR_BG[a.color]};color:${COLOR_TEXT[a.color]}">${ini(a.name)}</span>${esc(a.name)}</span>`;
@@ -9646,7 +9676,7 @@ const FIELD_REGISTRY={
   firstContact:{label:'Datum Erstkontakt',group:'Lead-Status',importable:true,aliases:['datum erstkontakt','erstkontakt'],example:'2026-07-01',get:l=>l.firstContact,set:(l,v)=>l.firstContact=v},
   followup:{label:'Datum FollowUp',group:'Lead-Status',importable:true,aliases:['follow-up-datum','followup','follow-up','wiedervorlage','datum followup'],example:'2026-07-15',get:l=>l.followup,set:(l,v)=>l.followup=v},
   membersNames:{label:'Mitglieder',group:'Lead-Status',importable:false,get:l=>l.members.map(id=>agentById(id)?.name).filter(Boolean).join('; ')},
-  labelsNames:{label:'Labels',group:'Lead-Status',importable:false,get:l=>l.labelIds.map(id=>labelById(id)?.name).filter(Boolean).join('; ')},
+  labelsNames:{label:'Labels',group:'Lead-Status',importable:false,get:l=>orderedLabelIds(l.labelIds).map(id=>labelById(id)?.name).filter(Boolean).join('; ')},
   checklistItems:{label:'Checkliste',group:'Lead-Status',importable:false,get:l=>(l.checklist||[]).map(c=>`${c.done?'[x]':'[ ]'} ${c.text}`).join('; ')},
   commentCount:{label:'Anzahl Kommentare',group:'Lead-Status',importable:false,get:l=>(l.activity||[]).filter(a=>a.type==='comment').length},
   tasksOpen:{label:'Offene Aufgaben',group:'Lead-Status',importable:false,get:l=>(l.tasks||[]).filter(t=>!t.done).length},
