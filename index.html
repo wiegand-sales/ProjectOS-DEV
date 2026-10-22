@@ -407,6 +407,19 @@ table.vt tr:last-child td{border-bottom:0}
 table.vt .sq{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:7px}
 table.vt tr.hi td{font-weight:600}
 table.vt tr.hi td:first-child{color:#206A72}
+.hist-date{border:0;background:transparent;padding:0;font:inherit;color:inherit;cursor:pointer;border-bottom:1px dashed transparent}
+.hist-date:hover{border-bottom-color:currentColor;color:#206A72}
+.hist-date-in{height:26px!important;padding:0 4px!important;font-size:12px!important;width:100%;box-sizing:border-box}
+.hist-row td:last-child{position:relative}
+.hist-del{position:absolute;right:2px;top:50%;transform:translateY(-50%);border:0;background:var(--bg,#fff);color:var(--text3);padding:2px 4px;border-radius:5px;cursor:pointer;opacity:0}
+.hist-row:hover .hist-del,.hist-del:focus-visible{opacity:1}
+.hist-del:hover{color:var(--red)}
+.lw-add-link{border:0;background:transparent;color:#206A72;font-weight:600;font-size:12px;padding:6px 0 0;cursor:pointer;display:inline-flex;align-items:center;gap:4px;font-family:inherit}
+.lw-add{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:8px}
+.lw-add select{flex:1;min-width:140px;height:32px!important}
+.lw-add input{width:140px;height:32px!important}
+.lw-add .btn{height:32px}
+.lw-add-err{width:100%;font-size:11.5px;color:var(--red);min-height:14px}
 table.vt col.c1{width:34%}table.vt col.c2,table.vt col.c3{width:16%}table.vt col.c4{width:12%}table.vt col.c5{width:22%}
 .modal-left .section-hdr{color:#4b5b60}
 .modal-left label{color:#66767b;font-size:11.5px;font-weight:400;text-transform:none;letter-spacing:0}
@@ -1457,7 +1470,7 @@ let localSettingsTrusted=false;
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-10-23T11:00:00.000Z';
+const BUILD_VERSION='2026-10-23T12:00:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -3843,6 +3856,16 @@ function leadStageSegments(lead){
   const ch=(lead.activity||[]).map(a=>{const m=/^Status geändert: (.+?) → (.+?)(?: \(Liste gelöscht\))?$/.exec(a.text||'');return m?{from:m[1].trim(),to:m[2].trim(),date:String(a.date||''),by:a.author}:null;})
     .filter(x=>x&&x.date).sort((a,b)=>a.date.localeCompare(b.date));
   const cur=colById(lead.status);
+  // Admin-Korrekturen (stageEdits): bearbeitete Zeitraeume bis zum Bearbeitungszeitpunkt, danach echte Wechsel anhaengen
+  if(lead.stageEdits&&Array.isArray(lead.stageEdits.segs)&&lead.stageEdits.segs.length){
+    const at=String(lead.stageEdits.at||'');
+    const out=lead.stageEdits.segs.map(x=>({name:x.name,from:x.from,to:x.to||null,by:x.by||null}));
+    ch.filter(c=>c.date>at).forEach(c=>{const last=out[out.length-1];if(!last.to)last.to=c.date;out.push({name:c.to,from:c.date,to:null,by:c.by});});
+    const last=out[out.length-1];
+    if(last.to){out.push({name:cur?cur.name:last.name,from:last.to,to:null,by:null,current:true});}
+    else{last.current=true;if(cur)last.name=cur.name;}
+    return out;
+  }
   let start=String(lead.createdAt||'');
   if(!start||(ch[0]&&ch[0].date<start))start=ch[0]?ch[0].date:String(lead.statusSince||lead.firstContact||TODAY);
   const segs=[];let name=ch.length?ch[0].from:(cur?cur.name:'');let from=start,by=null;
@@ -3979,26 +4002,119 @@ function statusSymbolField(kind,popoverHtml){
 function followupHistoryRows(lead){
   const dd=(a,b)=>Math.round((new Date(String(b).slice(0,10)+'T00:00:00')-new Date(String(a).slice(0,10)+'T00:00:00'))/86400000);
   const rows=[];
-  if(lead.firstContact)rows.push({n:'Erstkontakt',v:lead.firstContact,set:'',c:'#888780'});
-  (lead.followupHistory||[]).forEach(h=>{if(!h||!h.date)return;const last=rows[rows.length-1];if(last&&String(last.v)===String(h.date))return;rows.push({n:'FollowUp',v:h.date,set:h.setAt||'',c:'#BA7517'});});
+  if(lead.firstContact)rows.push({n:'Erstkontakt',v:lead.firstContact,set:'',c:'#888780',src:'first'});
+  (lead.followupHistory||[]).forEach((h,hi)=>{if(!h||!h.date)return;const last=rows[rows.length-1];if(last&&String(last.v)===String(h.date))return;rows.push({n:'FollowUp',v:h.date,set:h.setAt||'',c:'#BA7517',src:'hist:'+hi});});
   const col=colById(lead.status);
-  if(col&&col.outcome==='lost'){const ld=String(lead.closedAt||lead.statusSince||'').slice(0,10);if(ld)rows.push({n:'Verloren',v:ld,set:'',c:'#E24B4A'});}
+  if(col&&col.outcome==='lost'){const ld=String(lead.closedAt||lead.statusSince||'').slice(0,10);if(ld)rows.push({n:'Verloren',v:ld,set:'',c:'#E24B4A',src:'lost'});}
   else if(lead.followup){
     const last=rows[rows.length-1];
-    if(!last||String(last.v)!==String(lead.followup))rows.push({n:'FollowUp',v:lead.followup,set:'',c:'#BA7517'});
-    const cur=rows[rows.length-1];if(String(cur.v).slice(0,10)>=TODAY){cur.n='Nächstes FollowUp';cur.c='#206A72';cur.hi=true;}
+    if(!last||String(last.v)!==String(lead.followup))rows.push({n:'FollowUp',v:lead.followup,set:'',c:'#BA7517',src:'cur'});
+    const cur=rows[rows.length-1];cur.isCur=true;if(String(cur.v).slice(0,10)>=TODAY){cur.n='Nächstes FollowUp';cur.c='#206A72';cur.hi=true;}
   }
   rows.forEach((r,i)=>{r.gap=i?dd(rows[i-1].v,r.v):null;});
   return rows;
 }
+// ── Admin: Daten im FollowUp-Verlauf und bei den Listenwechseln korrigieren (Okt. 2026) ──
+let histEdit=null,lwAddOpen=false;
+const hdDate=d=>String(d||'').slice(0,10);
+function histKeepTime(oldV,newDate){const t=String(oldV||'').includes('T')?String(oldV).split('T')[1]:'';return t&&/^\d{2}:\d{2}/.test(t)&&String(oldV).length<=16?`${newDate}T${t.slice(0,5)}`:newDate;}
+function histLog(text){if(!draftLead)return;const act={id:Date.now()+Math.random(),type:'activity',author:currentUser,text,date:nowISO()};draftLead.activity.unshift(act);pushActivityToDb(editingLeadId||draftLead.id,act);}
+function histStartEdit(key){if(!isAdmin()||modalReadOnly)return;histEdit=key;renderLeadModal();setTimeout(()=>{const i=document.getElementById('histEditInput');if(i){i.focus();try{i.showPicker&&i.showPicker();}catch(e){}}},0);}
+function histCancel(){histEdit=null;renderLeadModal();}
+function fuRowByKey(src){return followupHistoryRows(draftLead).find(r=>r.src===src);}
+function fuSetDate(src,newDate){
+  histEdit=null;if(!isAdmin()||!newDate){renderLeadModal();return;}
+  const row=fuRowByKey(src);if(!row){renderLeadModal();return;}
+  const old=row.v;const nv=histKeepTime(old,newDate);if(String(old)===String(nv)){renderLeadModal();return;}
+  if(src==='first')draftLead.firstContact=nv;
+  else if(src.startsWith('hist:')){const i=+src.slice(5);const h=draftLead.followupHistory[i];if(h){const wasCur=String(draftLead.followup)===String(h.date);h.date=nv;if(wasCur&&row.isCur)draftLead.followup=nv;}}
+  else if(src==='cur'){draftLead.followup=nv;}
+  histLog(`${row.n} korrigiert: ${fmtDate(hdDate(old))} → ${fmtDate(newDate)}`);
+  autoPersistIfEditing();renderLeadModal();
+}
+function fuDelete(src){
+  if(!isAdmin())return;const row=fuRowByKey(src);if(!row)return;
+  if(!confirm(`Eintrag „${row.n} ${fmtDate(hdDate(row.v))}“ aus dem FollowUp-Verlauf löschen?${row.isCur?'\n\nDas ist das aktuelle FollowUp – der Lead hat danach kein FollowUp mehr.':''}`))return;
+  if(src==='first')draftLead.firstContact='';
+  else if(src.startsWith('hist:')){const i=+src.slice(5);const h=draftLead.followupHistory[i];if(h&&row.isCur&&String(draftLead.followup)===String(h.date))draftLead.followup='';draftLead.followupHistory.splice(i,1);}
+  else if(src==='cur')draftLead.followup='';
+  histLog(`${row.n} ${fmtDate(hdDate(row.v))} aus dem FollowUp-Verlauf gelöscht`);
+  autoPersistIfEditing();renderLeadModal();
+}
+// Listenwechsel: bearbeitbare Fassung am Lead (echte Verlaufseintraege bleiben unveraendert)
+function lwSegs(){return leadStageSegments(draftLead).map(x=>({name:x.name,from:x.from,to:x.to||null,by:x.by||null}));}
+const lwIso=d=>`${d}T12:00:00.000Z`;
+function lwSave(segs,logText){
+  segs.sort((a,b)=>String(a.from).localeCompare(String(b.from)));
+  draftLead.stageEdits={segs,at:nowISO()};
+  if(logText)histLog(logText);
+  histEdit=null;lwAddOpen=false;autoPersistIfEditing();renderLeadModal();
+}
+function lwSetDate(i,which,newDate){
+  if(!isAdmin()||!newDate){histEdit=null;renderLeadModal();return;}
+  const segs=lwSegs();const sg=segs[i];if(!sg){histEdit=null;renderLeadModal();return;}
+  const old=which==='from'?sg.from:sg.to;
+  if(hdDate(old)===newDate){histEdit=null;renderLeadModal();return;}
+  const v=lwIso(newDate);
+  if(which==='from'){
+    if(sg.to&&newDate>hdDate(sg.to)){alert('„Von“ darf nicht nach „Bis“ liegen.');histEdit=null;renderLeadModal();return;}
+    if(i>0&&newDate<hdDate(segs[i-1].from)){alert(`„Von“ darf nicht vor dem Beginn der vorherigen Liste (${fmtDate(hdDate(segs[i-1].from))}) liegen.`);histEdit=null;renderLeadModal();return;}
+    sg.from=v;if(i>0)segs[i-1].to=v;
+  }else{
+    if(newDate<hdDate(sg.from)){alert('„Bis“ darf nicht vor „Von“ liegen.');histEdit=null;renderLeadModal();return;}
+    const nx=segs[i+1];if(nx&&nx.to&&newDate>hdDate(nx.to)){alert(`„Bis“ darf nicht nach dem Ende der nächsten Liste (${fmtDate(hdDate(nx.to))}) liegen.`);histEdit=null;renderLeadModal();return;}
+    if(newDate>TODAY){alert('„Bis“ darf nicht in der Zukunft liegen.');histEdit=null;renderLeadModal();return;}
+    sg.to=v;if(nx)nx.from=v;
+  }
+  lwSave(segs,`Listenwechsel korrigiert: ${sg.name} ${which==='from'?'Von':'Bis'} ${fmtDate(hdDate(old))} → ${fmtDate(newDate)}`);
+}
+function lwDelete(i){
+  if(!isAdmin())return;const segs=lwSegs();const sg=segs[i];if(!sg||segs.length<2||!sg.to)return;
+  if(!confirm(`Zeitraum „${sg.name}“ (${fmtDate(hdDate(sg.from))} – ${fmtDate(hdDate(sg.to))}) aus den Listenwechseln löschen?`))return;
+  if(i>0)segs[i-1].to=sg.to;else segs[1].from=sg.from;
+  segs.splice(i,1);
+  lwSave(segs,`Listenwechsel gelöscht: ${sg.name} (${fmtDate(hdDate(sg.from))} – ${fmtDate(hdDate(sg.to))})`);
+}
+function lwAdd(){
+  if(!isAdmin())return;
+  const n=(document.getElementById('lwAddName')||{}).value,f=(document.getElementById('lwAddFrom')||{}).value,t=(document.getElementById('lwAddTo')||{}).value;
+  const err=m=>{const e=document.getElementById('lwAddErr');if(e)e.textContent=m;};
+  if(!n||!f||!t)return err('Bitte Liste, Von und Bis wählen.');
+  if(t<f)return err('„Bis“ darf nicht vor „Von“ liegen.');
+  if(t>TODAY)return err('„Bis“ darf nicht in der Zukunft liegen.');
+  const F=lwIso(f),T=lwIso(t);let segs=lwSegs();
+  if(f<hdDate(segs[0].from))segs[0].from=T>segs[0].from?T:segs[0].from;
+  const out=[];
+  segs.forEach(sg=>{
+    const sf=sg.from,st=sg.to||'9999';
+    if(st<=F||sf>=T){out.push(sg);return;}                 // keine Ueberschneidung
+    if(sf<F)out.push(Object.assign({},sg,{to:F}));           // Teil davor bleibt
+    if(st>T)out.push(Object.assign({},sg,{from:T,to:sg.to}));// Teil danach bleibt
+  });
+  out.push({name:n,from:F,to:T,by:currentUser});
+  lwSave(out.filter(x=>!x.to||x.from<x.to||x.from===x.to&&false||x.to>x.from),`Listenwechsel ergänzt: ${n} (${fmtDate(f)} – ${fmtDate(t)})`);
+}
 function statusHistoryBlocks(lead){
   const cols='<colgroup><col class="c1"><col class="c2"><col class="c3"><col class="c4"><col class="c5"></colgroup>';
+  const adm=isAdmin()&&!modalReadOnly;
+  const dateCell=(key,v,onSave,editable)=>{
+    const d=hdDate(v);
+    if(adm&&editable&&histEdit===key)return `<input type="date" id="histEditInput" class="hist-date-in" value="${d}" onchange="${onSave}" onblur="setTimeout(()=>{if(histEdit==='${key}')histCancel();},150)" onkeydown="if(event.key==='Escape')histCancel()">`;
+    return adm&&editable?`<button type="button" class="hist-date" onclick="histStartEdit('${key}')" title="Datum ändern">${fmtDate(d)}</button>`:fmtDate(d);
+  };
+  const delBtn=(fn,t)=>adm?`<button type="button" class="hist-del" onclick="${fn}" title="${t}" aria-label="${t}"><i class="ti ti-trash"></i></button>`:'';
   const fr=followupHistoryRows(lead);
-  const fuTable=fr.length?`<table class="vt">${cols}<thead><tr><th>Ereignis</th><th>Datum</th><th>Uhrzeit</th><th>Abstand</th><th>Gesetzt am</th></tr></thead><tbody>${fr.map(r=>{const p=calParse(r.v);return `<tr class="${r.hi?'hi':''}"><td><span class="sq" style="background:${r.c}"></span>${esc(r.n)}</td><td>${fmtDate(String(r.v).slice(0,10))}</td><td>${p?p.time:'–'}</td><td>${r.gap===null?'–':r.gap+' '+(Math.abs(r.gap)===1?'Tag':'Tage')}</td><td>${r.set?fmtDate(String(r.set).slice(0,10)):'–'}</td></tr>`;}).join('')}</tbody></table>`
+  const fuTable=fr.length?`<table class="vt">${cols}<thead><tr><th>Ereignis</th><th>Datum</th><th>Uhrzeit</th><th>Abstand</th><th>Gesetzt am</th></tr></thead><tbody>${fr.map(r=>{const p=calParse(r.v);const ed=r.src!=='lost';return `<tr class="${r.hi?'hi':''} hist-row"><td><span class="sq" style="background:${r.c}"></span>${esc(r.n)}</td><td>${dateCell('fu|'+r.src,r.v,`fuSetDate('${r.src}',this.value)`,ed)}</td><td>${p?p.time:'–'}</td><td>${r.gap===null?'–':r.gap+' '+(Math.abs(r.gap)===1?'Tag':'Tage')}</td><td>${r.set?fmtDate(String(r.set).slice(0,10)):'–'}${ed?delBtn(`fuDelete('${r.src}')`,'Eintrag löschen'):''}</td></tr>`;}).join('')}</tbody></table>`
     :'<p style="font-size:12px;color:var(--text3);margin:8px 0 0">Noch kein Erstkontakt oder FollowUp erfasst.</p>';
   const segs=leadStageSegments(lead);const col=colById(lead.status);const closed=!!(col&&(col.outcome==='won'||col.outcome==='lost'));
   const dd=(a,b)=>Math.max(0,Math.round((new Date(String(b).slice(0,10)+'T00:00:00')-new Date(String(a).slice(0,10)+'T00:00:00'))/86400000));
-  const lwTable=`<table class="vt">${cols}<thead><tr><th>Liste</th><th>Von</th><th>Bis</th><th>Dauer</th><th>Verschoben von</th></tr></thead><tbody>${segs.map((x,i)=>{const isEnd=closed&&x.current;const d=dd(x.from,x.to||TODAY);const a=agentById(x.by);return `<tr class="${x.current?'hi':''}"><td><span class="sq" style="background:${isEnd?(col.outcome==='won'?'#1D9E75':'#E24B4A'):stageColor(x.name)}"></span>${esc(x.name)}</td><td>${fmtDate(String(x.from).slice(0,10))}</td><td>${isEnd?'–':(x.to?fmtDate(String(x.to).slice(0,10)):'heute')}</td><td>${isEnd?'–':d+' '+(d===1?'Tag':'Tage')}</td><td>${a?esc(a.name):(i===0?'Anlage':'–')}</td></tr>`;}).join('')}</tbody></table>`;
+  const lwRows=segs.map((x,i)=>{const isEnd=closed&&x.current;const d=dd(x.from,x.to||TODAY);const a=agentById(x.by);
+    const fromCell=dateCell('lw|'+i+'|from',x.from,`lwSetDate(${i},'from',this.value)`,true);
+    const toCell=isEnd?'–':(x.to?dateCell('lw|'+i+'|to',x.to,`lwSetDate(${i},'to',this.value)`,true):'heute');
+    return `<tr class="${x.current?'hi':''} hist-row"><td><span class="sq" style="background:${isEnd?(col.outcome==='won'?'#1D9E75':'#E24B4A'):stageColor(x.name)}"></span>${esc(x.name)}</td><td>${fromCell}</td><td>${toCell}</td><td>${isEnd?'–':d+' '+(d===1?'Tag':'Tage')}</td><td>${a?esc(a.name):(i===0?'Anlage':'–')}${(x.to&&segs.length>1)?delBtn(`lwDelete(${i})`,'Zeitraum löschen'):''}</td></tr>`;}).join('');
+  const lwAddHtml=adm?(lwAddOpen?`<div class="lw-add"><select id="lwAddName" aria-label="Liste">${COLUMNS.map(c=>`<option>${esc(c.name)}</option>`).join('')}</select><input type="date" id="lwAddFrom" aria-label="Von" max="${TODAY}"><input type="date" id="lwAddTo" aria-label="Bis" max="${TODAY}"><button type="button" class="btn btn-primary btn-sm" onclick="lwAdd()">Hinzufügen</button><button type="button" class="btn btn-sm" onclick="lwAddOpen=false;renderLeadModal()">Abbrechen</button><div id="lwAddErr" class="lw-add-err"></div></div>`
+    :`<button type="button" class="lw-add-link" onclick="lwAddOpen=true;renderLeadModal()"><i class="ti ti-plus"></i> Eintrag hinzufügen</button>`):'';
+  const lwTable=`<table class="vt">${cols}<thead><tr><th>Liste</th><th>Von</th><th>Bis</th><th>Dauer</th><th>Verschoben von</th></tr></thead><tbody>${lwRows}</tbody></table>${lwAddHtml}`;
   const blk=(k,label,n,body)=>`<div class="st-coll"><button type="button" class="${leadStatusOpen[k]?'open':''}" onclick="toggleStatusColl('${k}')" aria-expanded="${leadStatusOpen[k]}"><i class="ti ti-chevron-right ar"></i>${label}<span class="n">${n}</span></button>${leadStatusOpen[k]?body:''}</div>`;
   return blk('fu','FollowUp-Verlauf',`${fr.length} ${fr.length===1?'Eintrag':'Einträge'}`,fuTable)+blk('lw','Listenwechsel',`${segs.length} ${segs.length===1?'Liste':'Listen'}`,lwTable);
 }
@@ -7668,7 +7784,7 @@ function releaseLeadLock(leadId){
 function openLeadModal(id){
   editingLeadId=id;
   draftLead=id?JSON.parse(JSON.stringify(leads.find(x=>x.id===id))):blankLead();
-  labelPopoverOpen=false;memberPopoverOpen=false;activityFeedFilter='comments';feedFilterOpen=false;composePending=[];draftFileNote='';fcQ={demand:'',actual:''};fcQtyOpen=null;fcVkEdit=null;taskMentionPopoverOpen=false;pendingTaskAssigneeId=null;draftTaskText='';draftCommentText='';editingCommentId=null;rightTab='comments';openTimePickerField=null;
+  labelPopoverOpen=false;memberPopoverOpen=false;activityFeedFilter='comments';feedFilterOpen=false;composePending=[];draftFileNote='';fcQ={demand:'',actual:''};fcQtyOpen=null;fcVkEdit=null;histEdit=null;lwAddOpen=false;taskMentionPopoverOpen=false;pendingTaskAssigneeId=null;draftTaskText='';draftCommentText='';editingCommentId=null;rightTab='comments';openTimePickerField=null;
   clearTimeout(lockHeartbeatTimer);
   const existingLock=id?getLeadLock(id):null;
   if(existingLock&&existingLock.agentId!==currentUser){
