@@ -375,6 +375,9 @@ table.vt col.c1{width:34%}table.vt col.c2,table.vt col.c3{width:16%}table.vt col
 .modal-left .add-check-row .btn{height:36px;width:36px;min-width:36px;padding:0;justify-content:center;flex-shrink:0}
 .modal-left .check-hdr{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px;min-height:24px}
 .modal-left .check-hdr .btn{height:26px;padding:0 9px}
+.ts-card.t3 .t3-left{grid-column:2;grid-row:2;justify-content:flex-start}
+.ts-card.t3 .t3-skus{grid-column:3;grid-row:2;display:flex;gap:6px;justify-content:flex-end;align-items:center;flex-wrap:wrap}
+.ts-card.t3 .ts-qty{font-size:13px}
 .kd-coll-hdr{width:100%;display:flex;align-items:center;gap:8px;border:0;background:transparent;padding:0;cursor:pointer;font-family:inherit;text-align:left}
 .kd-coll-hdr .ttl{font-size:11px;font-weight:600;color:#4b5b60;text-transform:uppercase;letter-spacing:.04em}
 .kd-coll-hdr .sum{margin-left:auto;font-size:12px;color:#66767b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:60%}
@@ -1338,7 +1341,7 @@ let localSettingsTrusted=false;
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-10-22T18:50:00.000Z';
+const BUILD_VERSION='2026-10-22T19:15:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -7884,9 +7887,10 @@ function renderLeadModal(){
 
         <div class="info-section">
           <div class="section-hdr">
-            <span>Top 3 Gekaufte Artikel</span>
+            <span style="display:flex;align-items:center;gap:6px"><i class="ti ti-chart-bar" style="font-size:15px;color:var(--purple)"></i>Top 3 Gekaufte Artikel</span>
+            <span style="font-size:11px;font-weight:500;color:var(--text3);text-transform:none;letter-spacing:0">${draftLead.topArticles.filter(topFilled).length} von 3 Artikeln</span>
           </div>
-          ${topArticlesHtml}
+          ${top3Html()}
         </div>
         <div class="info-section" style="margin-bottom:0">
           <button type="button" class="kd-coll-hdr ${leadKundeOpen?'open':''}" onclick="leadKundeOpen=!leadKundeOpen;renderLeadModal()" aria-expanded="${leadKundeOpen}"><i class="ti ti-chevron-right"></i><span class="ttl">Kundeninformationen</span><span class="sum">${esc([draftLead.contact,draftLead.customerNumber?'Kd-Nr. '+draftLead.customerNumber:'',String(draftLead.address||'').split(',').pop().trim()].filter(Boolean).join(' · '))}</span></button>
@@ -8178,6 +8182,67 @@ function shipArtRemove(i){
   autoPersistIfEditing();renderLeadModal();
 }
 function updateTopArticle(idx,field,val){draftLead.topArticles[idx][field]=val;}
+// ── Top 3 gekaufte Artikel (Okt. 2026): wie "Toner zusenden" - Suche im Artikelstamm, max. 3, Rang im Kreis ──
+// Gespeichert weiter in den 3 Plaetzen topArticles[{skuOem,skuKompa,title}] (Import/Export unveraendert) + articleId.
+let top3Q='';
+function topFilled(a){return !!(a&&(String(a.skuKompa||'').trim()||String(a.skuOem||'').trim()||String(a.title||'').trim()));}
+function top3ArticleFor(a){
+  if(!a)return null;
+  if(a.articleId){const x=ARTICLES.find(y=>y.id===a.articleId);if(x)return x;}
+  const k=[a.skuKompa,a.skuOem].map(v=>String(v||'').trim().toLowerCase()).filter(Boolean);
+  return ARTICLES.find(y=>k.includes(String(y.sku||'').trim().toLowerCase()))||null;
+}
+function top3CardHtml(slot,i,hit){
+  const a=hit?slot:top3ArticleFor(slot);
+  const rma=a?shipNum(a.crRma):null;const cls=rma===null?'':crRmaCellClass(rma);
+  const ek=a?shipNum(a.ek):null,vk=a?shipNum(a.vk):null;
+  const title=a&&a.title?a.title:(hit?'':(slot.title||''));
+  const kompa=hit?a.sku:(a?a.sku:(slot.skuKompa||''));
+  const oem=hit?'':String(slot.skuOem||'').trim();
+  const chosen=hit&&draftLead.topArticles.some(x=>String(x.skuKompa||'').toLowerCase()===String(a.sku).toLowerCase());
+  const circ=hit?(chosen?'<i class="ti ti-check"></i>':'<i class="ti ti-plus"></i>'):(i+1);
+  const right=hit?`<span class="bin add">${chosen?'<i class="ti ti-check"></i>':'<i class="ti ti-circle-plus"></i>'}</span>`:(modalReadOnly?'<span></span>':`<button class="bin" onclick="top3Remove(${i})" title="Artikel entfernen"><i class="ti ti-trash"></i></button>`);
+  return `<div class="ts-card t3 ${cls} ${hit?'ts-hit':''} ${chosen?'dis':''}" ${hit&&!chosen?`onmousedown="event.preventDefault();top3Pick('${esc(String(a.id))}')" title="Artikel übernehmen"`:''}>
+    <span class="ts-qty ${cls}" style="cursor:inherit">${circ}</span>
+    <span class="t" title="${esc(title||kompa)}">${title?esc(title):'<span style="color:var(--text3);font-weight:500">Nicht im Artikelstamm</span>'}</span>${right}
+    <span class="vals t3-left"><span class="ts-pill">EK ${ek!==null?fmtEurCent(ek):'–'}</span><span class="ts-pill">VK ${vk!==null?fmtEurCent(vk):'–'}</span><span class="ts-pill ${cls}">RMA ${rma!==null?String(rma).replace('.',',')+' %':'–'}</span></span>
+    <span class="t3-skus">${hit?'':`<span class="ts-pill">OEM ${oem?esc(oem):'–'}</span>`}<span class="ts-pill">Kompa ${kompa?esc(kompa):'–'}</span>${chosen?'<span style="font-size:11px;color:var(--text3)">bereits gewählt</span>':''}</span>
+  </div>`;
+}
+function top3Html(){
+  const filled=draftLead.topArticles.map((a,i)=>({a,i})).filter(x=>topFilled(x.a));
+  const search=filled.length<3&&!modalReadOnly?`<div class="ts-search"><input type="text" id="top3Search" placeholder="Artikel suchen (Titel oder SKU) …" value="${esc(top3Q)}" oninput="top3Q=this.value;renderTop3Results()" onblur="setTimeout(()=>{const r=document.getElementById('top3Results');if(r)r.innerHTML='';},180)" autocomplete="off" style="width:100%"><div id="top3Results" class="ts-res-inline"></div></div>`
+    :(filled.length>=3?`<div style="font-size:11px;color:var(--text3);margin-bottom:2px">Maximal 3 Artikel – zum Tauschen zuerst einen entfernen.</div>`:'');
+  const cards=filled.map((x,k)=>top3CardHtml(x.a,k,false)).join('');
+  return search+(cards||`<div style="font-size:12px;color:var(--text3);margin-top:6px">Noch keine Artikel – über die Suche hinzufügen.</div>`);
+}
+function renderTop3Results(){
+  const el=document.getElementById('top3Results');if(!el)return;
+  const q=(top3Q||'').toLowerCase().trim();
+  if(q.length<2){el.innerHTML='';return;}
+  const all=ARTICLES.filter(a=>a.sku&&(String(a.sku).toLowerCase().includes(q)||String(a.title||'').toLowerCase().includes(q)));
+  const hits=all.slice(0,12);
+  if(!hits.length){el.innerHTML=`<div style="font-size:12px;color:var(--text3);padding:8px 2px">Kein Artikel gefunden.</div>`;return;}
+  el.innerHTML=`<div class="ts-hits">${hits.map(a=>top3CardHtml(a,0,true)).join('')}${all.length>12?`<div style="font-size:11px;color:var(--text3);padding:6px 2px 0">+ ${all.length-12} weitere Treffer – Suche genauer eingeben</div>`:''}</div>`;
+}
+function top3Pick(articleId){
+  if(modalReadOnly)return;
+  const a=ARTICLES.find(x=>String(x.id)===String(articleId));if(!a)return;
+  const t=draftLead.topArticles;
+  if(t.some(x=>String(x.skuKompa||'').toLowerCase()===String(a.sku).toLowerCase()))return;
+  const i=t.findIndex(x=>!topFilled(x));if(i<0)return;
+  t[i]={skuOem:'',skuKompa:a.sku,title:a.title||'',articleId:a.id};
+  top3Q='';
+  autoPersistIfEditing();renderLeadModal();
+  setTimeout(()=>{const inp=document.getElementById('top3Search');if(inp)inp.focus();},0);
+}
+function top3Remove(k){
+  if(modalReadOnly)return;
+  const kept=draftLead.topArticles.filter(topFilled).filter((x,idx)=>idx!==k);
+  while(kept.length<3)kept.push({skuOem:'',skuKompa:'',title:''});
+  draftLead.topArticles=kept;
+  autoPersistIfEditing();renderLeadModal();
+}
 
 // Kundenbedarf-Drucker (Forecast-Tab, mehrere Drucker, mit benötigter Anzahl je SKU)
 function addDemandPrinter(){
