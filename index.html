@@ -291,6 +291,52 @@ body{font-family:'Inter',sans-serif;background:linear-gradient(155deg,#f2f3f0 0%
 .ts-pill{border-radius:6px;padding:2px 8px;font-size:11px;background:var(--bg2,#f4f6f6);white-space:nowrap}
 .ts-pill.crrma-warn{background:var(--amber-bg);color:var(--amber-dark);font-weight:600}
 .ts-pill.crrma-bad{background:var(--red-bg);color:var(--red-dark);font-weight:600}
+.lbn{flex-shrink:0;background:linear-gradient(180deg,#0c3b40 0%,#164e54 60%,#1d6169 100%);color:#fff;padding:14px 18px 14px;display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:10px}
+.lbn-name{width:100%;background:#f4f6f6;color:#1c2a2f;border:0;border-radius:10px;padding:9px 14px;font-size:16px;font-weight:700;font-family:inherit}
+.lbn-name:focus{outline:none;box-shadow:0 0 0 3px rgba(159,225,203,.45)}
+.lbn-icons{display:flex;gap:6px;align-items:center}
+.lbn-icons .sep{width:1px;height:26px;background:rgba(255,255,255,.2);margin:0 4px}
+.lbn-ib{width:38px;height:38px;border-radius:10px;border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.04);color:#fff;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;font-size:17px;padding:0}
+.lbn-ib:hover{background:rgba(255,255,255,.14)}
+.lbn-ib.call{background:#fff;color:#0d3d43;border-color:#fff}
+.lbn-ib:disabled{opacity:.35;cursor:default}
+.lbn-fields{grid-column:1;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px;margin-top:9px}
+.lbn-f,.lbn-lab,.lbn-add{display:flex;align-items:center;gap:6px;height:24px;border-radius:7px;font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 10px;min-width:0}
+.lbn-f{background:rgba(255,255,255,.1);color:#fff}
+.lbn-f small{font-size:11px;font-weight:500;color:#9fc9cd;flex-shrink:0}
+.lbn-f .dt{width:8px;height:8px;min-width:8px;border-radius:50%;flex:0 0 8px}
+.lbn-f span.v{overflow:hidden;text-overflow:ellipsis}
+.lbn-lab{justify-content:center;border:0;color:#fff;cursor:pointer;font-family:inherit;width:100%}
+.lbn-lab .x{opacity:.6;font-weight:700}
+.lbn-add{justify-content:center;width:100%;border:1px dashed rgba(255,255,255,.35);background:transparent;color:#cfe6e8;font-weight:500;cursor:pointer;font-family:inherit}
+.lbn-add:hover{background:rgba(255,255,255,.08);color:#fff}
+.lbn-pick{position:relative;min-width:0}
+.lbn-menu{position:absolute;top:28px;left:0;z-index:80;background:var(--bg,#fff);color:var(--text,#1c2a2f);border:1px solid var(--border2,#dfe7e6);border-radius:9px;box-shadow:0 12px 30px rgba(0,0,0,.22);padding:4px;min-width:180px}
+.lbn-menu button{display:flex;align-items:center;gap:8px;width:100%;text-align:left;border:0;background:transparent;border-radius:6px;padding:6px 9px;font-size:12.5px;cursor:pointer;font-family:inherit;color:inherit}
+.lbn-menu button:hover{background:#E9F0F1}
+.lbn-menu i{width:10px;height:10px;border-radius:3px;display:inline-block}
+.lbn-r{grid-column:1 / -1;display:flex;align-items:flex-end;gap:24px;margin-top:14px;flex-wrap:wrap}
+.lbn-who{font-size:12.5px;color:#9fc9cd;line-height:1.25}
+.lbn-who b{display:block;color:#fff;font-size:20px;font-weight:700;letter-spacing:-.01em;margin-top:3px}
+.lbn-nums{margin-left:auto;display:flex;gap:28px;align-items:flex-end}
+.lbn-nums div{text-align:right}
+.lbn-nums span{display:block;font-size:11.5px;color:#9fc9cd;margin-bottom:1px}
+.lbn-nums b{display:block;font-size:20px;font-weight:700;color:#fff;line-height:1.1;white-space:nowrap}
+.lbn-bar{grid-column:1 / -1;display:flex;gap:3px;height:28px;margin-top:14px}
+.lbn-sg{position:relative;border-radius:7px;background:rgba(255,255,255,.12);color:#d6ecee;font-size:11.5px;font-weight:600;display:flex;align-items:center;justify-content:space-between;gap:6px;padding:0 10px;white-space:nowrap;min-width:84px;overflow:visible}
+.lbn-sg small{font-weight:500;color:#9fc9cd}
+.lbn-sg.cur{background:#9fe1cb;color:#04342c}.lbn-sg.cur small{color:#0b4f55}
+.lbn-sg.fut{background:transparent;border:1px dashed rgba(255,255,255,.3);color:#9fc9cd;min-width:70px}
+.lbn-sg.end{min-width:96px;flex:0 0 auto;justify-content:center}
+.lbn-sg.end.won{background:#e3f5ee;color:#0b5e45}.lbn-sg.end.lost{background:#fcebeb;color:#a32d2d}
+.lbn-sg .lt{overflow:hidden;text-overflow:ellipsis}
+.lbn-mk{position:absolute;top:-5px;bottom:-5px;width:2px;background:#f0b05a;border-radius:1px;z-index:2}
+.lbn-mk.now{background:#fff}
+.lbn-ends{grid-column:1 / -1;display:flex;justify-content:space-between;gap:12px;font-size:11.5px;color:#9fc9cd;margin-top:7px;flex-wrap:wrap}
+.lbn-ends b{color:#fff;font-weight:600}
+.lbn-ends .ev{display:inline-flex;align-items:center;gap:5px;margin-right:14px}
+.lbn-ends .ev i{width:9px;height:2px;border-radius:1px;display:inline-block}
+@media (max-width:900px){.lbn{grid-template-columns:1fr}.lbn-icons{margin-top:8px;flex-wrap:wrap}.lbn-fields{grid-template-columns:repeat(3,minmax(0,1fr))}.lbn-nums{margin-left:0}}
 .board-part-hint{flex:0 0 260px;align-self:flex-start;border:1.5px dashed var(--purple-dark);border-radius:var(--r-md);padding:16px;background:var(--purple-bg);font-size:13px;color:var(--purple-dark);display:flex;flex-direction:column;gap:10px;}
 .board-part-hint button{align-self:flex-start;}
 .nav-icon-badge{width:36px;height:36px;border-radius:9px;background:linear-gradient(180deg,#27808a 0%,#206A72 100%);box-shadow:0 6px 16px rgba(32,106,114,.3);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
@@ -1249,7 +1295,7 @@ let localSettingsTrusted=false;
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-10-22T16:15:00.000Z';
+const BUILD_VERSION='2026-10-22T17:00:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -3556,7 +3602,83 @@ function leadStageSegments(lead){
 }
 function stageShort(n){const i=String(n).indexOf(': ');return i>0?String(n).slice(i+2):String(n);}
 function stageColor(name){const c=COLUMNS.find(x=>x.name===name);return c&&COLOR_TEXT[c.color]?COLOR_TEXT[c.color]:'#888780';}
-function renderLeadStageBar(lead){
+// ── Lead-Banner (Okt. 2026): Firma + Kontakt-Knoepfe, Liste/Board/Kd-Nr./Art + 2 Labels,
+// "Du sprichst mit", Bestellungen/Umsatz, Listen-Balken mit Ereignissen bis zum naechsten FollowUp.
+let leadBannerLabelMenu=false;
+function leadTonerSentDate(lead){
+  const a=(lead.activity||[]).filter(x=>/Free Toner verschickt/.test(x.text||'')&&/→ "Ja"/.test(x.text||'')).sort((a,b)=>String(b.date).localeCompare(String(a.date)))[0];
+  return a?String(a.date).slice(0,10):'';
+}
+function leadScrollToCustomer(){
+  const el=document.getElementById('fCustomerNumber');if(!el)return;
+  try{el.scrollIntoView({behavior:'smooth',block:'center'});}catch(e){}
+  const sec=el.closest('.info-section');if(sec){sec.style.boxShadow='0 0 0 3px rgba(32,106,114,.35)';setTimeout(()=>{sec.style.boxShadow='';},1400);}
+  setTimeout(()=>{try{el.focus({preventScroll:true});}catch(e){}},350);
+}
+function leadBannerToggleLabels(e){if(e)e.stopPropagation();leadBannerLabelMenu=!leadBannerLabelMenu;renderLeadModal();}
+function renderLeadBanner(){
+  const l=draftLead;const ro=modalReadOnly;
+  const col=colById(l.status);const part=leadBoardPart(l)==='akquise'?'SQL':'PQL';
+  const dotColor=col?stageColor(col.name):'#888780';
+  const phone=String(l.phone||'').trim(),mail=String(l.email||'').trim();
+  // Labels (2 Plaetze)
+  const ids=(l.labelIds||[]).filter(id=>labelById(id));
+  const labSlot=i=>{
+    if(i===1&&ids.length>2){const rest=ids.slice(1).map(id=>labelById(id).name).join(', ');return `<button type="button" class="lbn-lab" style="background:rgba(255,255,255,.18)" title="${esc(rest)}" onclick="leadScrollToCustomer()">+${ids.length-1} Labels</button>`;}
+    const id=ids[i];
+    if(id){const lb=labelById(id);return `<button type="button" class="lbn-lab" style="background:${lb.color}" title="Label „${esc(lb.name)}“ entfernen" ${ro?'disabled':`onclick="toggleDraftLabel('${lb.id}')"`}>${esc(lb.name)}<span class="x" aria-hidden="true">×</span></button>`;}
+    if(ro)return '<span></span>';
+    const free=LABELS.filter(lb=>!ids.includes(lb.id));
+    return `<div class="lbn-pick"><button type="button" class="lbn-add" onclick="leadBannerToggleLabels(event)">+ Label</button>${leadBannerLabelMenu&&i===ids.length?`<div class="lbn-menu" onclick="event.stopPropagation()">${free.length?free.map(lb=>`<button type="button" onclick="leadBannerLabelMenu=false;toggleDraftLabel('${lb.id}')"><i style="background:${lb.color}"></i>${esc(lb.name)}</button>`).join(''):'<div style="padding:6px 9px;font-size:12px;color:var(--text3)">Keine weiteren Labels</div>'}</div>`:''}</div>`;
+  };
+  // Zahlen
+  const orders=parseInt(l.orderCount,10)||0;
+  const rev=parseFloat(String(l.revenue||'').replace(',','.'))||0;
+  // Listen-Balken
+  const segs=leadStageSegments(l);
+  const closed=!!(col&&(col.outcome==='won'||col.outcome==='lost'));
+  const dd=(a,b)=>Math.max(0,Math.round((new Date(String(b).slice(0,10)+'T00:00:00')-new Date(String(a).slice(0,10)+'T00:00:00'))/86400000));
+  const tonerDate=leadTonerSentDate(l);
+  const bars=segs.filter(x=>!(closed&&x.current));
+  let bar=bars.map(x=>{
+    const from=String(x.from).slice(0,10),to=x.to?String(x.to).slice(0,10):TODAY;const d=dd(from,to);
+    let mk='';
+    if(tonerDate&&tonerDate>=from&&(tonerDate<to||(x.current&&tonerDate<=to))){const span=Math.max(1,dd(from,to));const pct=Math.min(96,Math.max(4,dd(from,tonerDate)/span*100));mk=`<span class="lbn-mk" style="left:${pct}%" title="Toner verschickt ${fmtDate(tonerDate)}"></span>`;}
+    return `<div class="lbn-sg ${x.current?'cur':''}" style="flex:${Math.max(1,d)} 0 84px" title="${esc(x.name)} · ${fmtDate(from)} – ${x.to?fmtDate(to):'heute'} · ${d} ${d===1?'Tag':'Tage'}"><span class="lt">${esc(stageShort(x.name))}</span><small>${x.current?'seit ':''}${d} T</small>${mk}</div>`;
+  }).join('');
+  const fuDate=l.followup?String(l.followup).slice(0,10):'';
+  if(closed){const end=segs[segs.length-1];bar+=`<div class="lbn-sg end ${col.outcome}" title="${esc(col.name)} · ${fmtDate(String(end.from).slice(0,10))}">${col.outcome==='won'?'✓ Gewonnen':'✕ Verloren'}</div>`;}
+  else if(fuDate&&fuDate>TODAY){const df=dd(TODAY,fuDate);bar+=`<div class="lbn-sg fut" style="flex:${Math.max(1,df)} 0 70px" title="Bis zum nächsten FollowUp: ${df} ${df===1?'Tag':'Tage'}"><span class="lbn-mk now" style="left:-4px" title="Heute"></span><span class="lt">noch ${df} T</span></div>`;}
+  const fuTxt=(()=>{if(closed)return '';if(!l.followup)return 'kein FollowUp';const p=calParse(l.followup);const d=new Date(fuDate+'T00:00:00');const wd=['So','Mo','Di','Mi','Do','Fr','Sa'][d.getDay()];return `${wd} ${fmtDate(fuDate).slice(0,6)}${p?' · '+p.time:''}`;})();
+  const first=l.firstContact||(segs[0]?String(segs[0].from).slice(0,10):'');
+  return `<div class="lbn">
+    <input type="text" class="lbn-name" id="fCompany" placeholder="Firmenname" value="${esc(l.company)}" ${ro?'readonly':''} oninput="draftLead.company=this.value;clearModalError();checkDuplicateLead()" aria-label="Firma">
+    <div class="lbn-icons">
+      <button type="button" class="lbn-ib call" onclick="callCustomer()" title="${phone?'Anrufen (3CX): '+esc(phone):'Keine Telefonnummer hinterlegt'}" aria-label="Anrufen" ${phone?'':'disabled'}><i class="ti ti-phone"></i></button>
+      <button type="button" class="lbn-ib" onclick="emailCustomer()" title="${mail?'Mail (Outlook): '+esc(mail):'Keine E-Mail hinterlegt'}" aria-label="E-Mail schreiben" ${mail?'':'disabled'}><i class="ti ti-mail"></i></button>
+      <span class="sep"></span>
+      <button type="button" class="lbn-ib" onclick="leadScrollToCustomer()" title="Kundendaten bearbeiten" aria-label="Kundendaten bearbeiten"><i class="ti ti-pencil"></i></button>
+      <button type="button" class="lbn-ib" onclick="downloadCalendarInvite()" title="Termineinladung für Kunde erstellen (Outlook)" aria-label="Termineinladung"><i class="ti ti-calendar-event"></i></button>
+      <button type="button" class="lbn-ib" onclick="openGoogleSearch()" title="Firma bei Google suchen" aria-label="Bei Google suchen"><i class="ti ti-search"></i></button>
+      <button type="button" class="lbn-ib" onclick="closeModal('leadModal')" title="Schließen" aria-label="Schließen"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="lbn-fields">
+      <div class="lbn-f" title="Liste: ${esc(col?col.name:'')}"><small>Liste</small><span class="dt" style="background:${dotColor}"></span><span class="v">${esc(col?col.name:'–')}</span></div>
+      <div class="lbn-f" title="Board: ${part}"><small>Board</small><span class="v">${part}</span></div>
+      <div class="lbn-f" title="Kundennummer"><small>Kd-Nr.</small><span class="v">${esc(l.customerNumber||'–')}</span></div>
+      <div class="lbn-f" title="Kundenart"><small>Art</small><span class="v">${esc(l.art||'–')}</span></div>
+      ${labSlot(0)}${labSlot(1)}
+    </div>
+    <div class="lbn-r">
+      <div class="lbn-who">Du sprichst mit<b>${esc(l.contact||'– kein Ansprechpartner –')}</b></div>
+      <div class="lbn-nums"><div><span>Bestellungen</span><b>${orders}</b></div><div><span>Umsatz</span><b>${fmtEur(rev)||'0 €'}</b></div></div>
+    </div>
+    ${bar?`<div class="lbn-bar">${bar}</div>
+    <div class="lbn-ends"><span>Erstkontakt <b>${first?fmtDate(String(first).slice(0,10)):'–'}</b>${tonerDate?`<span class="ev" style="margin-left:14px"><i style="background:#f0b05a"></i>Toner verschickt ${fmtDate(tonerDate)}</span>`:''}</span><span>${closed?`${col.outcome==='won'?'Gewonnen':'Verloren'} <b>${fmtDate(String(segs[segs.length-1].from).slice(0,10))}</b>`:`Nächstes FollowUp <b>${fuTxt}</b>`}</span></div>`:''}
+  </div>`;
+}
+function renderLeadStageBar(lead,opts){
+  opts=opts||{};
   const segs=leadStageSegments(lead);
   if(!segs.length)return '';
   const cur=colById(lead.status);const closed=!!(cur&&(cur.outcome==='won'||cur.outcome==='lost'));
@@ -3569,7 +3691,8 @@ function renderLeadStageBar(lead){
     +(endSeg?`<div class="stage-end" style="${cur.outcome==='won'?'background:#e3f5ee;color:#0b5e45':'background:#fcebeb;color:#a32d2d'}" title="${esc(endSeg.name+' · '+fmtDate(String(endSeg.from).slice(0,10)))}"><span><i class="ti ti-${cur.outcome==='won'?'circle-check':'circle-x'}"></i> ${cur.outcome==='won'?'Gewonnen':'Verloren'}</span><small>${fmtDate(String(endSeg.from).slice(0,10))}</small></div>`:'');
   const rows=segs.map(x=>{const d=dayDiff(x.from,x.to||TODAY);const isEnd=closed&&x.current;return `<tr ${x.current?'style="font-weight:600"':''}><td><span style="display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:6px;background:${isEnd?(cur.outcome==='won'?'#0f6e56':'#e24b4a'):stageColor(x.name)}"></span>${esc(x.name)}</td><td>${fmtDate(String(x.from).slice(0,10))}</td><td>${isEnd?'–':(x.to?fmtDate(String(x.to).slice(0,10)):'heute')}</td><td>${isEnd?'–':d+' '+(d===1?'Tag':'Tage')}</td><td>${esc(ag(x.by)||(x===segs[0]?'Anlage':''))}</td></tr>`;}).join('');
   const n=segs.length-1;
-  return `<div style="margin-bottom:10px"><div class="stage-bar">${html}</div>
+  if(opts.tableOnly&&n<=0)return '';
+  return `<div style="margin-bottom:10px">${opts.tableOnly?'':`<div class="stage-bar">${html}</div>`}
     ${n>0?`<div style="font-size:11px;margin-top:5px"><a href="#" style="color:#206A72;font-weight:600" onclick="event.preventDefault();leadStageDetailsOpen=!leadStageDetailsOpen;renderLeadModal()">${leadStageDetailsOpen?'Listenwechsel ausblenden':`Alle Listenwechsel anzeigen (${n})`}</a></div>`:''}
     ${leadStageDetailsOpen&&n>0?`<table class="stage-tbl"><thead><tr><th>Liste</th><th>Von</th><th>Bis</th><th>Dauer</th><th>Verschoben von</th></tr></thead><tbody>${rows}</tbody></table>`:''}</div>`;
 }
@@ -7554,12 +7677,7 @@ function renderLeadModal(){
   }
 
   document.getElementById('leadModalInner').innerHTML=`
-    <div class="modal-topline">
-      <input type="text" class="modal-title-input" id="fCompany" placeholder="Firmenname" value="${esc(draftLead.company)}" ${modalReadOnly?'readonly':''} oninput="draftLead.company=this.value;clearModalError();checkDuplicateLead()">
-      <button class="modal-close" title="Termineinladung für Kunde erstellen (Outlook)" onclick="downloadCalendarInvite()"><i class="ti ti-calendar-event"></i></button>
-      <button class="modal-close" title="Firma bei Google suchen" onclick="openGoogleSearch()"><i class="ti ti-brand-google"></i></button>
-      <button class="modal-close" onclick="closeModal('leadModal')"><i class="ti ti-x"></i></button>
-    </div>
+    ${renderLeadBanner()}
     ${modalReadOnly?`<div style="background:var(--amber-bg);color:var(--amber-dark);padding:10px 18px;display:flex;align-items:center;gap:8px;font-size:13px;font-weight:500;flex-shrink:0">
       <i class="ti ti-lock"></i> Wird gerade von <strong>${esc(modalLockInfo.agentName)}</strong> bearbeitet – nur lesbar, bis die Bearbeitung dort abgeschlossen ist.
     </div>`:''}
@@ -7622,8 +7740,7 @@ function renderLeadModal(){
         <div class="info-section" style="${(memberPopoverOpen||labelPopoverOpen)?'position:relative;z-index:50':''}">
           <div class="section-hdr">Lead-Status</div>
           <div style="margin-bottom:12px">
-            <span class="small-label">Listen</span>
-            ${renderLeadStageBar(draftLead)}
+            ${renderLeadStageBar(draftLead,{tableOnly:true})}
             <span class="small-label">Zeitstrahl</span>
             ${renderFollowupTimeline(draftLead)}
           </div>
@@ -8700,7 +8817,7 @@ function logFieldChanges(original,draft){
     entries.push('Labels aktualisiert');
   }
   if(JSON.stringify(original.shipPrinter)!==JSON.stringify(draft.shipPrinter)){
-    entries.push('Drucker & Patronen (Versand) aktualisiert');
+    entries.push('Toner zusenden aktualisiert');
   }
   if(JSON.stringify(original.demandPrinters||[])!==JSON.stringify(draft.demandPrinters||[])){
     entries.push('Kundenbedarf (Forecast) aktualisiert');
@@ -9701,6 +9818,7 @@ document.addEventListener('click',e=>{
   if(!e.target.closest('.omni-addfilter-wrap')&&filterMenuOpen){filterMenuOpen=false;document.getElementById('filterMenu').classList.remove('show');}
   if(!e.target.closest('.infobtn-wrap')&&overflowMenuOpen){overflowMenuOpen=false;document.getElementById('overflowMenu').classList.remove('show');}
   if(!e.target.closest('.crrma-menu-wrap')&&crrmaMenuOpen){crrmaMenuOpen=false;document.getElementById('crrmaOverflowMenu').classList.remove('show');}
+  if(leadBannerLabelMenu&&!e.target.closest('.lbn-pick')){leadBannerLabelMenu=false;if(draftLead)renderLeadModal();}
   if(shipQtyOpen>=0&&!e.target.closest('.ts-qty-menu')&&!e.target.closest('.ts-qty')){shipQtyOpen=-1;if(draftLead)renderLeadModal();}
   if(!e.target.closest('.omni-addfilter-wrap')&&calFilterMenuOpen){calFilterMenuOpen=false;const mc=document.getElementById('calFilterMenu');if(mc)mc.classList.remove('show');}
   if(!e.target.closest('.omni-addfilter-wrap')&&tasksFilterMenuOpen){tasksFilterMenuOpen=false;const m=document.getElementById('tasksFilterMenu');if(m)m.classList.remove('show');}
