@@ -1370,7 +1370,7 @@ let COLUMNS=[
 const COLOR_HEX={purple:'var(--purple)',teal:'var(--teal)',amber:'var(--amber)',gray:'var(--gray)',green:'var(--green)',red:'var(--red)'};
 const COLOR_BG={purple:'var(--purple-bg)',teal:'var(--teal-bg)',amber:'var(--amber-bg)',gray:'var(--gray-bg)',green:'var(--green-bg)',red:'var(--red-bg)'};
 const COLOR_TEXT={purple:'var(--purple-dark)',teal:'var(--teal-dark)',amber:'var(--amber-dark)',gray:'var(--gray-dark)',green:'var(--green-dark)',red:'var(--red-dark)'};
-const LABEL_PALETTE=['#206A72','#32A8B4','#7ED2DB','#D94109','#ED8B4C','#F5C69A','#BD2D29','#676660','#0F3D42'];
+const LABEL_PALETTE=['#206A72','#BD2D29','#D94109','#824A62','#32A8B4','#DF726E','#F5974D','#9E5976','#7ED2DB','#EFB8B7','#F9BC8F','#D2AEBD','#000000'];
 const TODAY=new Date().toLocaleDateString('en-CA',{timeZone:'Europe/Berlin'});
 // Feste Versandkosten pro tatsaechlich verschicktem Toner - fliesst sowohl in die
 // Investitions-Anzeige im Lead selbst als auch als eigene Kennzahl ins Dashboard ein.
@@ -1457,7 +1457,7 @@ let localSettingsTrusted=false;
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-10-23T10:45:00.000Z';
+const BUILD_VERSION='2026-10-23T11:00:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -3719,16 +3719,16 @@ function orderedLabelIds(ids){const pos=id=>{const i=LABELS.findIndex(x=>x.id===
 let labelDragId=null,editingLabelColorId=null;
 function toggleLabelColorEdit(id){editingLabelColorId=editingLabelColorId===id?null:id;refreshLabelUi();}
 function labelColorPickerHtml(lb){
-  const used=LABELS.filter(x=>x.id!==lb.id).map(x=>String(x.color).toLowerCase());
-  const pal=LABEL_PALETTE.includes(lb.color)?LABEL_PALETTE:[lb.color,...LABEL_PALETTE];
+  const used=[]; // Farben duerfen mehrfach vergeben werden
+  const pal=LABEL_PALETTE.some(c=>c.toLowerCase()===String(lb.color).toLowerCase())?LABEL_PALETTE:[lb.color,...LABEL_PALETTE];
   return `<div class="lbl-color-row" role="group" aria-label="Farbe für ${esc(lb.name)}"><span class="lbl-color-hint">Farbe wählen:</span><div class="color-swatch-row" style="margin:0">${pal.map(c=>{const cur=String(c).toLowerCase()===String(lb.color).toLowerCase();const isUsed=!cur&&used.includes(String(c).toLowerCase());return `<button type="button" class="color-swatch ${cur?'selected':''} ${isUsed?'disabled':''}" style="background:${c}" ${isUsed?'disabled title="Bereits von einem anderen Label genutzt"':`onclick="setLabelColor('${lb.id}','${c}')" title="${cur?'Aktuelle Farbe':'Diese Farbe wählen'}"`} aria-label="${c}${cur?' (aktuell)':''}"></button>`;}).join('')}</div></div>`;
 }
 let newLabelSettingsColor=null,newLabelSettingsError='';
 function newLabelSettingsHtml(){
-  const used=LABELS.map(x=>String(x.color).toLowerCase());
-  const free=LABEL_PALETTE.filter(c=>!used.includes(c.toLowerCase()));
-  if(newLabelSettingsColor&&used.includes(newLabelSettingsColor.toLowerCase()))newLabelSettingsColor=null;
-  const sel=newLabelSettingsColor||free[0]||null;
+  const usedAll=LABELS.map(x=>String(x.color).toLowerCase());
+  const used=[]; // Farben duerfen mehrfach vergeben werden
+  const free=LABEL_PALETTE;
+  const sel=newLabelSettingsColor||LABEL_PALETTE.find(c=>!usedAll.includes(c.toLowerCase()))||LABEL_PALETTE[0];
   return `<div class="lbl-new">
     <span class="lbl-new-ttl">Neues Label</span>
     ${free.length?`<div class="lbl-new-row">
@@ -3744,15 +3744,14 @@ function createLabelSettings(){
   const err=t=>{newLabelSettingsError=t;const e=document.getElementById('newLabelSettingsErr');if(e)e.textContent=t;if(inp)inp.focus();};
   if(!name)return err('Bitte einen Namen eingeben.');
   if(LABELS.some(x=>String(x.name).trim().toLowerCase()===name.toLowerCase()))return err(`Ein Label „${name}“ gibt es schon.`);
-  const used=LABELS.map(x=>String(x.color).toLowerCase());
-  const color=(newLabelSettingsColor&&!used.includes(newLabelSettingsColor.toLowerCase()))?newLabelSettingsColor:LABEL_PALETTE.find(c=>!used.includes(c.toLowerCase()));
-  if(!color)return err('Alle Farben sind vergeben.');
+  const usedAll=LABELS.map(x=>String(x.color).toLowerCase());
+  const color=newLabelSettingsColor||LABEL_PALETTE.find(c=>!usedAll.includes(c.toLowerCase()))||LABEL_PALETTE[0];
   LABELS.push({id:'l'+genId(),name,color});
   newLabelSettingsColor=null;newLabelSettingsError='';
   saveState();refreshLabelUi();
   setTimeout(()=>{const m=document.getElementById('newLabelSettingsName');if(m)m.focus();},0);
 }
-function setLabelColor(id,c){const lb=labelById(id);if(!lb)return;const taken=LABELS.some(x=>x.id!==id&&String(x.color).toLowerCase()===String(c).toLowerCase());if(taken)return;lb.color=c;editingLabelColorId=null;saveState();refreshLabelUi();}
+function setLabelColor(id,c){const lb=labelById(id);if(!lb)return;lb.color=c;editingLabelColorId=null;saveState();refreshLabelUi();}
 function moveLabel(id,delta){
   const i=LABELS.findIndex(x=>x.id===id),j=i+delta;
   if(i<0||j<0||j>=LABELS.length)return;
@@ -7743,19 +7742,7 @@ function renderLeadModal(){
       </div>`;
     }).join('')}
     <div class="popover-divider"></div>
-    ${firstFreeColor?`
-      <span class="small-label">Neues Label</span>
-      <input type="text" id="newLabelName" placeholder="Name" style="width:100%;margin-bottom:6px">
-      <div class="color-swatch-row" id="newLabelColors">
-        ${LABEL_PALETTE.map(c=>{
-          const isUsed=usedColors.includes(c);
-          const isDefault=c===firstFreeColor;
-          return `<div class="color-swatch ${isDefault?'selected':''} ${isUsed?'disabled':''}" style="background:${c}" data-color="${c}" ${isUsed?'title="Bereits vergeben"':`onclick="selectLabelColor(this)"`}></div>`;
-        }).join('')}
-      </div>
-      <p style="font-size:10px;color:var(--text3);margin:0 0 6px">Jede Farbe kann nur einmal vergeben werden.</p>
-      <button class="btn btn-sm btn-primary" style="width:100%;justify-content:center" onclick="createLabel()">Label erstellen</button>
-    `:`<p style="font-size:11px;color:var(--text3);margin:4px 0 0">Alle 9 Farben sind vergeben. Lösche zuerst ein Label, um Platz für ein neues zu schaffen.</p>`}
+    <p style="font-size:11px;color:var(--text3);margin:4px 2px 2px">Neue Labels werden in den Einstellungen unter „Board → Labels“ angelegt.</p>
   </div>`:'';
 
   const memberPopoverHtml=memberPopoverOpen?`<div class="popover">
