@@ -1446,7 +1446,7 @@ let localSettingsTrusted=false;
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-10-23T09:00:00.000Z';
+const BUILD_VERSION='2026-10-23T09:15:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -7097,7 +7097,7 @@ function cardHtml(l,isFirst,isLast){
         ${!isLast?`<button onclick="event.stopPropagation();moveLeadDown(${l.id})" title="Nach unten"><i class="ti ti-chevron-down"></i></button>`:''}
       </div>`}
       <div class="sc-co" title="${esc(l.company)}">${esc(l.company)}</div>
-      <div class="sc-sub">${esc(l.contact)}${l.customerNumber?` · ${esc(l.customerNumber)}`:''}</div>
+      <div class="sc-sub">${esc(l.contact||'')||'&nbsp;'}</div>
       <div class="sc-meta">${dots}${ck}<span class="sc-r">${right}</span></div>
     </div>
     ${handover?`<button class="sc-ho" onclick="event.stopPropagation();handOverToPql(${l.id})" title="Nach „${esc(colById('fu_feedback').name)}“ im Board: PQL schieben">An PQL übergeben <i class="ti ti-arrow-right"></i></button>`:''}
