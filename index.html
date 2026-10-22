@@ -1397,7 +1397,7 @@ let localSettingsTrusted=false;
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-10-22T22:30:00.000Z';
+const BUILD_VERSION='2026-10-22T23:00:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -5176,8 +5176,8 @@ function renderDashboard(){
   const investLost=lostLeads.reduce((s,l)=>s+shipEkTotal(l),0);
   const netEffect=forecastWon-investLost;
 
-  // B2B vs. B2C (Kategorien ohne Leads werden nicht angezeigt)
-  const artBreakdown=['B2B','B2C'].map(art=>{
+  // B2B vs. B2C vs. Haendler (Kategorien ohne Leads werden nicht angezeigt)
+  const artBreakdown=['B2B','B2C','Händler'].map(art=>{
     const artLeads=dl.filter(l=>l.art===art);
     const artWon=artLeads.filter(l=>isWon(l)).length;
     const artClosed=artLeads.filter(l=>isClosedLead(l)).length;
@@ -7882,9 +7882,11 @@ function renderLeadModal(){
           <div class="field-row-2">
             <div><label>Kundennummer</label><input type="text" inputmode="numeric" placeholder="z. B. 10234" value="${esc(draftLead.customerNumber)}" oninput="draftLead.customerNumber=this.value;clearModalError()" style="width:100%" id="fCustomerNumber"></div>
             <div><label>Art</label>
-              <select style="width:100%" onchange="draftLead.art=this.value">
+              <select style="width:100%" onchange="draftLead.art=this.value;renderLeadModal()">
+                ${draftLead.art&&!['B2B','B2C','Händler'].includes(draftLead.art)?`<option value="${esc(draftLead.art)}" selected>${esc(draftLead.art)}</option>`:''}
                 <option value="B2B" ${draftLead.art==='B2B'?'selected':''}>B2B</option>
                 <option value="B2C" ${draftLead.art==='B2C'?'selected':''}>B2C</option>
+                <option value="Händler" ${draftLead.art==='Händler'?'selected':''}>Händler</option>
               </select>
             </div>
           </div>
@@ -9587,7 +9589,7 @@ function csvEur(v){
 const FIELD_REGISTRY={
   company:{label:'Firmenname',group:'Kundeninformationen',importable:true,aliases:['firmenname','firma','company','unternehmen','name','kundenname'],example:'Musterfirma GmbH',get:l=>l.company,set:(l,v)=>l.company=v},
   customerNumber:{label:'Kundennummer',group:'Kundeninformationen',importable:true,aliases:['kundennummer','kd-nr','kdnr','kundennr','customer number'],example:'10099',get:l=>l.customerNumber,set:(l,v)=>{if(isValidCustomerNumber(v))l.customerNumber=v.trim();}},
-  art:{label:'Art',group:'Kundeninformationen',importable:true,aliases:['art','typ','type','kundentyp'],example:'B2B',get:l=>l.art,set:(l,v)=>{const u=(v||'').toUpperCase();if(u==='B2B'||u==='B2C')l.art=u;}},
+  art:{label:'Art',group:'Kundeninformationen',importable:true,aliases:['art','typ','type','kundentyp'],example:'B2B',get:l=>l.art,set:(l,v)=>{const u=String(v||'').trim().toUpperCase();if(u==='B2B'||u==='B2C')l.art=u;else if(u==='HÄNDLER'||u==='HAENDLER'||u==='HANDLER')l.art='Händler';}},
   address:{label:'Adresse',group:'Kundeninformationen',importable:true,aliases:['adresse','address','anschrift'],example:'Musterstraße 1, 12345 Musterstadt',get:l=>l.address,set:(l,v)=>l.address=v},
   orderCount:{label:'Anzahl Bestellungen',group:'Kundeninformationen',importable:true,aliases:['anzahl bestellungen','bestellungen','anzahl'],example:'3',get:l=>l.orderCount,set:(l,v)=>l.orderCount=parseGermanNumber(v)},
   revenue:{label:'Umsatz (EUR)',group:'Kundeninformationen',importable:true,aliases:['umsatz (eur)','umsatz','revenue'],example:'1500',get:l=>csvEur(l.revenue),set:(l,v)=>l.revenue=parseGermanNumber(v)},
