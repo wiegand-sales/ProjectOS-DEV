@@ -367,6 +367,14 @@ table.vt .sq{display:inline-block;width:9px;height:9px;border-radius:3px;margin-
 table.vt tr.hi td{font-weight:600}
 table.vt tr.hi td:first-child{color:#206A72}
 table.vt col.c1{width:34%}table.vt col.c2,table.vt col.c3{width:16%}table.vt col.c4{width:12%}table.vt col.c5{width:22%}
+.modal-left .section-hdr{color:#4b5b60}
+.modal-left label{color:#66767b;font-size:11.5px;font-weight:400;text-transform:none;letter-spacing:0}
+.time-select{width:92px;flex-shrink:0}
+.kd-coll-hdr{width:100%;display:flex;align-items:center;gap:8px;border:0;background:transparent;padding:0;cursor:pointer;font-family:inherit;text-align:left}
+.kd-coll-hdr .ttl{font-size:11px;font-weight:600;color:#4b5b60;text-transform:uppercase;letter-spacing:.04em}
+.kd-coll-hdr .sum{margin-left:auto;font-size:12px;color:#66767b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:60%}
+.kd-coll-hdr i{color:#66767b;transition:transform .15s}
+.kd-coll-hdr.open i{transform:rotate(90deg)}
 .board-part-hint{flex:0 0 260px;align-self:flex-start;border:1.5px dashed var(--purple-dark);border-radius:var(--r-md);padding:16px;background:var(--purple-bg);font-size:13px;color:var(--purple-dark);display:flex;flex-direction:column;gap:10px;}
 .board-part-hint button{align-self:flex-start;}
 .nav-icon-badge{width:36px;height:36px;border-radius:9px;background:linear-gradient(180deg,#27808a 0%,#206A72 100%);box-shadow:0 6px 16px rgba(32,106,114,.3);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
@@ -1325,7 +1333,7 @@ let localSettingsTrusted=false;
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-10-22T18:00:00.000Z';
+const BUILD_VERSION='2026-10-22T18:30:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -3588,6 +3596,16 @@ function fmtDateMaybeTime(d){
 // das Symbol blendet ein kleines Uhrzeit-Feld ein. Ist schon eine Uhrzeit gesetzt, zeigt das
 // Symbol stattdessen direkt die Uhrzeit als kleinen, klickbaren Chip zum Entfernen an.
 let openTimePickerField=null;
+// Uhrzeit als Auswahlliste neben dem Datum (wie im Entwurf): "–" = keine Uhrzeit, 15-Minuten-Schritte
+function renderContactTimeSelect(field){
+  const val=draftLead[field]||'';
+  const datePart=val.split('T')[0];
+  const cur=val.includes('T')?val.split('T')[1].slice(0,5):'';
+  const opts=[];for(let m=7*60;m<=20*60;m+=15)opts.push(String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0'));
+  if(cur&&cur!=='00:00'&&!opts.includes(cur))opts.push(cur),opts.sort();
+  const sel=cur&&cur!=='00:00'?cur:'';
+  return `<select class="time-select" aria-label="Uhrzeit" ${datePart&&!modalReadOnly?'':'disabled'} title="${datePart?'Uhrzeit (optional)':'Erst ein Datum wählen'}" onchange="setContactTimePart('${field}',this.value)"><option value="" ${sel?'':'selected'}>–</option>${opts.map(t=>`<option ${t===sel?'selected':''}>${t}</option>`).join('')}</select>`;
+}
 function renderContactTimeControl(field){
   const val=draftLead[field]||'';
   const timePart=val.includes('T')?val.split('T')[1]:'';
@@ -3650,6 +3668,7 @@ function leadTonerSentDate(lead){
   return a?String(a.date).slice(0,10):'';
 }
 function leadScrollToCustomer(){
+  if(!leadKundeOpen){leadKundeOpen=true;renderLeadModal();}
   const el=document.getElementById('fCustomerNumber');if(!el)return;
   try{el.scrollIntoView({behavior:'smooth',block:'center'});}catch(e){}
   const sec=el.closest('.info-section');if(sec){sec.style.boxShadow='0 0 0 3px rgba(32,106,114,.35)';setTimeout(()=>{sec.style.boxShadow='';},1400);}
@@ -3738,6 +3757,7 @@ function renderLeadStageBar(lead,opts){
 }
 // ── Lead-Status (Okt. 2026): Symbol-Felder, Verlaeufe als Tabellen, Schnellknoepfe ──
 let leadStatusOpen={fu:false,lw:false};
+let leadKundeOpen=false;
 function toggleStatusColl(k){leadStatusOpen[k]=!leadStatusOpen[k];renderLeadModal();}
 function statusSymbolField(kind,popoverHtml){
   const isM=kind==='members';
@@ -7775,54 +7795,6 @@ function renderLeadModal(){
     <div id="modalErrorMsg" style="display:none"></div>
     <div class="modal-grid" ${modalReadOnly?'style="pointer-events:none;user-select:none;opacity:.7"':''}>
       <div class="modal-left">
-        <div class="info-section">
-          <div class="section-hdr">Kundeninformationen</div>
-          <div class="field-row-2">
-            <div><label>Kundennummer</label><input type="text" inputmode="numeric" placeholder="z. B. 10234" value="${esc(draftLead.customerNumber)}" oninput="draftLead.customerNumber=this.value;clearModalError()" style="width:100%" id="fCustomerNumber"></div>
-            <div><label>Art</label>
-              <select style="width:100%" onchange="draftLead.art=this.value">
-                <option value="B2B" ${draftLead.art==='B2B'?'selected':''}>B2B</option>
-                <option value="B2C" ${draftLead.art==='B2C'?'selected':''}>B2C</option>
-              </select>
-            </div>
-          </div>
-          <div class="field-row-2">
-            <div><label>Ansprechpartner</label><input type="text" value="${esc(draftLead.contact)}" oninput="draftLead.contact=this.value" style="width:100%"></div>
-            <div><label>Telefonnummer</label>
-              <div style="display:flex;gap:6px">
-                <input type="tel" id="fPhone" value="${esc(draftLead.phone)}" oninput="draftLead.phone=this.value;checkDuplicateLead()" style="flex:1">
-                <button class="btn btn-sm" onclick="callCustomer()" title="Kunden anrufen (3CX)"><i class="ti ti-phone"></i></button>
-              </div>
-            </div>
-          </div>
-          <div class="field-row-2">
-            <div><label>E-Mail</label>
-              <div style="display:flex;gap:6px">
-                <input type="email" id="fEmail" name="lead-contact-email-no-autofill" autocomplete="off" value="${esc(draftLead.email)}" oninput="draftLead.email=this.value;checkDuplicateLead()" style="flex:1">
-                <button class="btn btn-sm" onclick="emailCustomer()" title="Mail an Kunden (Outlook)"><i class="ti ti-mail"></i></button>
-              </div>
-            </div>
-            <div><label>Adresse</label>
-              <div style="display:flex;gap:6px">
-                <input type="text" id="fAddress" placeholder="Straße, PLZ Ort" value="${esc(draftLead.address)}" oninput="draftLead.address=this.value" style="flex:1">
-                <button class="btn btn-sm" onclick="openMapsSearch()" title="Adresse auf Google Maps anzeigen"><i class="ti ti-map-pin"></i></button>
-              </div>
-            </div>
-          </div>
-          <div class="field-row-2">
-            <div><label>Anzahl Bestellungen</label><input type="number" min="0" step="1" placeholder="0" value="${draftLead.orderCount}" oninput="draftLead.orderCount=this.value" style="width:100%"></div>
-            <div><label>Umsatz (EUR)</label><input type="number" min="0" step="10" placeholder="0" value="${draftLead.revenue}" oninput="draftLead.revenue=this.value" style="width:100%"></div>
-          </div>
-        </div>
-
-        <div class="info-section">
-          <div class="section-hdr">
-            <span style="display:flex;align-items:center;gap:6px"><i class="ti ti-package" style="font-size:15px;color:var(--purple)"></i>Toner zusenden</span>
-            <span style="font-size:11px;font-weight:500;color:var(--text3);text-transform:none;letter-spacing:0">${draftLead.shipPrinter.skus.filter(x=>x.sku).length} von 4 Artikeln</span>
-          </div>
-          ${shipPrinterHtml}
-        </div>
-
         <div class="info-section" style="${(memberPopoverOpen||labelPopoverOpen)?'position:relative;z-index:50':''}">
           <div class="section-hdr">Lead-Status</div>
           <div class="field" style="margin-bottom:12px">
@@ -7862,17 +7834,17 @@ function renderLeadModal(){
           </div>`:''}
           <div class="field-row-2">
             <div>
-              <label>Datum FollowUp</label>
+              <label>Datum Erstkontakt</label>
               <div style="display:flex;gap:6px">
-                <input type="date" id="followupInput" value="${(draftLead.followup||'').split('T')[0]}" onchange="setContactDatePart('followup',this.value)" style="flex:1;min-width:0">
-                ${renderContactTimeControl('followup')}
+                <input type="date" id="firstContactInput" value="${(draftLead.firstContact||'').split('T')[0]}" onchange="setContactDatePart('firstContact',this.value);renderLeadModal()" style="flex:1;min-width:0">
+                ${renderContactTimeSelect('firstContact')}
               </div>
             </div>
             <div>
-              <label>Datum Erstkontakt</label>
+              <label>Datum FollowUp</label>
               <div style="display:flex;gap:6px">
-                <input type="date" id="firstContactInput" value="${(draftLead.firstContact||'').split('T')[0]}" onchange="setContactDatePart('firstContact',this.value)" style="flex:1;min-width:0">
-                ${renderContactTimeControl('firstContact')}
+                <input type="date" id="followupInput" value="${(draftLead.followup||'').split('T')[0]}" onchange="setContactDatePart('followup',this.value);renderLeadModal()" style="flex:1;min-width:0">
+                ${renderContactTimeSelect('followup')}
               </div>
             </div>
           </div>
@@ -7897,12 +7869,62 @@ function renderLeadModal(){
           ${statusHistoryBlocks(draftLead)}
         </div>
 
-        <div class="info-section" style="margin-bottom:0">
+        <div class="info-section">
+          <div class="section-hdr">
+            <span style="display:flex;align-items:center;gap:6px"><i class="ti ti-package" style="font-size:15px;color:var(--purple)"></i>Toner zusenden</span>
+            <span style="font-size:11px;font-weight:500;color:var(--text3);text-transform:none;letter-spacing:0">${draftLead.shipPrinter.skus.filter(x=>x.sku).length} von 4 Artikeln</span>
+          </div>
+          ${shipPrinterHtml}
+        </div>
+
+        <div class="info-section">
           <div class="section-hdr">
             <span>Top 3 Gekaufte Artikel</span>
           </div>
           ${topArticlesHtml}
         </div>
+        <div class="info-section" style="margin-bottom:0">
+          <button type="button" class="kd-coll-hdr ${leadKundeOpen?'open':''}" onclick="leadKundeOpen=!leadKundeOpen;renderLeadModal()" aria-expanded="${leadKundeOpen}"><i class="ti ti-chevron-right"></i><span class="ttl">Kundeninformationen</span><span class="sum">${esc([draftLead.contact,draftLead.customerNumber?'Kd-Nr. '+draftLead.customerNumber:'',String(draftLead.address||'').split(',').pop().trim()].filter(Boolean).join(' · '))}</span></button>
+          <div id="kdBody" ${leadKundeOpen?'':'hidden'} style="margin-top:12px">
+          <div class="field-row-2">
+            <div><label>Kundennummer</label><input type="text" inputmode="numeric" placeholder="z. B. 10234" value="${esc(draftLead.customerNumber)}" oninput="draftLead.customerNumber=this.value;clearModalError()" style="width:100%" id="fCustomerNumber"></div>
+            <div><label>Art</label>
+              <select style="width:100%" onchange="draftLead.art=this.value">
+                <option value="B2B" ${draftLead.art==='B2B'?'selected':''}>B2B</option>
+                <option value="B2C" ${draftLead.art==='B2C'?'selected':''}>B2C</option>
+              </select>
+            </div>
+          </div>
+          <div class="field-row-2">
+            <div><label>Ansprechpartner</label><input type="text" value="${esc(draftLead.contact)}" oninput="draftLead.contact=this.value" style="width:100%"></div>
+            <div><label>Telefonnummer</label>
+              <div style="display:flex;gap:6px">
+                <input type="tel" id="fPhone" value="${esc(draftLead.phone)}" oninput="draftLead.phone=this.value;checkDuplicateLead()" style="flex:1">
+                <button class="btn btn-sm" onclick="callCustomer()" title="Kunden anrufen (3CX)"><i class="ti ti-phone"></i></button>
+              </div>
+            </div>
+          </div>
+          <div class="field-row-2">
+            <div><label>E-Mail</label>
+              <div style="display:flex;gap:6px">
+                <input type="email" id="fEmail" name="lead-contact-email-no-autofill" autocomplete="off" value="${esc(draftLead.email)}" oninput="draftLead.email=this.value;checkDuplicateLead()" style="flex:1">
+                <button class="btn btn-sm" onclick="emailCustomer()" title="Mail an Kunden (Outlook)"><i class="ti ti-mail"></i></button>
+              </div>
+            </div>
+            <div><label>Adresse</label>
+              <div style="display:flex;gap:6px">
+                <input type="text" id="fAddress" placeholder="Straße, PLZ Ort" value="${esc(draftLead.address)}" oninput="draftLead.address=this.value" style="flex:1">
+                <button class="btn btn-sm" onclick="openMapsSearch()" title="Adresse auf Google Maps anzeigen"><i class="ti ti-map-pin"></i></button>
+              </div>
+            </div>
+          </div>
+          <div class="field-row-2">
+            <div><label>Anzahl Bestellungen</label><input type="number" min="0" step="1" placeholder="0" value="${draftLead.orderCount}" oninput="draftLead.orderCount=this.value" style="width:100%"></div>
+            <div><label>Umsatz (EUR)</label><input type="number" min="0" step="10" placeholder="0" value="${draftLead.revenue}" oninput="draftLead.revenue=this.value" style="width:100%"></div>
+          </div>
+        </div>
+        </div>
+
       </div>
 
       <div class="modal-right">
