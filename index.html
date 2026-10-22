@@ -1397,7 +1397,7 @@ let localSettingsTrusted=false;
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-10-22T22:15:00.000Z';
+const BUILD_VERSION='2026-10-22T22:30:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -7480,7 +7480,7 @@ function releaseLeadLock(leadId){
 function openLeadModal(id){
   editingLeadId=id;
   draftLead=id?JSON.parse(JSON.stringify(leads.find(x=>x.id===id))):blankLead();
-  labelPopoverOpen=false;memberPopoverOpen=false;activityFeedFilter='all';feedFilterOpen=false;composePending=[];draftFileNote='';fcQ={demand:'',actual:''};fcQtyOpen=null;fcVkEdit=null;taskMentionPopoverOpen=false;pendingTaskAssigneeId=null;draftTaskText='';draftCommentText='';editingCommentId=null;rightTab='comments';openTimePickerField=null;
+  labelPopoverOpen=false;memberPopoverOpen=false;activityFeedFilter='comments';feedFilterOpen=false;composePending=[];draftFileNote='';fcQ={demand:'',actual:''};fcQtyOpen=null;fcVkEdit=null;taskMentionPopoverOpen=false;pendingTaskAssigneeId=null;draftTaskText='';draftCommentText='';editingCommentId=null;rightTab='comments';openTimePickerField=null;
   clearTimeout(lockHeartbeatTimer);
   const existingLock=id?getLeadLock(id):null;
   if(existingLock&&existingLock.agentId!==currentUser){
@@ -7522,6 +7522,7 @@ function openLeadModal(id){
 function renderLeadModal(){
   const modalLeftBefore=document.querySelector('#leadModalInner .modal-left');
   const savedScrollTop=modalLeftBefore?modalLeftBefore.scrollTop:0;
+  const rcBefore=document.querySelector('#leadModalInner .rc-scroll');const savedRcScroll=rcBefore?rcBefore.scrollTop:0;
   const isEdit=!!editingLeadId;
   const checkTotal=draftLead.checklist.length;
   const checkDone=draftLead.checklist.filter(c=>c.done).length;
@@ -7920,8 +7921,8 @@ function renderLeadModal(){
       </div>
 
       <div class="modal-right">
+        <div class="rc-scroll" style="overflow-y:auto;flex:1;min-height:0">
         ${modalReadOnly?'':rightComposerHtml(isEdit)}
-        <div style="overflow-y:auto;flex:1">
           <div class="info-section">
             <div class="section-hdr" style="margin-top:0;display:flex;align-items:center;justify-content:space-between"><span>Verlauf</span>${feedFilterBtnHtml(fKey,uniCnt)}</div>
             ${(fKey==='all'||fKey==='tasks')?seriesHtml:''}
@@ -7943,6 +7944,7 @@ function renderLeadModal(){
     </div>`;
   const modalLeftAfter=document.querySelector('#leadModalInner .modal-left');
   if(modalLeftAfter)modalLeftAfter.scrollTop=savedScrollTop;
+  const rcAfter=document.querySelector('#leadModalInner .rc-scroll');if(rcAfter)rcAfter.scrollTop=savedRcScroll;
 }
 
 // Versand-Drucker (links, EIN Drucker, mit Einkaufspreis je SKU)
