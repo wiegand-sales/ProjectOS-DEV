@@ -1090,6 +1090,8 @@ label{font-size:12px;font-weight:500;color:var(--text2);display:block;margin-bot
               <div id="dashboardFilterMenuAgents" class="fm-body"></div>
               <div class="fm-sec" id="dfmSecBoard" onclick="dfmToggleSec('board',event)"><i class="ti ti-layout-kanban"></i><span>Board</span><span class="fm-sum" id="dfmSumBoard"></span><i class="ti ti-chevron-right fm-chev"></i></div>
               <div id="dashboardFilterMenuBoard" class="fm-body"></div>
+              <div class="fm-sec" id="dfmSecArt" onclick="dfmToggleSec('art',event)"><i class="ti ti-building-store"></i><span>Art</span><span class="fm-sum" id="dfmSumArt"></span><i class="ti ti-chevron-right fm-chev"></i></div>
+              <div id="dashboardFilterMenuArt" class="fm-body"></div>
               <div class="fm-sec" id="dfmSecPeriod" onclick="dfmToggleSec('period',event)"><i class="ti ti-calendar-stats"></i><span>Zeitraum</span><span class="fm-sum" id="dfmSumPeriod"></span><i class="ti ti-chevron-right fm-chev"></i></div>
               <div id="dashboardFilterMenuPeriod" class="fm-body"></div>
             </div>
@@ -1114,6 +1116,8 @@ label{font-size:12px;font-weight:500;color:var(--text2);display:block;margin-bot
               <div id="filterMenuAgents" class="fm-body"></div>
               <div class="fm-sec" id="fmSecLabels" onclick="toggleFilterSection('labels',event)"><i class="ti ti-tag"></i><span>Label</span><span class="fm-sum" id="fmSumLabels"></span><i class="ti ti-chevron-right fm-chev"></i></div>
               <div id="filterMenuLabels" class="fm-body"></div>
+              <div class="fm-sec" id="fmSecArt" onclick="toggleFilterSection('art',event)"><i class="ti ti-building-store"></i><span>Art</span><span class="fm-sum" id="fmSumArt"></span><i class="ti ti-chevron-right fm-chev"></i></div>
+              <div id="filterMenuArt" class="fm-body"></div>
               <div class="fm-sec" id="fmSecLoss" onclick="toggleFilterSection('loss',event)"><i class="ti ti-circle-x"></i><span>Verlustgrund</span><span class="fm-sum" id="fmSumLoss"></span><i class="ti ti-chevron-right fm-chev"></i></div>
               <div id="filterMenuLoss" class="fm-body"></div>
             </div>
@@ -1181,6 +1185,8 @@ label{font-size:12px;font-weight:500;color:var(--text2);display:block;margin-bot
               <div id="tasksFilterMenuAgents" class="fm-body"></div>
               <div class="fm-sec" id="tfmSecBoard" onclick="toggleTasksFilterSection('board',event)"><i class="ti ti-layout-kanban"></i><span>Board</span><span class="fm-sum" id="tfmSumBoard"></span><i class="ti ti-chevron-right fm-chev"></i></div>
               <div id="tasksFilterMenuBoard" class="fm-body"></div>
+              <div class="fm-sec" id="tfmSecArt" onclick="toggleTasksFilterSection('art',event)"><i class="ti ti-building-store"></i><span>Art</span><span class="fm-sum" id="tfmSumArt"></span><i class="ti ti-chevron-right fm-chev"></i></div>
+              <div id="tasksFilterMenuArt" class="fm-body"></div>
             </div>
           </div>
           <div id="tasksOmniTokens" style="display:flex;gap:8px;align-items:center;flex-wrap:nowrap;overflow-x:auto;max-width:320px;flex-shrink:1;"></div>
@@ -1203,8 +1209,10 @@ label{font-size:12px;font-weight:500;color:var(--text2);display:block;margin-bot
               <div id="calFilterMenuAgents" class="fm-body"></div>
               <div class="fm-sec" id="cfmSecBoard" onclick="toggleCalFilterSection('board',event)"><i class="ti ti-layout-kanban"></i><span>Board</span><span class="fm-sum" id="cfmSumBoard"></span><i class="ti ti-chevron-right fm-chev"></i></div>
               <div id="calFilterMenuBoard" class="fm-body"></div>
-              <div class="fm-sec" id="cfmSecKind" onclick="toggleCalFilterSection('kind',event)"><i class="ti ti-category"></i><span>Art</span><span class="fm-sum" id="cfmSumKind"></span><i class="ti ti-chevron-right fm-chev"></i></div>
+              <div class="fm-sec" id="cfmSecKind" onclick="toggleCalFilterSection('kind',event)"><i class="ti ti-category"></i><span>Eintrag</span><span class="fm-sum" id="cfmSumKind"></span><i class="ti ti-chevron-right fm-chev"></i></div>
               <div id="calFilterMenuKind" class="fm-body"></div>
+              <div class="fm-sec" id="cfmSecArt" onclick="toggleCalFilterSection('art',event)"><i class="ti ti-building-store"></i><span>Art</span><span class="fm-sum" id="cfmSumArt"></span><i class="ti ti-chevron-right fm-chev"></i></div>
+              <div id="calFilterMenuArt" class="fm-body"></div>
             </div>
           </div>
           <div id="calOmniTokens" style="display:flex;gap:8px;align-items:center;flex-wrap:nowrap;overflow-x:auto;max-width:360px;flex-shrink:1;"></div>
@@ -1397,7 +1405,7 @@ let localSettingsTrusted=false;
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-10-22T23:00:00.000Z';
+const BUILD_VERSION='2026-10-22T23:30:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -2838,6 +2846,12 @@ function runDataIntegrityCheck(){
   alert(msg);
 }
 let activeAgentFilters=[];
+// Kundenart-Filter (Okt. 2026): in Board, Dashboard, Aktivitaeten und Kalender
+const ART_FILTER_OPTIONS=[['all','Alle'],['B2B','B2B'],['B2C','B2C'],['Händler','Händler']];
+function artMatches(l,f){return !f||f==='all'||!l||(l.art||'')===f;}
+function artFilterItems(cur,fn){return ART_FILTER_OPTIONS.map(([v,lab])=>`<div class="filtermenu-item ${cur===v?'active':''}" onclick="event.stopPropagation();${fn}('${v}')"><span>${esc(lab)}</span>${cur===v?'<i class="ti ti-check"></i>':''}</div>`).join('');}
+function artToken(cur,fn){return cur&&cur!=='all'?`<div class="omni-token"><i class="ti ti-building-store" style="font-size:12px"></i>Art: ${esc(cur)}<i class="ti ti-x" onclick="${fn}('all')"></i></div>`:'';}
+let activeArtFilter='all',dashboardArtFilter='all',activeTasksArtFilter='all',calArtFilter='all';
 let activeLabelFilters=[];
 let activeTasksAgentFilter='all';
 let activeTasksBoardFilter='all';
@@ -3034,7 +3048,8 @@ function toggleCalFilterMenu(e){if(e)e.stopPropagation();calFilterMenuOpen=!calF
 function toggleCalFilterSection(k,e){if(e)e.stopPropagation();calFilterSectionOpen=calFilterSectionOpen===k?'':k;renderCalFilterMenu();}
 function setCalBoardFilter(v){calBoardFilter=v;renderCalendar();}
 function setCalKindFilter(v){calKindFilter=v;renderCalendar();}
-function calFilterLeadOk(l){return calBoardFilter==='all'||!l||leadBoardPart(l)===calBoardFilter;}
+function calFilterLeadOk(l){return (calBoardFilter==='all'||!l||leadBoardPart(l)===calBoardFilter)&&artMatches(l,calArtFilter);}
+function setCalArtFilter(v){calArtFilter=v||'all';renderCalendar();}
 function renderCalFilterMenu(){
   const item=(on,label,fn)=>`<div class="filtermenu-item ${on?'active':''}" onclick="event.stopPropagation();${fn}"><span>${esc(label)}</span>${on?'<i class="ti ti-check"></i>':''}</div>`;
   const admin=isAdmin();
@@ -3045,7 +3060,8 @@ function renderCalFilterMenu(){
   if(bodyB)bodyB.innerHTML=[['all','Alle Boards'],['akquise',BOARD_PARTS.akquise],['vertrieb',BOARD_PARTS.vertrieb]].map(([v,l])=>item(calBoardFilter===v,l,`setCalBoardFilter('${v}')`)).join('');
   const bodyK=document.getElementById('calFilterMenuKind');
   if(bodyK)bodyK.innerHTML=[['all','Alle'],['lead','Kundentermine'],['task','Aufgaben']].map(([v,l])=>item(calKindFilter===v,l,`setCalKindFilter('${v}')`)).join('');
-  [['agents','Agents'],['board','Board'],['kind','Kind']].forEach(([k,id])=>{
+  const bodyArt=document.getElementById('calFilterMenuArt');if(bodyArt)bodyArt.innerHTML=artFilterItems(calArtFilter,'setCalArtFilter');
+  [['agents','Agents'],['board','Board'],['kind','Kind'],['art','Art']].forEach(([k,id])=>{
     const sec=document.getElementById('cfmSec'+id),body=document.getElementById('calFilterMenu'+id);
     if(sec)sec.classList.toggle('open',calFilterSectionOpen===k);if(body)body.classList.toggle('open',calFilterSectionOpen===k);
   });
@@ -3054,12 +3070,14 @@ function renderCalFilterMenu(){
   set('Agents',ag,admin&&calAgent!==currentUser);
   set('Board',calBoardFilter==='all'?'Alle':BOARD_PARTS[calBoardFilter],calBoardFilter!=='all');
   set('Kind',calKindFilter==='all'?'Alle':(calKindFilter==='lead'?'Kundentermine':'Aufgaben'),calKindFilter!=='all');
+  set('Art',calArtFilter==='all'?'Alle':calArtFilter,calArtFilter!=='all');
   const tok=document.getElementById('calOmniTokens');
   if(tok){
     let h='';
     if(admin&&calAgent!==currentUser)h+=`<div class="omni-token"><i class="ti ti-user" style="font-size:12px"></i>${esc(ag)}<i class="ti ti-x" onclick="calSetAgent(currentUser)"></i></div>`;
     if(calBoardFilter!=='all')h+=`<div class="omni-token"><i class="ti ti-layout-kanban" style="font-size:12px"></i>${esc(BOARD_PARTS[calBoardFilter])}<i class="ti ti-x" onclick="setCalBoardFilter('all')"></i></div>`;
     if(calKindFilter!=='all')h+=`<div class="omni-token"><i class="ti ti-category" style="font-size:12px"></i>${calKindFilter==='lead'?'Kundentermine':'Aufgaben'}<i class="ti ti-x" onclick="setCalKindFilter('all')"></i></div>`;
+    h+=artToken(calArtFilter,'setCalArtFilter');
     tok.innerHTML=h;
   }
 }
@@ -4102,6 +4120,7 @@ function getFilteredLeads(skipLossFilter){
       const matchesOther=otherFilters.length&&(l.labelIds||[]).some(id=>otherFilters.includes(id));
       if(!(wantsNone&&hasNoLabel)&&!matchesOther)return false;
     }
+    if(!artMatches(l,activeArtFilter))return false;
     if(q&&!leadMatchesSearch(l,q,qPhoneKeys))return false;
     if(activeLossFilter&&!skipLossFilter&&isLostStatus(l.status)){
       const r=(l.lossReason||'').trim();
@@ -4185,6 +4204,7 @@ function renderOmniTokens(){
     html+=`<div class="omni-token"><i class="ti ti-tag" style="font-size:12px"></i>${esc(t.label)}<i class="ti ti-x" onclick="toggleLabelFilter('${t.id}')"></i></div>`;
   });
   updateFilterSectionSummaries();
+  html+=artToken(activeArtFilter,'setArtFilter');
   if(activeLossFilter){
     html+=`<div class="omni-token"><i class="ti ti-circle-x" style="font-size:12px"></i>Verlustgrund: ${esc(activeLossFilter==='__none__'?'Ohne Grund':activeLossFilter)}<i class="ti ti-x" onclick="setLossFilter('')"></i></div>`;
   }
@@ -4205,6 +4225,8 @@ function setLossFilter(v){
   activeLossFilter=v||'';
   renderLossFilterMenu();renderOmniTokens();renderBoard();
 }
+function setArtFilter(v){activeArtFilter=v||'all';renderArtFilterMenu();renderLossFilterMenu();renderOmniTokens();renderBoard();}
+function renderArtFilterMenu(){const el=document.getElementById('filterMenuArt');if(el)el.innerHTML=artFilterItems(activeArtFilter,'setArtFilter');}
 function renderLossFilterMenu(){
   const el=document.getElementById('filterMenuLoss');
   if(!el)return;
@@ -4228,7 +4250,7 @@ function toggleFilterSection(key,e){
   applyFilterSections();
 }
 function applyFilterSections(){
-  [['agents','Agents'],['labels','Labels'],['loss','Loss']].forEach(([k,id])=>{
+  [['agents','Agents'],['labels','Labels'],['art','Art'],['loss','Loss']].forEach(([k,id])=>{
     const sec=document.getElementById('fmSec'+id),body=document.getElementById('filterMenu'+id);
     if(sec)sec.classList.toggle('open',filterSectionOpen===k);
     if(body)body.classList.toggle('open',filterSectionOpen===k);
@@ -4240,6 +4262,7 @@ function updateFilterSectionSummaries(){
   set('Agents',ag.length?(ag.length===1?ag[0]:ag.length+' gewählt'):'Alle',ag.length);
   const lb=activeLabelFilters.map(f=>f==='__none__'?'Ohne Label':((labelById(f)||{}).name||'')).filter(Boolean);
   set('Labels',lb.length?(lb.length===1?lb[0]:lb.length+' gewählt'):'Alle',lb.length);
+  set('Art',activeArtFilter==='all'?'Alle':activeArtFilter,activeArtFilter!=='all');
   set('Loss',activeLossFilter?(activeLossFilter==='__none__'?'Ohne Grund':activeLossFilter):'Alle',activeLossFilter);
   applyFilterSections();
 }
@@ -4424,7 +4447,7 @@ function renderBoard(){
   }
   board.innerHTML = partHintHtml + colsHtml + addTileHtml;
   renderBoardSortMenu();
-  renderLossFilterMenu();
+  renderLossFilterMenu();renderArtFilterMenu();
   {const t=document.getElementById('boardPartTitle');if(t)t.textContent=BOARD_PARTS[currentBoardPart];}
   renderBoardNav();
 
@@ -4439,11 +4462,13 @@ function renderBoard(){
 let activeDashboardAgentFilters=[];
 let dashboardBoardFilter='all';let dashboardFilterSectionOpen='';
 function dfmToggleSec(k,e){if(e)e.stopPropagation();dashboardFilterSectionOpen=dashboardFilterSectionOpen===k?'':k;renderDashboardFilterSections();}
+function setDashboardArtFilter(v){dashboardArtFilter=v||'all';renderDashboardFilterSections();renderDashboard();}
 function setDashboardBoardFilter(v){dashboardBoardFilter=v;renderDashboardFilterSections();renderDashboard();}
 function renderDashboardFilterSections(){
   const bd=document.getElementById('dashboardFilterMenuBoard');
   if(bd)bd.innerHTML=[['all','Alle Boards'],['akquise',BOARD_PARTS.akquise],['vertrieb',BOARD_PARTS.vertrieb]].map(([v,l])=>`<div class="filtermenu-item ${dashboardBoardFilter===v?'active':''}" onclick="event.stopPropagation();setDashboardBoardFilter('${v}')"><span>${esc(l)}</span>${dashboardBoardFilter===v?'<i class="ti ti-check"></i>':''}</div>`).join('');
-  [['agents','Agents','dashboardFilterMenuAgents'],['board','Board','dashboardFilterMenuBoard'],['period','Period','dashboardFilterMenuPeriod']].forEach(([k,id,b])=>{
+  const da=document.getElementById('dashboardFilterMenuArt');if(da)da.innerHTML=artFilterItems(dashboardArtFilter,'setDashboardArtFilter');
+  [['agents','Agents','dashboardFilterMenuAgents'],['board','Board','dashboardFilterMenuBoard'],['art','Art','dashboardFilterMenuArt'],['period','Period','dashboardFilterMenuPeriod']].forEach(([k,id,b])=>{
     const sc=document.getElementById('dfmSec'+id),el=document.getElementById(b);
     if(sc)sc.classList.toggle('open',dashboardFilterSectionOpen===k);if(el)el.classList.toggle('open',dashboardFilterSectionOpen===k);
   });
@@ -4451,6 +4476,7 @@ function renderDashboardFilterSections(){
   const n=activeDashboardAgentFilters.length;
   sum('Agents',n?(n===1?((agentById(activeDashboardAgentFilters[0])||{}).name||''):n+' gewählt'):'Alle',n>0);
   sum('Board',dashboardBoardFilter==='all'?'Alle':BOARD_PARTS[dashboardBoardFilter],dashboardBoardFilter!=='all');
+  sum('Art',dashboardArtFilter==='all'?'Alle':dashboardArtFilter,dashboardArtFilter!=='all');
   const pr=(typeof DASHBOARD_PERIOD_OPTIONS!=='undefined'?DASHBOARD_PERIOD_OPTIONS:[]).find(([k])=>k===activeDashboardPeriod);
   sum('Period',pr?pr[1]:'Gesamt',activeDashboardPeriod!=='all');
   renderDashboardOmniTokens();
@@ -4546,6 +4572,7 @@ function renderDashboardOmniTokens(){
     if(a)html+=`<div class="omni-token"><i class="ti ti-user" style="font-size:12px"></i>${esc(a.name)}<i class="ti ti-x" onclick="toggleDashboardAgentFilter('${id}')"></i></div>`;
   });
   if(dashboardBoardFilter!=='all')html+=`<div class="omni-token"><i class="ti ti-layout-kanban" style="font-size:12px"></i>${esc(BOARD_PARTS[dashboardBoardFilter])}<i class="ti ti-x" onclick="setDashboardBoardFilter('all')"></i></div>`;
+  html+=artToken(dashboardArtFilter,'setDashboardArtFilter');
   if(dashboardDateStart||dashboardDateEnd){
     const label=(dashboardDateStart?fmtDate(dashboardDateStart):'…')+' – '+(dashboardDateEnd?fmtDate(dashboardDateEnd):'…');
     html+=`<div class="omni-token"><i class="ti ti-calendar" style="font-size:12px"></i>${esc(label)}<i class="ti ti-x" onclick="clearDashboardDateRange()"></i></div>`;
@@ -4963,6 +4990,7 @@ function followupGanttHtml(dl){
 function renderDashboard(){
   let dl=activeDashboardAgentFilters.length?leads.filter(l=>(l.members||[]).some(m=>activeDashboardAgentFilters.includes(m))):leads;
   if(dashboardBoardFilter!=='all')dl=dl.filter(l=>leadBoardPart(l)===dashboardBoardFilter);
+  if(dashboardArtFilter!=='all')dl=dl.filter(l=>artMatches(l,dashboardArtFilter));
   const periodStart=periodStartDate(activeDashboardPeriod);
   let excludedNoDate=0;
   if(dashboardDateStart||dashboardDateEnd){
@@ -5459,7 +5487,7 @@ function tasksHeroHtml(withFollowup,history,q){
     tonerAvg=(toner/wkInMonth).toLocaleString('de-DE',{maximumFractionDigits:1});
   }
   // 3) Termine heute
-  const scope=leads.filter(l=>!isClosedLead(l)&&(agent==='all'||(l.members||[]).includes(agent))&&(activeTasksBoardFilter==='all'||leadBoardPart(l)===activeTasksBoardFilter));
+  const scope=leads.filter(l=>!isClosedLead(l)&&(agent==='all'||(l.members||[]).includes(agent))&&(activeTasksBoardFilter==='all'||leadBoardPart(l)===activeTasksBoardFilter)&&artMatches(l,activeTasksArtFilter));
   const timed=scope.map(l=>({l,p:calParse(l.followup)})).filter(x=>x.p);
   const todayT=timed.filter(x=>x.p.date===TODAY).concat(calTasksForDay(agent,TODAY).map(x=>({l:{company:x.t.title},p:x.p}))).sort((a,b)=>a.p.min-b.p.min);
   const nowMin=new Date().getHours()*60+new Date().getMinutes();
@@ -5506,6 +5534,7 @@ function assignedOpenCount(q){
   let items=[];leads.forEach(l=>(l.tasks||[]).forEach(t=>{if(t.assigneeId&&!t.done)items.push({t,l});}));
   if(activeTasksAgentFilter!=='all')items=items.filter(x=>x.t.assigneeId===activeTasksAgentFilter);
   if(activeTasksBoardFilter!=='all')items=items.filter(x=>leadBoardPart(x.l)===activeTasksBoardFilter);
+  if(activeTasksArtFilter!=='all')items=items.filter(x=>artMatches(x.l,activeTasksArtFilter));
   if(q){const pk=phoneQueryKeys(q);items=items.filter(x=>leadMatchesSearch(x.l,q,pk));}
   return{open:items.length,overdue:items.filter(x=>x.t.dueDate&&daysUntil(x.t.dueDate)<0).length};
 }
@@ -5525,6 +5554,7 @@ function tasksTodayCalTasks(){
   const q=((document.getElementById('tasksSearch')||{}).value||'').toLowerCase().trim();const pk=phoneQueryKeys(q);
   return calTasksForDay(activeTasksAgentFilter,TODAY).filter(x=>{
     if(activeTasksBoardFilter!=='all'&&x.lead&&leadBoardPart(x.lead)!==activeTasksBoardFilter)return false;
+    if(activeTasksArtFilter!=='all'&&x.lead&&!artMatches(x.lead,activeTasksArtFilter))return false;
     if(q&&!((x.t.title||'').toLowerCase().includes(q)||(x.lead&&leadMatchesSearch(x.lead,q,pk))))return false;
     return true;
   });
@@ -5661,6 +5691,7 @@ function tasksBaseFollowups(withoutFirstContact){
   let list=leads.filter(l=>l.followup&&(withoutFirstContact||l.firstContact)&&!isLostStatus(l.status));
   if(activeTasksAgentFilter!=='all')list=list.filter(l=>(l.members||[]).includes(activeTasksAgentFilter));
   if(activeTasksBoardFilter!=='all')list=list.filter(l=>leadBoardPart(l)===activeTasksBoardFilter);
+  if(activeTasksArtFilter!=='all')list=list.filter(l=>artMatches(l,activeTasksArtFilter));
   if(q){const pk=phoneQueryKeys(q);list=list.filter(l=>leadMatchesSearch(l,q,pk));}
   return list;
 }
@@ -5803,13 +5834,15 @@ function renderTasksAgentChips(){
   el.innerHTML=html;
   const eb=document.getElementById('tasksFilterMenuBoard');
   if(eb)eb.innerHTML=[['all','Alle Boards'],['akquise',BOARD_PARTS.akquise],['vertrieb',BOARD_PARTS.vertrieb]].map(([v,lab])=>`<div class="filtermenu-item ${activeTasksBoardFilter===v?'active':''}" onclick="event.stopPropagation();setTasksBoardFilter('${v}')"><span>${esc(lab)}</span>${activeTasksBoardFilter===v?'<i class="ti ti-check"></i>':''}</div>`).join('');
+  const ea=document.getElementById('tasksFilterMenuArt');if(ea)ea.innerHTML=artFilterItems(activeTasksArtFilter,'setTasksArtFilter');
   renderTasksOmniTokens();
 }
+function setTasksArtFilter(v){activeTasksArtFilter=v||'all';renderTasksAgentChips();renderTasksView();}
 function setTasksBoardFilter(v){activeTasksBoardFilter=v;renderTasksAgentChips();renderTasksView();}
 function toggleTasksFilterSection(k,e){if(e)e.stopPropagation();tasksFilterSectionOpen=tasksFilterSectionOpen===k?'':k;applyTasksFilterSections();}
 function applyTasksFilterSections(){
-  [['agents','Agents'],['board','Board']].forEach(([k,id])=>{
-    const sec=document.getElementById('tfmSec'+id),body=document.getElementById(id==='Agents'?'tasksFilterMenuAgents':'tasksFilterMenuBoard');
+  [['agents','Agents'],['board','Board'],['art','Art']].forEach(([k,id])=>{
+    const sec=document.getElementById('tfmSec'+id),body=document.getElementById('tasksFilterMenu'+id);
     if(sec)sec.classList.toggle('open',tasksFilterSectionOpen===k);
     if(body)body.classList.toggle('open',tasksFilterSectionOpen===k);
   });
@@ -5818,6 +5851,8 @@ function applyTasksFilterSections(){
   const sb=document.getElementById('tfmSumBoard');if(sb)sb.textContent=activeTasksBoardFilter==='all'?'Alle':BOARD_PARTS[activeTasksBoardFilter];
   document.getElementById('tfmSecAgents')&&document.getElementById('tfmSecAgents').classList.toggle('active',!!a);
   document.getElementById('tfmSecBoard')&&document.getElementById('tfmSecBoard').classList.toggle('active',activeTasksBoardFilter!=='all');
+  const sArt=document.getElementById('tfmSumArt');if(sArt)sArt.textContent=activeTasksArtFilter==='all'?'Alle':activeTasksArtFilter;
+  document.getElementById('tfmSecArt')&&document.getElementById('tfmSecArt').classList.toggle('active',activeTasksArtFilter!=='all');
 }
 function renderTasksOmniTokens(){
   const el=document.getElementById('tasksOmniTokens');
@@ -5825,7 +5860,8 @@ function renderTasksOmniTokens(){
   applyTasksFilterSections();
   const a=activeTasksAgentFilter==='all'?null:AGENTS.find(a=>a.id===activeTasksAgentFilter);
   el.innerHTML=(a?`<div class="omni-token"><i class="ti ti-user" style="font-size:12px"></i>${esc(a.name)}<i class="ti ti-x" onclick="setTasksAgentFilter('all')"></i></div>`:'')
-    +(activeTasksBoardFilter!=='all'?`<div class="omni-token"><i class="ti ti-layout-kanban" style="font-size:12px"></i>${esc(BOARD_PARTS[activeTasksBoardFilter])}<i class="ti ti-x" onclick="setTasksBoardFilter('all')"></i></div>`:'');
+    +(activeTasksBoardFilter!=='all'?`<div class="omni-token"><i class="ti ti-layout-kanban" style="font-size:12px"></i>${esc(BOARD_PARTS[activeTasksBoardFilter])}<i class="ti ti-x" onclick="setTasksBoardFilter('all')"></i></div>`:'')
+    +artToken(activeTasksArtFilter,'setTasksArtFilter');
 }
 let tasksFilterMenuOpen=false;
 function toggleTasksFilterMenu(e){
@@ -5844,6 +5880,7 @@ function assignedTasksHtml(q){
   leads.forEach(l=>{(l.tasks||[]).forEach(t=>{if(t.assigneeId)items.push(Object.assign({},t,{lead:l}));});});
   if(activeTasksAgentFilter!=='all')items=items.filter(t=>t.assigneeId===activeTasksAgentFilter);
   if(activeTasksBoardFilter!=='all')items=items.filter(t=>leadBoardPart(t.lead)===activeTasksBoardFilter);
+  if(activeTasksArtFilter!=='all')items=items.filter(t=>artMatches(t.lead,activeTasksArtFilter));
   items=items.filter(t=>!t.done); // erledigte Aufgaben verschwinden aus der Liste
   if(q){const pk=phoneQueryKeys(q);items=items.filter(t=>leadMatchesSearch(t.lead,q,pk));}
   items.sort((a,b)=>(a.dueDate||'9999-99-99').localeCompare(b.dueDate||'9999-99-99'));
@@ -5879,6 +5916,7 @@ function renderTasksView(){
   let withFollowup=leads.filter(l=>l.followup&&l.firstContact&&!isLostStatus(l.status));
   if(activeTasksAgentFilter!=='all')withFollowup=withFollowup.filter(l=>(l.members||[]).includes(activeTasksAgentFilter));
   if(activeTasksBoardFilter!=='all')withFollowup=withFollowup.filter(l=>leadBoardPart(l)===activeTasksBoardFilter);
+  if(activeTasksArtFilter!=='all')withFollowup=withFollowup.filter(l=>artMatches(l,activeTasksArtFilter));
   if(q){const pk=phoneQueryKeys(q);withFollowup=withFollowup.filter(l=>leadMatchesSearch(l,q,pk));}
   const buckets={overdue:[],today:[],week:[],nextweek:[]};
   withFollowup.forEach(l=>{const b=followupBucket(l);if(b)buckets[b].push(l);});
