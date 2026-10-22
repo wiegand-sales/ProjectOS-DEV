@@ -337,6 +337,36 @@ body{font-family:'Inter',sans-serif;background:linear-gradient(155deg,#f2f3f0 0%
 .lbn-ends .ev{display:inline-flex;align-items:center;gap:5px;margin-right:14px}
 .lbn-ends .ev i{width:9px;height:2px;border-radius:1px;display:inline-block}
 @media (max-width:900px){.lbn{grid-template-columns:1fr}.lbn-icons{margin-top:8px;flex-wrap:wrap}.lbn-fields{grid-template-columns:repeat(3,minmax(0,1fr))}.lbn-nums{margin-left:0}}
+.modal-quick{flex:1;display:flex;justify-content:center;gap:6px;flex-wrap:wrap;margin:0 10px}
+.modal-quick .btn{background:#E9F0F1;border-color:#E9F0F1;color:#206A72;font-weight:600}
+.modal-quick .btn:hover{border-color:#206A72}
+.sym-field{position:relative}
+.sym-box{width:100%;height:36px;display:flex;align-items:center;gap:6px;border:1px solid var(--border2,#dfe7e6);background:var(--input-bg,var(--bg2,#f4f6f6));border-radius:8px;padding:0 30px 0 8px;text-align:left;overflow:hidden;white-space:nowrap;cursor:pointer;position:relative;font-family:inherit;color:inherit}
+.sym-box:hover{border-color:#c4d3d2}
+.sym-box.open{border-color:#206A72;box-shadow:0 0 0 3px rgba(32,106,114,.15)}
+.sym-box .chev{position:absolute;right:10px;top:50%;transform:translateY(-50%);color:var(--text2);font-size:15px}
+.sym-box .ph{color:var(--text3);padding-left:2px;font-size:13px}
+.sym-avs{display:flex}
+.sym-avs span{width:24px;height:24px;border-radius:50%;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;border:2px solid var(--bg2,#f4f6f6);margin-left:-6px}
+.sym-avs span:first-child{margin-left:0}
+.sym-dots{display:flex;gap:4px}
+.sym-dots i{width:14px;height:14px;border-radius:4px;display:block}
+.sym-cnt{font-size:12.5px;color:var(--text2);margin-left:4px;overflow:hidden;text-overflow:ellipsis}
+.sym-field .popover{top:40px;left:0;right:0;min-width:0}
+.st-coll{border-top:1px solid var(--border2,#e4ebea);margin-top:12px}
+.st-coll>button{width:100%;display:flex;align-items:center;gap:8px;border:0;background:transparent;padding:10px 0 2px;text-align:left;font-size:12.5px;font-weight:600;color:#206A72;cursor:pointer;font-family:inherit}
+.st-coll>button .n{margin-left:auto;font-weight:500;color:var(--text3)}
+.st-coll>button i.ar{transition:transform .15s;font-size:14px}
+.st-coll>button.open i.ar{transform:rotate(90deg)}
+.st-coll + .st-coll{margin-top:4px}
+table.vt{width:100%;border-collapse:collapse;font-size:12.5px;table-layout:fixed;margin-top:8px}
+table.vt th{text-align:left;font-size:10.5px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;padding:5px 6px;border-bottom:1px solid var(--border2,#e4ebea)}
+table.vt td{padding:0 6px;height:32px;border-bottom:1px solid var(--border2,#e4ebea);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+table.vt tr:last-child td{border-bottom:0}
+table.vt .sq{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:7px}
+table.vt tr.hi td{font-weight:600}
+table.vt tr.hi td:first-child{color:#206A72}
+table.vt col.c1{width:34%}table.vt col.c2,table.vt col.c3{width:16%}table.vt col.c4{width:12%}table.vt col.c5{width:22%}
 .board-part-hint{flex:0 0 260px;align-self:flex-start;border:1.5px dashed var(--purple-dark);border-radius:var(--r-md);padding:16px;background:var(--purple-bg);font-size:13px;color:var(--purple-dark);display:flex;flex-direction:column;gap:10px;}
 .board-part-hint button{align-self:flex-start;}
 .nav-icon-badge{width:36px;height:36px;border-radius:9px;background:linear-gradient(180deg,#27808a 0%,#206A72 100%);box-shadow:0 6px 16px rgba(32,106,114,.3);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
@@ -1295,7 +1325,7 @@ let localSettingsTrusted=false;
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-10-22T17:00:00.000Z';
+const BUILD_VERSION='2026-10-22T18:00:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -3481,6 +3511,16 @@ function saveCalAppt(){
     const a2={id:Date.now()+Math.random(),type:'comment',author:currentUser,text:`Termin ${fmtDate(calAppt.date)} ${calAppt.time}: ${calAppt.note.trim()}`,date:nowISO()};l.activity.unshift(a2);pushActivityToDb(l.id,a2);
   }
   saveState();
+  // Lead-Fenster fuer denselben Lead offen? Neuen Termin, Personen und Verlauf ins Fenster uebernehmen,
+  // damit ein spaeteres "Speichern" den Termin nicht mit dem alten Stand ueberschreibt.
+  if(draftLead&&editingLeadId!==null&&String(editingLeadId)===String(l.id)){
+    draftLead.followup=l.followup;draftLead.followupHistory=JSON.parse(JSON.stringify(l.followupHistory||[]));
+    draftLead.members=[...(l.members||[])];
+    const have=new Set((draftLead.activity||[]).map(a=>String(a.id)));
+    (l.activity||[]).forEach(a=>{if(!have.has(String(a.id)))draftLead.activity.unshift(a);});
+    draftLead.activity.sort((a,b)=>String(b.date).localeCompare(String(a.date)));
+    setTimeout(()=>{if(draftLead)renderLeadModal();},0);
+  }
   const fromWork=!!(work&&work.awaitAppt); // vor dem Schliessen merken - closeModal setzt awaitAppt zurueck
   closeModal('calApptModal');
   calAppt=null;
@@ -3695,6 +3735,56 @@ function renderLeadStageBar(lead,opts){
   return `<div style="margin-bottom:10px">${opts.tableOnly?'':`<div class="stage-bar">${html}</div>`}
     ${n>0?`<div style="font-size:11px;margin-top:5px"><a href="#" style="color:#206A72;font-weight:600" onclick="event.preventDefault();leadStageDetailsOpen=!leadStageDetailsOpen;renderLeadModal()">${leadStageDetailsOpen?'Listenwechsel ausblenden':`Alle Listenwechsel anzeigen (${n})`}</a></div>`:''}
     ${leadStageDetailsOpen&&n>0?`<table class="stage-tbl"><thead><tr><th>Liste</th><th>Von</th><th>Bis</th><th>Dauer</th><th>Verschoben von</th></tr></thead><tbody>${rows}</tbody></table>`:''}</div>`;
+}
+// ── Lead-Status (Okt. 2026): Symbol-Felder, Verlaeufe als Tabellen, Schnellknoepfe ──
+let leadStatusOpen={fu:false,lw:false};
+function toggleStatusColl(k){leadStatusOpen[k]=!leadStatusOpen[k];renderLeadModal();}
+function statusSymbolField(kind,popoverHtml){
+  const isM=kind==='members';
+  const open=isM?memberPopoverOpen:labelPopoverOpen;
+  const chev='<i class="ti ti-chevron-down chev"></i>';
+  let inner;
+  if(isM){
+    const ags=(draftLead.members||[]).map(id=>agentById(id)).filter(Boolean);
+    inner=ags.length?`<span class="sym-avs">${ags.slice(0,4).map(a=>`<span style="background:${COLOR_BG[a.color]};color:${COLOR_TEXT[a.color]}" title="${esc(a.name)}">${ini(a.name)}</span>`).join('')}</span><span class="sym-cnt">${ags.length===1?esc(ags[0].name):ags.length+' Personen'}</span>`:'<span class="ph">Person wählen …</span>';
+    const title=ags.map(a=>a.name).join(', ');
+    return `<div class="sym-field"><button type="button" class="sym-box ${open?'open':''}" ${modalReadOnly?'disabled':''} onclick="event.stopPropagation();toggleMemberPopover()" title="${esc(title)}" aria-haspopup="listbox" aria-expanded="${open}">${inner}${chev}</button>${popoverHtml}</div>`;
+  }
+  const lbs=(draftLead.labelIds||[]).map(id=>labelById(id)).filter(Boolean);
+  inner=lbs.length?`<span class="sym-dots">${lbs.slice(0,6).map(lb=>`<i style="background:${lb.color}" title="${esc(lb.name)}"></i>`).join('')}</span><span class="sym-cnt">${lbs.length===1?esc(lbs[0].name):lbs.length+' Labels'}</span>`:'<span class="ph">Label wählen …</span>';
+  return `<div class="sym-field"><button type="button" class="sym-box ${open?'open':''}" ${modalReadOnly?'disabled':''} onclick="event.stopPropagation();toggleLabelPopover()" title="${esc(lbs.map(x=>x.name).join(', '))}" aria-haspopup="listbox" aria-expanded="${open}">${inner}${chev}</button>${popoverHtml}</div>`;
+}
+function followupHistoryRows(lead){
+  const dd=(a,b)=>Math.round((new Date(String(b).slice(0,10)+'T00:00:00')-new Date(String(a).slice(0,10)+'T00:00:00'))/86400000);
+  const rows=[];
+  if(lead.firstContact)rows.push({n:'Erstkontakt',v:lead.firstContact,set:'',c:'#888780'});
+  (lead.followupHistory||[]).forEach(h=>{if(!h||!h.date)return;const last=rows[rows.length-1];if(last&&String(last.v)===String(h.date))return;rows.push({n:'FollowUp',v:h.date,set:h.setAt||'',c:'#BA7517'});});
+  const col=colById(lead.status);
+  if(col&&col.outcome==='lost'){const ld=String(lead.closedAt||lead.statusSince||'').slice(0,10);if(ld)rows.push({n:'Verloren',v:ld,set:'',c:'#E24B4A'});}
+  else if(lead.followup){
+    const last=rows[rows.length-1];
+    if(!last||String(last.v)!==String(lead.followup))rows.push({n:'FollowUp',v:lead.followup,set:'',c:'#BA7517'});
+    const cur=rows[rows.length-1];if(String(cur.v).slice(0,10)>=TODAY){cur.n='Nächstes FollowUp';cur.c='#206A72';cur.hi=true;}
+  }
+  rows.forEach((r,i)=>{r.gap=i?dd(rows[i-1].v,r.v):null;});
+  return rows;
+}
+function statusHistoryBlocks(lead){
+  const cols='<colgroup><col class="c1"><col class="c2"><col class="c3"><col class="c4"><col class="c5"></colgroup>';
+  const fr=followupHistoryRows(lead);
+  const fuTable=fr.length?`<table class="vt">${cols}<thead><tr><th>Ereignis</th><th>Datum</th><th>Uhrzeit</th><th>Abstand</th><th>Gesetzt am</th></tr></thead><tbody>${fr.map(r=>{const p=calParse(r.v);return `<tr class="${r.hi?'hi':''}"><td><span class="sq" style="background:${r.c}"></span>${esc(r.n)}</td><td>${fmtDate(String(r.v).slice(0,10))}</td><td>${p?p.time:'–'}</td><td>${r.gap===null?'–':r.gap+' '+(Math.abs(r.gap)===1?'Tag':'Tage')}</td><td>${r.set?fmtDate(String(r.set).slice(0,10)):'–'}</td></tr>`;}).join('')}</tbody></table>`
+    :'<p style="font-size:12px;color:var(--text3);margin:8px 0 0">Noch kein Erstkontakt oder FollowUp erfasst.</p>';
+  const segs=leadStageSegments(lead);const col=colById(lead.status);const closed=!!(col&&(col.outcome==='won'||col.outcome==='lost'));
+  const dd=(a,b)=>Math.max(0,Math.round((new Date(String(b).slice(0,10)+'T00:00:00')-new Date(String(a).slice(0,10)+'T00:00:00'))/86400000));
+  const lwTable=`<table class="vt">${cols}<thead><tr><th>Liste</th><th>Von</th><th>Bis</th><th>Dauer</th><th>Verschoben von</th></tr></thead><tbody>${segs.map((x,i)=>{const isEnd=closed&&x.current;const d=dd(x.from,x.to||TODAY);const a=agentById(x.by);return `<tr class="${x.current?'hi':''}"><td><span class="sq" style="background:${isEnd?(col.outcome==='won'?'#1D9E75':'#E24B4A'):stageColor(x.name)}"></span>${esc(x.name)}</td><td>${fmtDate(String(x.from).slice(0,10))}</td><td>${isEnd?'–':(x.to?fmtDate(String(x.to).slice(0,10)):'heute')}</td><td>${isEnd?'–':d+' '+(d===1?'Tag':'Tage')}</td><td>${a?esc(a.name):(i===0?'Anlage':'–')}</td></tr>`;}).join('')}</tbody></table>`;
+  const blk=(k,label,n,body)=>`<div class="st-coll"><button type="button" class="${leadStatusOpen[k]?'open':''}" onclick="toggleStatusColl('${k}')" aria-expanded="${leadStatusOpen[k]}"><i class="ti ti-chevron-right ar"></i>${label}<span class="n">${n}</span></button>${leadStatusOpen[k]?body:''}</div>`;
+  return blk('fu','FollowUp-Verlauf',`${fr.length} ${fr.length===1?'Eintrag':'Einträge'}`,fuTable)+blk('lw','Listenwechsel',`${segs.length} ${segs.length===1?'Liste':'Listen'}`,lwTable);
+}
+// +1T / +3T aus der Fussleiste: FollowUp in Arbeitstagen verschieben (Uhrzeit bleibt) und sofort speichern
+function draftShiftFollowup(n){
+  if(!draftLead||modalReadOnly)return;
+  setContactDatePart('followup',addWorkdays(TODAY,n));
+  saveLead(true);
 }
 function renderFollowupTimeline(lead){
   const lostCol=colById(lead.status);
@@ -7723,10 +7813,6 @@ function renderLeadModal(){
             <div><label>Anzahl Bestellungen</label><input type="number" min="0" step="1" placeholder="0" value="${draftLead.orderCount}" oninput="draftLead.orderCount=this.value" style="width:100%"></div>
             <div><label>Umsatz (EUR)</label><input type="number" min="0" step="10" placeholder="0" value="${draftLead.revenue}" oninput="draftLead.revenue=this.value" style="width:100%"></div>
           </div>
-          <div class="field" style="margin-bottom:0">
-            <label>Notiz</label>
-            <textarea placeholder="Interne Notiz…" oninput="draftLead.notes=this.value">${esc(draftLead.notes)}</textarea>
-          </div>
         </div>
 
         <div class="info-section">
@@ -7739,10 +7825,9 @@ function renderLeadModal(){
 
         <div class="info-section" style="${(memberPopoverOpen||labelPopoverOpen)?'position:relative;z-index:50':''}">
           <div class="section-hdr">Lead-Status</div>
-          <div style="margin-bottom:12px">
-            ${renderLeadStageBar(draftLead,{tableOnly:true})}
-            <span class="small-label">Zeitstrahl</span>
-            ${renderFollowupTimeline(draftLead)}
+          <div class="field" style="margin-bottom:12px">
+            <label>Notiz</label>
+            <textarea placeholder="Interne Notiz…" oninput="draftLead.notes=this.value" style="min-height:58px">${esc(draftLead.notes)}</textarea>
           </div>
           <div class="field-row-2">
             <div><label>Status</label>
@@ -7777,37 +7862,24 @@ function renderLeadModal(){
           </div>`:''}
           <div class="field-row-2">
             <div>
-              <label>Datum Erstkontakt</label>
-              <div style="display:flex;gap:6px">
-                <input type="date" id="firstContactInput" value="${(draftLead.firstContact||'').split('T')[0]}" onchange="setContactDatePart('firstContact',this.value)" style="flex:1;min-width:0">
-                ${renderContactTimeControl('firstContact')}
-              </div>
-            </div>
-            <div>
               <label>Datum FollowUp</label>
               <div style="display:flex;gap:6px">
                 <input type="date" id="followupInput" value="${(draftLead.followup||'').split('T')[0]}" onchange="setContactDatePart('followup',this.value)" style="flex:1;min-width:0">
                 ${renderContactTimeControl('followup')}
               </div>
             </div>
+            <div>
+              <label>Datum Erstkontakt</label>
+              <div style="display:flex;gap:6px">
+                <input type="date" id="firstContactInput" value="${(draftLead.firstContact||'').split('T')[0]}" onchange="setContactDatePart('firstContact',this.value)" style="flex:1;min-width:0">
+                ${renderContactTimeControl('firstContact')}
+              </div>
+            </div>
           </div>
 
-          <div class="label-row-editor" style="margin-top:10px">
-            <span class="small-label" style="width:100%;margin-bottom:0">Labels</span>
-          </div>
-          <div class="label-row-editor">
-            ${labelChips}
-            <button class="pill-btn" onclick="event.stopPropagation();toggleLabelPopover()"><i class="ti ti-plus"></i> Label</button>
-            ${labelPopoverHtml}
-          </div>
-
-          <div class="member-row-editor" style="margin-top:14px">
-            <span class="small-label" style="width:100%;margin-bottom:0">Mitglieder</span>
-          </div>
-          <div class="member-row-editor">
-            ${memberChips}
-            <button class="pill-btn" onclick="event.stopPropagation();toggleMemberPopover()"><i class="ti ti-plus"></i> Person</button>
-            ${memberPopoverHtml}
+          <div class="field-row-2" style="margin-top:2px">
+            <div><label>Zuständig</label>${statusSymbolField('members',memberPopoverHtml)}</div>
+            <div><label>Labels</label>${statusSymbolField('labels',labelPopoverHtml)}</div>
           </div>
 
           <div style="margin-top:14px">
@@ -7822,6 +7894,7 @@ function renderLeadModal(){
               <button class="btn btn-sm" onclick="addChecklistItem()"><i class="ti ti-plus"></i></button>
             </div>
           </div>
+          ${statusHistoryBlocks(draftLead)}
         </div>
 
         <div class="info-section" style="margin-bottom:0">
@@ -7846,6 +7919,7 @@ function renderLeadModal(){
     <div class="modal-actions">
       ${modalReadOnly?`<div></div><div style="display:flex;gap:8px;align-items:center"><button class="btn btn-primary" onclick="closeModal('leadModal')">Schließen</button></div>`:`
       ${isEdit?`<button class="btn btn-danger" onclick="deleteLead()"><i class="ti ti-trash"></i> Löschen</button>`:'<div></div>'}
+      ${isEdit?`<div class="modal-quick" role="group" aria-label="Schnellaktionen"><button class="btn" onclick="markNotReached()" title="Kommentar „Nicht erreicht“, FollowUp + ${PROJECT.notReachedFollowupDays!==undefined?PROJECT.notReachedFollowupDays:6} Arbeitstage"><i class="ti ti-phone-off"></i> Nicht erreicht</button><button class="btn" onclick="draftShiftFollowup(1)" title="FollowUp auf den nächsten Arbeitstag, sofort gespeichert">+1T</button><button class="btn" onclick="draftShiftFollowup(3)" title="FollowUp um 3 Arbeitstage, sofort gespeichert">+3T</button><button class="btn" onclick="openCalApptForLead(editingLeadId)" title="Termin im Kalender planen"><i class="ti ti-calendar-plus"></i> Termin</button></div>`:''}
       <div style="display:flex;gap:8px;align-items:center">
         <span id="saveFlashMsg" style="display:none;font-size:12px;color:var(--green-dark);font-weight:600"><i class="ti ti-check"></i> Gespeichert</span>
         ${(isEdit&&draftLead.status==='am_order'&&colById('fu_feedback'))?`<button class="btn" onclick="handOverDraftToPql()"><i class="ti ti-arrow-right"></i> An PQL übergeben</button>`:''}
