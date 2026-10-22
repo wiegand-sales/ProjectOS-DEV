@@ -337,6 +337,28 @@ body{font-family:'Inter',sans-serif;background:linear-gradient(155deg,#f2f3f0 0%
 .lbn-ends .ev{display:inline-flex;align-items:center;gap:5px;margin-right:14px}
 .lbn-ends .ev i{width:9px;height:2px;border-radius:1px;display:inline-block}
 @media (max-width:900px){.lbn{grid-template-columns:1fr}.lbn-icons{margin-top:8px;flex-wrap:wrap}.lbn-fields{grid-template-columns:repeat(3,minmax(0,1fr))}.lbn-nums{margin-left:0}}
+.rc-box{margin-bottom:12px;flex-shrink:0}
+.rc-top{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.rc-seg{display:inline-flex;background:var(--bg2,#f4f6f6);border-radius:9px;padding:3px;gap:3px}
+.rc-seg button{height:30px;border:0;background:transparent;border-radius:7px;padding:0 14px;font-size:13px;font-weight:500;color:var(--text2);display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-family:inherit}
+.rc-seg button.on{background:var(--bg,#fff);color:#206A72;font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.rc-date{margin-left:auto;display:flex;align-items:center;gap:8px}
+.rc-date span{font-size:11.5px;color:#66767b}
+.rc-date input{width:160px;height:36px;box-sizing:border-box;padding-top:0;padding-bottom:0}
+.rc-box textarea{min-height:80px}
+.rc-bottom{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:end;margin-top:10px}
+.rc-bottom label,.rc-qwrap label{display:block;font-size:11.5px;color:#66767b;margin-bottom:3px;line-height:1.45;font-weight:400;text-transform:none;letter-spacing:0}
+.rc-qgrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.rc-qgrid .btn{height:36px;justify-content:center;background:#E9F0F1;border-color:#E9F0F1;color:#206A72;font-weight:600;padding:0 6px;white-space:nowrap}
+.rc-qgrid .btn:hover{border-color:#206A72}
+.rc-tgrid{display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:6px}
+.rc-tgrid select{width:100%;height:36px;box-sizing:border-box;padding-top:0;padding-bottom:0}
+.rc-tgrid select:disabled{opacity:.45}
+.rc-send{height:36px;min-width:150px;justify-content:center}
+.modal-right .tab-bar{background:var(--bg,#fff);border:1px solid var(--border2,#e1e8e8);border-radius:11px;padding:3px;gap:3px}
+.modal-right .tab-bar .tab-btn{flex:1;border-radius:8px}
+.modal-right .tab-bar .tab-btn.active{background:#E9F0F1;color:#206A72;font-weight:600;box-shadow:none}
+.tab-cnt{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;border-radius:9px;background:#fcebeb;color:#a32d2d;font-size:10.5px;font-weight:700;margin-left:6px;padding:0 5px}
 .modal-quick{flex:1;display:flex;justify-content:center;gap:6px;flex-wrap:wrap;margin:0 10px}
 .modal-quick .btn{background:#E9F0F1;border-color:#E9F0F1;color:#206A72;font-weight:600}
 .modal-quick .btn:hover{border-color:#206A72}
@@ -1341,7 +1363,7 @@ let localSettingsTrusted=false;
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-10-22T19:30:00.000Z';
+const BUILD_VERSION='2026-10-22T20:00:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -7733,22 +7755,6 @@ function renderLeadModal(){
   }else if(rightTab==='tasks'){
     rightContentHtml=`<div style="overflow-y:auto;flex:1">
       <div class="info-section">
-        <div class="section-hdr" style="margin-top:0">Neue Aufgabe</div>
-        <div class="field" style="margin-bottom:10px;position:relative">
-          <textarea id="newTaskText" placeholder="Aufgabe beschreiben… mit @Name einer Person zuweisen (Strg+Enter zum Erstellen)" style="min-height:44px" onkeydown="if((event.key==='Enter')&&(event.ctrlKey||event.metaKey))addTask()" oninput="clearTaskFormError();handleTaskMentionInput(this)">${esc(draftTaskText)}</textarea>
-          <div id="taskMentionPopoverContainer">${renderTaskMentionPopoverHtml()}</div>
-        </div>
-        <div id="taskFormError" style="display:none;color:var(--red);font-size:11px;margin-bottom:6px"></div>
-        ${taskCalFormHtml()}
-        <div class="field-row-2" style="margin-bottom:0;align-items:end">
-          <div style="${draftTaskCal&&draftTaskCal.on?'visibility:hidden':''}"><label>Frist</label><input type="date" id="newTaskDue" style="width:100%"></div>
-          <div><label style="visibility:hidden">Aktion</label>
-            <button class="btn btn-petrol-muted" style="width:100%;justify-content:center" onclick="addTask()"><i class="ti ti-plus"></i> Aufgabe erstellen</button>
-          </div>
-        </div>
-      </div>
-
-      <div class="info-section">
         <div class="section-hdr" style="margin-top:0">${openTaskCount?`${openTaskCount} offene Aufgabe(n)`:'Keine offenen Aufgaben'}</div>
         ${tasksHtml}${seriesHtml}
       </div>
@@ -7767,19 +7773,6 @@ function renderLeadModal(){
     </div>`;
   }else{
     rightContentHtml=`<div style="overflow-y:auto;flex:1">
-      <div class="info-section">
-        <div class="section-hdr" style="margin-top:0;display:flex;justify-content:space-between;align-items:center;gap:10px">
-          <span>Neuer Kommentar</span>
-          <input type="date" id="commentDateInput" max="${TODAY}" title="Datum (leer lassen = jetzt; sonst Nacherfassung eines vergangenen Ereignisses)" style="width:150px;flex-shrink:0">
-        </div>
-        <div class="field" style="margin-bottom:10px">
-          <textarea id="commentInput" placeholder="Kommentar schreiben… (Strg+Enter zum Senden)" oninput="draftCommentText=this.value" onkeydown="if((event.key==='Enter')&&(event.ctrlKey||event.metaKey))addComment()">${esc(draftCommentText)}</textarea>
-        </div>
-        <div style="display:flex;gap:8px">
-          <button class="btn" style="flex:1;justify-content:center" onclick="markNotReached()" title="Trägt automatisch einen Kommentar ein und setzt das Follow-up-Datum auf in ${PROJECT.notReachedFollowupDays!==undefined?PROJECT.notReachedFollowupDays:6} Arbeitstagen (einstellbar unter Einstellungen)"><i class="ti ti-phone-off"></i> Nicht erreicht</button>
-          <button class="btn btn-petrol-muted" style="flex:1;justify-content:center" onclick="addComment()"><i class="ti ti-send"></i> Kommentieren</button>
-        </div>
-      </div>
       <div class="info-section">
         <div class="section-hdr" style="margin-top:0;display:flex;align-items:center;justify-content:space-between">
           <span>Verlauf</span>
@@ -7937,11 +7930,12 @@ function renderLeadModal(){
       </div>
 
       <div class="modal-right">
+        ${modalReadOnly?'':rightComposerHtml(isEdit)}
         <div class="tab-bar">
           <button class="tab-btn ${rightTab==='forecast'?'active':''}" onclick="setRightTab('forecast')">Forecast</button>
           <button class="tab-btn ${rightTab==='actual'?'active':''}" onclick="setRightTab('actual')">Auftrag</button>
           <button class="tab-btn ${rightTab==='comments'?'active':''}" onclick="setRightTab('comments')">Kommentare &amp; Aktivität</button>
-          <button class="tab-btn ${rightTab==='tasks'?'active':''}" onclick="setRightTab('tasks')">Aufgaben</button>
+          <button class="tab-btn ${rightTab==='tasks'?'active':''}" onclick="setRightTab('tasks')">Aufgaben${(draftLead.tasks||[]).filter(t=>!t.done).length?`<span class="tab-cnt">${(draftLead.tasks||[]).filter(t=>!t.done).length}</span>`:''}</button>
           <button class="tab-btn ${rightTab==='files'?'active':''}" onclick="setRightTab('files')">Anhänge</button>
         </div>
         ${rightContentHtml}
@@ -7950,7 +7944,6 @@ function renderLeadModal(){
     <div class="modal-actions">
       ${modalReadOnly?`<div></div><div style="display:flex;gap:8px;align-items:center"><button class="btn btn-primary" onclick="closeModal('leadModal')">Schließen</button></div>`:`
       ${isEdit?`<button class="btn btn-danger" onclick="deleteLead()"><i class="ti ti-trash"></i> Löschen</button>`:'<div></div>'}
-      ${isEdit?`<div class="modal-quick" role="group" aria-label="Schnellaktionen"><button class="btn" onclick="markNotReached()" title="Kommentar „Nicht erreicht“, FollowUp + ${PROJECT.notReachedFollowupDays!==undefined?PROJECT.notReachedFollowupDays:6} Arbeitstage"><i class="ti ti-phone-off"></i> Nicht erreicht</button><button class="btn" onclick="draftShiftFollowup(1)" title="FollowUp auf den nächsten Arbeitstag, sofort gespeichert">+1T</button><button class="btn" onclick="draftShiftFollowup(3)" title="FollowUp um 3 Arbeitstage, sofort gespeichert">+3T</button><button class="btn" onclick="openCalApptForLead(editingLeadId)" title="Termin im Kalender planen"><i class="ti ti-calendar-plus"></i> Termin</button></div>`:''}
       <div style="display:flex;gap:8px;align-items:center">
         <span id="saveFlashMsg" style="display:none;font-size:12px;color:var(--green-dark);font-weight:600"><i class="ti ti-check"></i> Gespeichert</span>
         ${(isEdit&&draftLead.status==='am_order'&&colById('fu_feedback'))?`<button class="btn" onclick="handOverDraftToPql()"><i class="ti ti-arrow-right"></i> An PQL übergeben</button>`:''}
@@ -8602,6 +8595,37 @@ function syncLeadTaskFromCal(ev,remove){
   if(draftLead&&String(draftLead.id)===String(l.id)){const dt=(draftLead.tasks||[]).find(x=>x.calEventId===ev.id);if(dt){if(remove)draftLead.tasks=draftLead.tasks.filter(x=>x!==dt);else Object.assign(dt,{calDate:t.calDate,calStart:t.calStart,calEnd:t.calEnd,dueDate:t.dueDate,text:t.text});}}
   saveState();
 }
+// ── Eingabefeld oben rechts (Okt. 2026): Kommentar oder Aufgabe in einem ──
+let composeMode='comment',draftTaskDue='';
+function setComposeMode(m){composeMode=m;if(m==='task'&&!draftTaskCal)draftTaskCal={on:false,date:'',start:'09:00',end:'10:00'};renderLeadModal();setTimeout(()=>{const el=document.getElementById(m==='task'?'newTaskText':'commentInput');if(el)el.focus();},0);}
+function composeBlk(v){if(!draftTaskCal)draftTaskCal={on:false,date:'',start:'09:00',end:'10:00'};draftTaskCal.on=v==='Ja';renderLeadModal();}
+function rightComposerHtml(isEdit){
+  const task=composeMode==='task';
+  const c=draftTaskCal||{on:false,start:'09:00',end:'10:00'};
+  const times=calTaskTimes();
+  const nrDays=PROJECT.notReachedFollowupDays!==undefined?PROJECT.notReachedFollowupDays:6;
+  const left=task
+    ?`<div class="rc-tgrid"><div><label>Zeit im Kalender blocken</label><select onchange="composeBlk(this.value)"><option ${c.on?'':'selected'}>Nein</option><option ${c.on?'selected':''}>Ja</option></select></div>
+        <div><label>Beginn</label><select ${c.on?'':'disabled'} onchange="draftTaskCal.start=this.value;if(calParseTime(draftTaskCal.end)<=calParseTime(this.value)){draftTaskCal.end=calFmt(Math.min(CAL_DAY_END*60,calParseTime(this.value)+60));}renderLeadModal()">${times.slice(0,-1).map(t=>`<option ${t===c.start?'selected':''}>${t}</option>`).join('')}</select></div>
+        <div><label>Ende</label><select ${c.on?'':'disabled'} onchange="draftTaskCal.end=this.value">${times.filter(t=>calParseTime(t)>calParseTime(c.start)).map(t=>`<option ${t===c.end?'selected':''}>${t}</option>`).join('')}</select></div></div>`
+    :(isEdit?`<div class="rc-qwrap"><label>Schnellaktionen</label><div class="rc-qgrid">
+        <button class="btn" onclick="markNotReached()" title="Kommentar „Nicht erreicht“, FollowUp + ${nrDays} Arbeitstage">Nicht Erreicht</button>
+        <button class="btn" onclick="draftShiftFollowup(1)" title="FollowUp auf den nächsten Arbeitstag, sofort gespeichert">+1T</button>
+        <button class="btn" onclick="draftShiftFollowup(3)" title="FollowUp um 3 Arbeitstage, sofort gespeichert">+3T</button>
+        <button class="btn" onclick="openCalApptForLead(editingLeadId)" title="Termin im Kalender planen"><i class="ti ti-calendar-event"></i> Termin</button></div></div>`:'<div></div>');
+  return `<div class="info-section rc-box">
+    <div class="rc-top">
+      <div class="rc-seg" role="group" aria-label="Art"><button type="button" class="${task?'':'on'}" onclick="setComposeMode('comment')"><i class="ti ti-message"></i> Kommentar</button><button type="button" class="${task?'on':''}" onclick="setComposeMode('task')"><i class="ti ti-square-check"></i> Aufgabe</button></div>
+      <div class="rc-date"><span>${task?'Frist':'Datum'}</span>${task
+        ?`<input type="date" id="newTaskDue" value="${esc(draftTaskDue)}" onchange="draftTaskDue=this.value" title="Frist der Aufgabe (bei „Zeit im Kalender blocken“ auch das Datum im Kalender)">`
+        :`<input type="date" id="commentDateInput" max="${TODAY}" title="Datum (leer lassen = jetzt; sonst Nacherfassung eines vergangenen Ereignisses)">`}</div>
+    </div>
+    ${task
+      ?`<div class="field" style="margin-bottom:0;position:relative"><textarea id="newTaskText" placeholder="Aufgabe beschreiben… mit @Name einer Person zuweisen (Strg+Enter zum Erstellen)" onkeydown="if((event.key==='Enter')&&(event.ctrlKey||event.metaKey))addTask()" oninput="clearTaskFormError();handleTaskMentionInput(this)">${esc(draftTaskText)}</textarea><div id="taskMentionPopoverContainer">${renderTaskMentionPopoverHtml()}</div></div><div id="taskFormError" style="display:none;color:var(--red);font-size:11px;margin-top:6px"></div>`
+      :`<div class="field" style="margin-bottom:0"><textarea id="commentInput" placeholder="Kommentar schreiben… (Strg+Enter zum Senden)" oninput="draftCommentText=this.value" onkeydown="if((event.key==='Enter')&&(event.ctrlKey||event.metaKey))addComment()">${esc(draftCommentText)}</textarea></div>`}
+    <div class="rc-bottom">${left}<button class="btn btn-primary rc-send" onclick="${task?'addTask()':'addComment()'}"><i class="ti ti-send"></i> ${task?'Aufgabe':'Kommentieren'}</button></div>
+  </div>`;
+}
 function addTask(){
   const textEl=document.getElementById('newTaskText');
   const dueEl=document.getElementById('newTaskDue');
@@ -8615,8 +8639,12 @@ function addTask(){
   }
   clearTaskFormError();
   const cal=draftTaskCal&&draftTaskCal.on?draftTaskCal:null;
-  if(cal&&(!/^\d{4}-\d{2}-\d{2}$/.test(cal.date||'')||calParseTime(cal.end)<=calParseTime(cal.start))){
-    const errEl=document.getElementById('taskFormError');if(errEl){errEl.style.display='block';errEl.textContent='Bitte Datum sowie Beginn und Ende (Ende nach Beginn) für den Kalender wählen.';}return;
+  if(cal)cal.date=dueEl?dueEl.value:'';
+  if(cal&&!/^\d{4}-\d{2}-\d{2}$/.test(cal.date||'')){
+    const errEl=document.getElementById('taskFormError');if(errEl){errEl.style.display='block';errEl.textContent='Für „Zeit im Kalender blocken“ bitte oben rechts eine Frist wählen.';}if(dueEl)dueEl.focus();return;
+  }
+  if(cal&&calParseTime(cal.end)<=calParseTime(cal.start)){
+    const errEl=document.getElementById('taskFormError');if(errEl){errEl.style.display='block';errEl.textContent='Das Ende muss nach dem Beginn liegen.';}return;
   }
   const newTask={id:genId(),text,dueDate:cal?cal.date:dueEl.value,done:false,createdBy:currentUser,createdAt:nowISO(),assigneeId:pendingTaskAssigneeId||null};
   if(cal){
@@ -8626,6 +8654,7 @@ function addTask(){
     draftTaskCal={on:false,date:TODAY,start:'09:00',end:'10:00'};
   }
   draftLead.tasks.push(newTask);
+  draftTaskDue='';
   const _act3={id:Date.now()+Math.random(),type:'activity',author:currentUser,text:`Aufgabe hinzugefügt: ${text}`,date:nowISO()};draftLead.activity.unshift(_act3);pushActivityToDb(editingLeadId||draftLead.id,_act3);
   textEl.value='';
   dueEl.value='';
