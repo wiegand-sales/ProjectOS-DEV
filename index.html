@@ -348,8 +348,12 @@ body{font-family:'Inter',sans-serif;background:linear-gradient(155deg,#f2f3f0 0%
 .feed-tag.t{background:#EEEDFE;color:#3C3489}.feed-tag.f{background:#FAEEDA;color:#633806}
 .feed-file{display:flex;align-items:center;gap:8px;border:1px solid var(--border2);border-radius:7px;padding:5px 9px;background:var(--bg);margin-top:5px}
 .feed-filter{position:relative;text-transform:none;letter-spacing:0}
-.feed-filter>button{height:28px;display:inline-flex;align-items:center;gap:5px;border:1px solid var(--border2);background:var(--bg);border-radius:8px;padding:0 9px;font-size:12px;font-weight:600;color:var(--text2);cursor:pointer;font-family:inherit}
+.feed-filter>button.feed-filter-btn{height:36px;display:inline-flex;align-items:center;gap:6px;padding:0 14px;font-size:13px;font-weight:500;border-radius:var(--r-md);text-transform:none;letter-spacing:0;color:var(--text)}
 .feed-filter>button.act{border-color:#206A72;color:#206A72;background:#E9F0F1}
+.feed-filter-menu{top:40px}
+.ff-ck{width:16px;height:16px;border-radius:4px;border:1.5px solid var(--text3);display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;font-size:11px}
+.ff-ck.on{background:#206A72;border-color:#206A72;color:#fff}
+.ff-sep{height:1px;background:var(--border2,#e4ebea);margin:3px 4px}
 .feed-filter-menu{position:absolute;right:0;top:32px;z-index:60;background:var(--bg);border:1px solid var(--border2);border-radius:10px;box-shadow:0 14px 34px rgba(0,0,0,.16);padding:4px;min-width:190px}
 .feed-filter-menu button{display:flex;align-items:center;gap:8px;width:100%;border:0;background:transparent;border-radius:7px;padding:7px 10px;font-size:12.5px;text-align:left;cursor:pointer;font-family:inherit;color:var(--text);font-weight:500}
 .feed-filter-menu button:hover{background:#E9F0F1}
@@ -1470,7 +1474,7 @@ let localSettingsTrusted=false;
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-10-23T12:00:00.000Z';
+const BUILD_VERSION='2026-10-23T12:30:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -2942,6 +2946,17 @@ let draftCommentText='';
 let activityFeedFilter='all';
 function setActivityFeedFilter(f){
   activityFeedFilter=f;
+  renderLeadModal();
+}
+// Verlaufsfilter mit Mehrfachauswahl: 'all' oder z. B. 'comments,tasks'
+const FEED_KINDS=['comments','activity','tasks','files'];
+function feedKinds(){if(activityFeedFilter==='all')return FEED_KINDS.slice();const k=String(activityFeedFilter||'').split(',').filter(x=>FEED_KINDS.includes(x));return k.length?k:FEED_KINDS.slice();}
+function toggleFeedKind(k){
+  let cur=feedKinds();
+  if(k==='all'){activityFeedFilter=cur.length===FEED_KINDS.length?'comments':'all';renderLeadModal();return;}
+  cur=cur.includes(k)?cur.filter(x=>x!==k):[...cur,k];
+  if(!cur.length)return; // mindestens eine Art bleibt gewaehlt
+  activityFeedFilter=cur.length===FEED_KINDS.length?'all':FEED_KINDS.filter(x=>cur.includes(x)).join(',');
   renderLeadModal();
 }
 
@@ -8057,8 +8072,8 @@ function renderLeadModal(){
   (draftLead.files||[]).forEach((f,ix)=>uni.push({d:f.uploadedAt||'',k:'files',h:fileParts[ix]}));
   uni.sort((x,y)=>String(y.d).localeCompare(String(x.d)));
   const uniCnt={all:uni.length,comments:0,activity:0,tasks:0,files:0};uni.forEach(x=>uniCnt[x.k]++);
-  const fKey=['all','comments','activity','tasks','files'].includes(activityFeedFilter)?activityFeedFilter:'all';
-  const uniHtml=uni.filter(x=>fKey==='all'||x.k===fKey).map(x=>x.h).join('')||`<div class="activity-item" style="padding-left:0">Keine ${FEED_LABELS[fKey]} vorhanden.</div>`;
+  const fKinds=feedKinds();const fKey=fKinds.length===FEED_KINDS.length?'all':(fKinds.length===1?fKinds[0]:'multi');
+  const uniHtml=uni.filter(x=>fKinds.includes(x.k)).map(x=>x.h).join('')||`<div class="activity-item" style="padding-left:0">${fKey==='multi'?'Keine Einträge für diese Auswahl.':`Keine ${FEED_LABELS[fKey]} vorhanden.`}</div>`;
 
   document.getElementById('leadModalInner').innerHTML=`
     ${renderLeadBanner()}
@@ -8968,8 +8983,15 @@ function syncLeadTaskFromCal(ev,remove){
 let composeMode='comment',draftTaskDue='',draftFileNote='',composePending=[],feedFilterOpen=false;
 const FEED_LABELS={all:'Einträge',comments:'Kommentare',activity:'Aktivitäten',tasks:'Aufgaben',files:'Anhänge'};
 function feedFilterBtnHtml(k,cnt){
-  const L={all:'Alles',comments:'Kommentare',activity:'Aktivitäten',tasks:'Aufgaben',files:'Anhänge'};
-  return `<span class="feed-filter"><button type="button" class="${k!=='all'?'act':''}" onclick="event.stopPropagation();feedFilterOpen=!feedFilterOpen;renderLeadModal()" aria-haspopup="menu" aria-expanded="${feedFilterOpen}"><i class="ti ti-filter"></i> ${L[k]} <i class="ti ti-chevron-down"></i></button>${feedFilterOpen?`<div class="feed-filter-menu" role="menu" onclick="event.stopPropagation()">${Object.keys(L).map(x=>`<button type="button" role="menuitemradio" aria-checked="${x===k}" class="${x===k?'on':''}" onclick="feedFilterOpen=false;setActivityFeedFilter('${x}')">${L[x]}<b>${cnt[x]||0}</b></button>`).join('')}</div>`:''}</span>`;
+  const L={comments:'Kommentare',activity:'Aktivitäten',tasks:'Aufgaben',files:'Anhänge'};
+  const sel=feedKinds();const all=sel.length===FEED_KINDS.length;
+  const label=all?'Alles':(sel.length===1?L[sel[0]]:(sel.length===2?`${L[sel[0]]} + ${L[sel[1]]}`:`${sel.length} Arten`));
+  const ck=on=>`<span class="ff-ck ${on?'on':''}" aria-hidden="true">${on?'<i class="ti ti-check"></i>':''}</span>`;
+  return `<span class="feed-filter"><button type="button" class="btn feed-filter-btn ${!all?'act':''}" onclick="event.stopPropagation();feedFilterOpen=!feedFilterOpen;renderLeadModal()" aria-haspopup="menu" aria-expanded="${feedFilterOpen}" title="Verlauf filtern"><i class="ti ti-filter"></i> ${label} <i class="ti ti-chevron-down"></i></button>${feedFilterOpen?`<div class="feed-filter-menu" role="menu" onclick="event.stopPropagation()">
+    <button type="button" role="menuitemcheckbox" aria-checked="${all}" class="${all?'on':''}" onclick="toggleFeedKind('all')">${ck(all)}Alles<b>${cnt.all||0}</b></button>
+    <div class="ff-sep"></div>
+    ${FEED_KINDS.map(x=>`<button type="button" role="menuitemcheckbox" aria-checked="${sel.includes(x)}" class="${sel.includes(x)?'on':''}" onclick="toggleFeedKind('${x}')">${ck(sel.includes(x))}${L[x]}<b>${cnt[x]||0}</b></button>`).join('')}
+  </div>`:''}</span>`;
 }
 function composeAddFiles(e){
   const fs=Array.from(e.target.files||[]);
