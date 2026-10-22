@@ -1383,7 +1383,7 @@ let localSettingsTrusted=false;
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-10-22T21:00:00.000Z';
+const BUILD_VERSION='2026-10-22T21:10:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -8259,11 +8259,10 @@ function top3CardHtml(slot,i,hit){
   </div>`;
 }
 function top3Html(){
+  // Gekaufte Artikel kommen ausschliesslich per CSV-Import - keine Suche im Fenster
   const filled=draftLead.topArticles.map((a,i)=>({a,i})).filter(x=>topFilled(x.a));
-  const search=filled.length<3&&!modalReadOnly?`<div class="ts-search"><input type="text" id="top3Search" placeholder="Artikel suchen (Titel oder SKU) …" value="${esc(top3Q)}" oninput="top3Q=this.value;renderTop3Results()" onblur="setTimeout(()=>{const r=document.getElementById('top3Results');if(r)r.innerHTML='';},180)" autocomplete="off" style="width:100%"><div id="top3Results" class="ts-res-inline"></div></div>`
-    :(filled.length>=3?`<div style="font-size:11px;color:var(--text3);margin-bottom:2px">Maximal 3 Artikel – zum Tauschen zuerst einen entfernen.</div>`:'');
   const cards=filled.map((x,k)=>top3CardHtml(x.a,k,false)).join('');
-  return search+(cards||`<div style="font-size:12px;color:var(--text3);margin-top:6px">Noch keine Artikel – über die Suche hinzufügen.</div>`);
+  return cards||`<div style="font-size:12px;color:var(--text3);margin-top:2px">Noch keine Artikel – werden per CSV-Import eingespielt.</div>`;
 }
 function renderTop3Results(){
   const el=document.getElementById('top3Results');if(!el)return;
