@@ -338,6 +338,25 @@ body{font-family:'Inter',sans-serif;background:linear-gradient(155deg,#f2f3f0 0%
 .lbn-ends .ev i{width:9px;height:2px;border-radius:1px;display:inline-block}
 @media (max-width:900px){.lbn{grid-template-columns:1fr}.lbn-icons{margin-top:8px;flex-wrap:wrap}.lbn-fields{grid-template-columns:repeat(3,minmax(0,1fr))}.lbn-nums{margin-left:0}}
 .rc-box{margin-bottom:12px;flex-shrink:0}
+.rc-seg button{padding:0 12px}
+.rc-pick{width:100%;height:36px;display:flex;align-items:center;gap:8px;border:1px dashed var(--text3);border-radius:8px;background:transparent;color:var(--text2);font-size:12.5px;cursor:pointer;padding:0 10px;font-family:inherit;text-align:left}
+.rc-pick:hover{border-color:#206A72;color:#206A72}
+.rc-att{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.rc-att span{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--border2);background:var(--bg);border-radius:7px;padding:2px 4px 2px 8px;font-size:12px}
+.rc-att button{border:0;background:transparent;color:var(--text3);cursor:pointer;font-weight:700;padding:0 3px}
+.feed-tag{font-size:10px;font-weight:700;border-radius:5px;padding:1px 6px;margin-left:6px;text-transform:uppercase;letter-spacing:.03em;vertical-align:1px}
+.feed-tag.t{background:#EEEDFE;color:#3C3489}.feed-tag.f{background:#FAEEDA;color:#633806}
+.feed-file{display:flex;align-items:center;gap:8px;border:1px solid var(--border2);border-radius:7px;padding:5px 9px;background:var(--bg);margin-top:5px}
+.feed-filter{position:relative;text-transform:none;letter-spacing:0}
+.feed-filter>button{height:28px;display:inline-flex;align-items:center;gap:5px;border:1px solid var(--border2);background:var(--bg);border-radius:8px;padding:0 9px;font-size:12px;font-weight:600;color:var(--text2);cursor:pointer;font-family:inherit}
+.feed-filter>button.act{border-color:#206A72;color:#206A72;background:#E9F0F1}
+.feed-filter-menu{position:absolute;right:0;top:32px;z-index:60;background:var(--bg);border:1px solid var(--border2);border-radius:10px;box-shadow:0 14px 34px rgba(0,0,0,.16);padding:4px;min-width:190px}
+.feed-filter-menu button{display:flex;align-items:center;gap:8px;width:100%;border:0;background:transparent;border-radius:7px;padding:7px 10px;font-size:12.5px;text-align:left;cursor:pointer;font-family:inherit;color:var(--text);font-weight:500}
+.feed-filter-menu button:hover{background:#E9F0F1}
+.feed-filter-menu button.on{color:#206A72;font-weight:600}
+.feed-filter-menu button b{margin-left:auto;font-weight:500;color:var(--text3);font-size:11.5px}
+.left-fc .left-coll-body .info-section{border:0;background:transparent;padding:0;box-shadow:none;margin:0 0 12px}
+.left-fc .left-coll-body>div{overflow:visible!important}
 .rc-top{display:flex;align-items:center;gap:10px;margin-bottom:10px}
 .rc-seg{display:inline-flex;background:var(--bg2,#f4f6f6);border-radius:9px;padding:3px;gap:3px}
 .rc-seg button{height:30px;border:0;background:transparent;border-radius:7px;padding:0 14px;font-size:13px;font-weight:500;color:var(--text2);display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-family:inherit}
@@ -1364,7 +1383,7 @@ let localSettingsTrusted=false;
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-10-22T20:15:00.000Z';
+const BUILD_VERSION='2026-10-22T21:00:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -3789,7 +3808,7 @@ function renderLeadStageBar(lead,opts){
 // ── Lead-Status (Okt. 2026): Symbol-Felder, Verlaeufe als Tabellen, Schnellknoepfe ──
 let leadStatusOpen={fu:false,lw:false};
 // Linke Seite: jeder Bereich zuklappbar, Zustand je Benutzer gemerkt
-let leftOpen=(()=>{const d={status:true,toner:true,top:true,kunde:false};try{return Object.assign(d,JSON.parse(localStorage.getItem('projectos_left_open')||'{}'));}catch(e){return d;}})();
+let leftOpen=(()=>{const d={status:true,actual:false,forecast:false,toner:true,top:true,kunde:false};try{return Object.assign(d,JSON.parse(localStorage.getItem('projectos_left_open')||'{}'));}catch(e){return d;}})();
 function toggleLeftColl(k){leftOpen[k]=!leftOpen[k];try{localStorage.setItem('projectos_left_open',JSON.stringify(leftOpen));}catch(e){}renderLeadModal();}
 function leftCollHdr(k,title,sum){
   return `<button type="button" class="kd-coll-hdr section-hdr ${leftOpen[k]?'open':''}" onclick="toggleLeftColl('${k}')" aria-expanded="${leftOpen[k]}" style="${leftOpen[k]?'':'margin-bottom:0'}"><span class="ttl">${title}</span><span class="sum">${esc(sum||'')}</span><i class="ti ti-chevron-down" style="margin-left:8px"></i></button>`;
@@ -7447,7 +7466,7 @@ function releaseLeadLock(leadId){
 function openLeadModal(id){
   editingLeadId=id;
   draftLead=id?JSON.parse(JSON.stringify(leads.find(x=>x.id===id))):blankLead();
-  labelPopoverOpen=false;memberPopoverOpen=false;activityFeedFilter='comments';taskMentionPopoverOpen=false;pendingTaskAssigneeId=null;draftTaskText='';draftCommentText='';editingCommentId=null;rightTab='comments';openTimePickerField=null;
+  labelPopoverOpen=false;memberPopoverOpen=false;activityFeedFilter='all';feedFilterOpen=false;composePending=[];draftFileNote='';taskMentionPopoverOpen=false;pendingTaskAssigneeId=null;draftTaskText='';draftCommentText='';editingCommentId=null;rightTab='comments';openTimePickerField=null;
   clearTimeout(lockHeartbeatTimer);
   const existingLock=id?getLeadLock(id):null;
   if(existingLock&&existingLock.agentId!==currentUser){
@@ -7616,7 +7635,7 @@ function renderLeadModal(){
 
   const feedItemsRaw=[...draftLead.activity].sort((a,b)=>new Date(b.date)-new Date(a.date));
   const feedItems=activityFeedFilter==='all'?feedItemsRaw:feedItemsRaw.filter(i=>activityFeedFilter==='comments'?i.type==='comment':i.type==='activity');
-  const feedHtml=feedItems.map(item=>{
+  const feedParts=feedItemsRaw.map(item=>{
     const a=agentById(item.author);
     if(item.type==='comment'){
       if(editingCommentId===item.id){
@@ -7649,9 +7668,10 @@ function renderLeadModal(){
         <div class="activity-text"><i class="ti ti-point-filled" style="font-size:7px"></i> ${esc(item.text)}</div>
       </div>
     </div>`;
-  }).join('')||`<div class="activity-item" style="padding-left:0">${activityFeedFilter==='comments'?'Noch keine Kommentare.':activityFeedFilter==='activity'?'Noch keine Aktivität.':'Noch keine Kommentare oder Aktivität.'}</div>`;
+  });
+  const feedHtml=feedParts.join('');
 
-  const filesHtml=(draftLead.files||[]).map(f=>{
+  const fileParts=(draftLead.files||[]).map(f=>{
     const uploader=agentById(f.uploadedBy);
     // Rueckwaertskompatibel: alte Anhaenge (vor dem Umbau) haben noch eingebettete Daten
     // (f.dataUrl) und werden weiterhin direkt verlinkt; neue Anhaenge liegen im echten
@@ -7661,23 +7681,22 @@ function renderLeadModal(){
       ?`<a href="${f.dataUrl}" download="${esc(f.name)}" style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;font-weight:600;color:var(--text)"><i class="ti ti-file" style="margin-right:4px"></i>${esc(f.name)}</a>`
       :`<a href="#" onclick="downloadAttachment('${f.storagePath}','${esc(f.name).replace(/'/g,"\\'")}');return false;" style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;font-weight:600;color:var(--text)"><i class="ti ti-file" style="margin-right:4px"></i>${esc(f.name)}</a>`;
     return `<div class="comment-item">
-      <div class="comment-av" style="background:var(--bg3);color:var(--text2)"><i class="ti ti-paperclip"></i></div>
+      <div class="comment-av" style="background:${COLOR_BG[uploader?uploader.color:'gray']};color:${COLOR_TEXT[uploader?uploader.color:'gray']}">${uploader?ini(uploader.name):'?'}</div>
       <div class="comment-bubble">
-        <div style="display:flex;align-items:center;gap:8px">
-          ${linkHtml}
-          <span style="font-size:11px;color:var(--text3);flex-shrink:0">${formatBytes(f.size)}</span>
-          <button class="icon-btn icon-btn-danger" onclick="removeFile(${f.id})" title="Entfernen"><i class="ti ti-trash"></i></button>
-        </div>
-        ${f.uploadedAt?`<div style="font-size:11px;color:var(--text3);margin-top:4px">Hochgeladen von ${uploader?esc(uploader.name):'Unbekannt'} · ${fmtDateTime(f.uploadedAt)}</div>`:''}
+        <span class="comment-author">${uploader?esc(uploader.name):'Unbekannt'}</span><span class="comment-date">${f.uploadedAt?fmtDateTime(f.uploadedAt):''}</span><span class="feed-tag f">Anhang</span>
+        ${modalReadOnly?'':`<span style="float:right;display:flex;gap:4px"><button class="icon-btn icon-btn-danger" style="width:22px;height:22px" onclick="removeFile(${f.id})" title="Anhang entfernen"><i class="ti ti-trash" style="font-size:13px"></i></button></span>`}
+        ${f.note?`<div class="comment-text" style="margin-top:3px">${esc(f.note)}</div>`:''}
+        <div class="feed-file">${linkHtml}<span style="font-size:11px;color:var(--text3);flex-shrink:0">${formatBytes(f.size)}</span></div>
       </div>
     </div>`;
-  }).join('')||`<div class="activity-item" style="padding-left:0">Noch keine Anhänge.</div>`;
+  });
+  const filesHtml=fileParts.join('');
 
   const sortedTasks=[...(draftLead.tasks||[])].sort((a,b)=>{
     if(a.done!==b.done)return a.done?1:-1;
     return (a.dueDate||'9999').localeCompare(b.dueDate||'9999');
   });
-  const tasksHtml=sortedTasks.map(t=>{
+  const taskParts=sortedTasks.map(t=>{
     let dueBadge='';
     if(t.dueDate){
       const d=daysUntil(t.dueDate);
@@ -7687,18 +7706,23 @@ function renderLeadModal(){
     }
     const assignee=t.assigneeId?agentById(t.assigneeId):null;
     const assigneeBadge=assignee?`<span class="due-badge due-ok" style="background:${COLOR_BG[assignee.color]};color:${COLOR_TEXT[assignee.color]}"><i class="ti ti-user" style="font-size:11px"></i>${esc(assignee.name)}</span>`:'';
+    const cr=agentById(t.createdBy);
     return `<div class="comment-item">
-      <div class="comment-av" style="background:${t.done?'var(--green-bg)':'var(--bg3)'};color:${t.done?'var(--green-dark)':'var(--text2)'}"><i class="ti ti-${t.done?'check':'list-check'}"></i></div>
-      <div class="comment-bubble" style="display:flex;align-items:flex-start;gap:8px">
-        <input type="checkbox" ${t.done?'checked':''} onchange="toggleTask(${t.id})" style="margin-top:3px;flex-shrink:0">
-        <div style="flex:1;min-width:0">
-          <span class="check-item-text ${t.done?'done':''}" style="font-size:13px">${esc(t.text)}</span>
-          ${(dueBadge||assigneeBadge||t.calDate)?`<div style="margin-top:4px;display:flex;gap:6px;flex-wrap:wrap">${assigneeBadge}${t.calDate?taskCalChipHtml(t):dueBadge}</div>`:''}
+      <div class="comment-av" style="background:${COLOR_BG[cr?cr.color:'gray']};color:${COLOR_TEXT[cr?cr.color:'gray']}">${cr?ini(cr.name):'?'}</div>
+      <div class="comment-bubble">
+        <span class="comment-author">${cr?esc(cr.name):'Unbekannt'}</span><span class="comment-date">${t.createdAt?fmtDateTime(t.createdAt):''}</span><span class="feed-tag t">Aufgabe</span>
+        ${modalReadOnly?'':`<span style="float:right;display:flex;gap:4px"><button class="icon-btn icon-btn-danger" style="width:22px;height:22px" onclick="deleteTask(${t.id})" title="Aufgabe löschen"><i class="ti ti-trash" style="font-size:13px"></i></button></span>`}
+        <div style="display:flex;align-items:flex-start;gap:8px;margin-top:4px">
+          <input type="checkbox" ${t.done?'checked':''} onchange="toggleTask(${t.id})" style="margin-top:3px;flex-shrink:0" title="${t.done?'Wieder öffnen':'Als erledigt markieren'}">
+          <div style="flex:1;min-width:0">
+            <span class="check-item-text ${t.done?'done':''}" style="font-size:13px">${esc(t.text)}</span>
+            ${(dueBadge||assigneeBadge||t.calDate)?`<div style="margin-top:4px;display:flex;gap:6px;flex-wrap:wrap">${assigneeBadge}${t.calDate?taskCalChipHtml(t):dueBadge}</div>`:''}
+          </div>
         </div>
-        <button class="icon-btn icon-btn-danger" onclick="deleteTask(${t.id})" title="Löschen"><i class="ti ti-trash"></i></button>
       </div>
     </div>`;
-  }).join('')||`<div class="activity-item" style="padding-left:0">Noch keine Aufgaben.</div>`;
+  });
+  const tasksHtml=taskParts.join('')||`<div class="activity-item" style="padding-left:0">Noch keine Aufgaben.</div>`;
   const openTaskCount=(draftLead.tasks||[]).filter(t=>!t.done).length;
   const leadSeries=calTasks.filter(e=>!e.deleted&&e.repeat&&e.repeat!=='none'&&String(e.lead_id)===String(draftLead.id));
   const seriesHtml=leadSeries.length?`<div style="margin-top:8px">${leadSeries.map(e=>`<div class="activity-item" style="padding-left:0;display:flex;gap:6px;align-items:center;cursor:pointer" onclick="closeModal('leadModal');switchView('calendar')"><i class="ti ti-repeat" style="color:#534ab7"></i><span><b>${esc(e.title)}</b> · Serie im Kalender (${e.repeat==='daily'?'täglich':'wöchentlich'} ${esc(e.start_time)}–${esc(e.end_time)})</span></div>`).join('')}</div>`:'';
@@ -7727,7 +7751,7 @@ function renderLeadModal(){
     </div>
   </div>`;
 
-  let rightContentHtml='';
+  const panelFor=(rightTab)=>{let rightContentHtml='';
   if(rightTab==='forecast'){
     rightContentHtml=`<div style="overflow-y:auto;flex:1">
       ${compareStripHtml}
@@ -7797,6 +7821,18 @@ function renderLeadModal(){
       </div>
     </div>`;
   }
+  return rightContentHtml;};
+  const forecastPanel=panelFor('forecast'),actualPanel=panelFor('actual');
+  // ── Gemeinsamer Verlauf: Kommentare, Aktivitaeten, Aufgaben, Anhaenge ──
+  const fileNames=new Set((draftLead.files||[]).map(f=>f.name));
+  const uni=[];
+  feedItemsRaw.forEach((it,ix)=>{if(it.type!=='comment'&&/^Datei hochgeladen: /.test(it.text||'')&&fileNames.has(String(it.text).slice(19)))return;uni.push({d:it.date,k:it.type==='comment'?'comments':'activity',h:feedParts[ix]});});
+  sortedTasks.forEach((t,ix)=>uni.push({d:t.createdAt||'',k:'tasks',h:taskParts[ix]}));
+  (draftLead.files||[]).forEach((f,ix)=>uni.push({d:f.uploadedAt||'',k:'files',h:fileParts[ix]}));
+  uni.sort((x,y)=>String(y.d).localeCompare(String(x.d)));
+  const uniCnt={all:uni.length,comments:0,activity:0,tasks:0,files:0};uni.forEach(x=>uniCnt[x.k]++);
+  const fKey=['all','comments','activity','tasks','files'].includes(activityFeedFilter)?activityFeedFilter:'all';
+  const uniHtml=uni.filter(x=>fKey==='all'||x.k===fKey).map(x=>x.h).join('')||`<div class="activity-item" style="padding-left:0">Keine ${FEED_LABELS[fKey]} vorhanden.</div>`;
 
   document.getElementById('leadModalInner').innerHTML=`
     ${renderLeadBanner()}
@@ -7883,6 +7919,16 @@ function renderLeadModal(){
           </div>
         </div>
 
+        <div class="info-section left-fc">
+          ${leftCollHdr('actual','Auftrag',`${fmtEur(actualComputedNow)||'0 €'} · Marge ${fmtEur(actualMarginNow)||'0 €'}`)}
+          <div ${leftOpen.actual?'':'hidden'} class="left-coll-body">${actualPanel}</div>
+        </div>
+
+        <div class="info-section left-fc">
+          ${leftCollHdr('forecast','Forecast',`${fmtEur(forecastComputedNow)||'0 €'} · Marge ${fmtEur(forecastMarginNow)||'0 €'}`)}
+          <div ${leftOpen.forecast?'':'hidden'} class="left-coll-body">${forecastPanel}</div>
+        </div>
+
         <div class="info-section">
           ${leftCollHdr('toner','Toner zusenden',`${draftLead.shipPrinter.skus.filter(x=>x.sku).length} von 4 Artikeln`)}
           <div ${leftOpen.toner?'':'hidden'} class="left-coll-body">
@@ -7942,14 +7988,13 @@ function renderLeadModal(){
 
       <div class="modal-right">
         ${modalReadOnly?'':rightComposerHtml(isEdit)}
-        <div class="tab-bar">
-          <button class="tab-btn ${rightTab==='forecast'?'active':''}" onclick="setRightTab('forecast')">Forecast</button>
-          <button class="tab-btn ${rightTab==='actual'?'active':''}" onclick="setRightTab('actual')">Auftrag</button>
-          <button class="tab-btn ${rightTab==='comments'?'active':''}" onclick="setRightTab('comments')">Kommentare &amp; Aktivität</button>
-          <button class="tab-btn ${rightTab==='tasks'?'active':''}" onclick="setRightTab('tasks')">Aufgaben${(draftLead.tasks||[]).filter(t=>!t.done).length?`<span class="tab-cnt">${(draftLead.tasks||[]).filter(t=>!t.done).length}</span>`:''}</button>
-          <button class="tab-btn ${rightTab==='files'?'active':''}" onclick="setRightTab('files')">Anhänge</button>
+        <div style="overflow-y:auto;flex:1">
+          <div class="info-section">
+            <div class="section-hdr" style="margin-top:0;display:flex;align-items:center;justify-content:space-between"><span>Verlauf</span>${feedFilterBtnHtml(fKey,uniCnt)}</div>
+            ${(fKey==='all'||fKey==='tasks')?seriesHtml:''}
+            <div class="activity-feed" style="margin-top:0">${uniHtml}</div>
+          </div>
         </div>
-        ${rightContentHtml}
       </div>
     </div>
     <div class="modal-actions">
@@ -8607,15 +8652,46 @@ function syncLeadTaskFromCal(ev,remove){
   saveState();
 }
 // ── Eingabefeld oben rechts (Okt. 2026): Kommentar oder Aufgabe in einem ──
-let composeMode='comment',draftTaskDue='';
+let composeMode='comment',draftTaskDue='',draftFileNote='',composePending=[],feedFilterOpen=false;
+const FEED_LABELS={all:'Einträge',comments:'Kommentare',activity:'Aktivitäten',tasks:'Aufgaben',files:'Anhänge'};
+function feedFilterBtnHtml(k,cnt){
+  const L={all:'Alles',comments:'Kommentare',activity:'Aktivitäten',tasks:'Aufgaben',files:'Anhänge'};
+  return `<span class="feed-filter"><button type="button" class="${k!=='all'?'act':''}" onclick="event.stopPropagation();feedFilterOpen=!feedFilterOpen;renderLeadModal()" aria-haspopup="menu" aria-expanded="${feedFilterOpen}"><i class="ti ti-filter"></i> ${L[k]} <i class="ti ti-chevron-down"></i></button>${feedFilterOpen?`<div class="feed-filter-menu" role="menu" onclick="event.stopPropagation()">${Object.keys(L).map(x=>`<button type="button" role="menuitemradio" aria-checked="${x===k}" class="${x===k?'on':''}" onclick="feedFilterOpen=false;setActivityFeedFilter('${x}')">${L[x]}<b>${cnt[x]||0}</b></button>`).join('')}</div>`:''}</span>`;
+}
+function composeAddFiles(e){
+  const fs=Array.from(e.target.files||[]);
+  fs.forEach(f=>{if(f.size>MAX_ATTACHMENT_SIZE){alert(`Datei "${f.name}" ist zu groß (${formatBytes(f.size)}). Maximal erlaubt sind ${formatBytes(MAX_ATTACHMENT_SIZE)} pro Datei.`);return;}composePending.push(f);});
+  const t=document.getElementById('fileNoteInput');if(t)draftFileNote=t.value;
+  e.target.value='';renderLeadModal();
+}
+function composeRemoveFile(ix){const t=document.getElementById('fileNoteInput');if(t)draftFileNote=t.value;composePending.splice(ix,1);renderLeadModal();}
+async function composeUpload(){
+  if(modalReadOnly)return;
+  if(!composePending.length){alert('Bitte zuerst eine oder mehrere Dateien wählen.');return;}
+  const t=document.getElementById('fileNoteInput');const note=(t?t.value:draftFileNote||'').trim();
+  const leadId=draftLead.id;
+  for(const file of composePending.slice()){
+    const fileId=Date.now()+Math.random();
+    try{
+      const storagePath=await uploadAttachmentToStorage(leadId,fileId,file);
+      const rec={id:fileId,name:file.name,size:file.size,storagePath,uploadedBy:currentUser,uploadedAt:nowISO()};if(note)rec.note=note;
+      draftLead.files.push(rec);
+      const act={id:Date.now()+Math.random(),type:'activity',author:currentUser,text:`Datei hochgeladen: ${file.name}`,date:nowISO()};draftLead.activity.unshift(act);pushActivityToDb(editingLeadId||draftLead.id,act);
+    }catch(err){alert(`Datei "${file.name}" konnte nicht hochgeladen werden: ${err.message}`);}
+  }
+  composePending=[];draftFileNote='';
+  autoPersistIfEditing();renderLeadModal();
+}
 function setComposeMode(m){composeMode=m;if(m==='task'&&!draftTaskCal)draftTaskCal={on:false,date:'',start:'09:00',end:'10:00'};renderLeadModal();setTimeout(()=>{const el=document.getElementById(m==='task'?'newTaskText':'commentInput');if(el)el.focus();},0);}
 function composeBlk(v){if(!draftTaskCal)draftTaskCal={on:false,date:'',start:'09:00',end:'10:00'};draftTaskCal.on=v==='Ja';renderLeadModal();}
 function rightComposerHtml(isEdit){
-  const task=composeMode==='task';
+  const task=composeMode==='task',fileM=composeMode==='file';
   const c=draftTaskCal||{on:false,start:'09:00',end:'10:00'};
   const times=calTaskTimes();
   const nrDays=PROJECT.notReachedFollowupDays!==undefined?PROJECT.notReachedFollowupDays:6;
-  const left=task
+  const left=fileM
+    ?`<div><label>Dateien</label><button type="button" class="rc-pick" onclick="document.getElementById('composeFileInput').click()"><i class="ti ti-upload"></i> ${composePending.length?composePending.length+(composePending.length===1?' Datei gewählt – weitere hinzufügen':' Dateien gewählt – weitere hinzufügen'):'Dateien wählen …'}</button><input type="file" id="composeFileInput" multiple hidden onchange="composeAddFiles(event)"></div>`
+    :task
     ?`<div class="rc-tgrid"><div><label>Zeit im Kalender blocken</label><select onchange="composeBlk(this.value)"><option ${c.on?'':'selected'}>Nein</option><option ${c.on?'selected':''}>Ja</option></select></div>
         <div><label>Beginn</label><select ${c.on?'':'disabled'} onchange="draftTaskCal.start=this.value;if(calParseTime(draftTaskCal.end)<=calParseTime(this.value)){draftTaskCal.end=calFmt(Math.min(CAL_DAY_END*60,calParseTime(this.value)+60));}renderLeadModal()">${times.slice(0,-1).map(t=>`<option ${t===c.start?'selected':''}>${t}</option>`).join('')}</select></div>
         <div><label>Ende</label><select ${c.on?'':'disabled'} onchange="draftTaskCal.end=this.value">${times.filter(t=>calParseTime(t)>calParseTime(c.start)).map(t=>`<option ${t===c.end?'selected':''}>${t}</option>`).join('')}</select></div></div>`
@@ -8626,15 +8702,17 @@ function rightComposerHtml(isEdit){
         <button class="btn" onclick="openCalApptForLead(editingLeadId)" title="Termin im Kalender planen"><i class="ti ti-calendar-event"></i> Termin</button></div></div>`:'<div></div>');
   return `<div class="info-section rc-box">
     <div class="rc-top">
-      <div class="rc-seg" role="group" aria-label="Art"><button type="button" class="${task?'':'on'}" onclick="setComposeMode('comment')"><i class="ti ti-message"></i> Kommentar</button><button type="button" class="${task?'on':''}" onclick="setComposeMode('task')"><i class="ti ti-square-check"></i> Aufgabe</button></div>
-      <div class="rc-date"><span>${task?'Frist':'Datum'}</span>${task
+      <div class="rc-seg" role="group" aria-label="Art"><button type="button" class="${composeMode==='comment'?'on':''}" onclick="setComposeMode('comment')"><i class="ti ti-message"></i> Kommentar</button><button type="button" class="${task?'on':''}" onclick="setComposeMode('task')"><i class="ti ti-square-check"></i> Aufgabe</button><button type="button" class="${fileM?'on':''}" onclick="setComposeMode('file')"><i class="ti ti-paperclip"></i> Anhang</button></div>
+      <div class="rc-date" ${fileM?'style="visibility:hidden"':''}><span>${task?'Frist':'Datum'}</span>${task
         ?`<input type="date" id="newTaskDue" value="${esc(draftTaskDue)}" onchange="draftTaskDue=this.value" title="Frist der Aufgabe (bei „Zeit im Kalender blocken“ auch das Datum im Kalender)">`
         :`<input type="date" id="commentDateInput" max="${TODAY}" title="Datum (leer lassen = jetzt; sonst Nacherfassung eines vergangenen Ereignisses)">`}</div>
     </div>
-    ${task
+    ${fileM
+      ?`<div class="field" style="margin-bottom:0"><textarea id="fileNoteInput" placeholder="Beschreibung (optional) …" oninput="draftFileNote=this.value">${esc(draftFileNote)}</textarea></div>${composePending.length?`<div class="rc-att">${composePending.map((f,ix)=>`<span><i class="ti ti-file"></i>${esc(f.name)}<button type="button" onclick="composeRemoveFile(${ix})" title="Entfernen" aria-label="${esc(f.name)} entfernen">×</button></span>`).join('')}</div>`:''}`
+      :task
       ?`<div class="field" style="margin-bottom:0;position:relative"><textarea id="newTaskText" placeholder="Aufgabe beschreiben… mit @Name einer Person zuweisen (Strg+Enter zum Erstellen)" onkeydown="if((event.key==='Enter')&&(event.ctrlKey||event.metaKey))addTask()" oninput="clearTaskFormError();handleTaskMentionInput(this)">${esc(draftTaskText)}</textarea><div id="taskMentionPopoverContainer">${renderTaskMentionPopoverHtml()}</div></div><div id="taskFormError" style="display:none;color:var(--red);font-size:11px;margin-top:6px"></div>`
       :`<div class="field" style="margin-bottom:0"><textarea id="commentInput" placeholder="Kommentar schreiben… (Strg+Enter zum Senden)" oninput="draftCommentText=this.value" onkeydown="if((event.key==='Enter')&&(event.ctrlKey||event.metaKey))addComment()">${esc(draftCommentText)}</textarea></div>`}
-    <div class="rc-bottom">${left}<button class="btn btn-primary rc-send" onclick="${task?'addTask()':'addComment()'}"><i class="ti ti-send"></i> ${task?'Aufgabe':'Kommentieren'}</button></div>
+    <div class="rc-bottom">${left}<button class="btn btn-primary rc-send" onclick="${fileM?'composeUpload()':task?'addTask()':'addComment()'}"><i class="ti ti-${fileM?'upload':'send'}"></i> ${fileM?'Hochladen':task?'Aufgabe':'Kommentieren'}</button></div>
   </div>`;
 }
 function addTask(){
@@ -10025,6 +10103,7 @@ document.addEventListener('click',e=>{
   if(!e.target.closest('.infobtn-wrap')&&overflowMenuOpen){overflowMenuOpen=false;document.getElementById('overflowMenu').classList.remove('show');}
   if(!e.target.closest('.crrma-menu-wrap')&&crrmaMenuOpen){crrmaMenuOpen=false;document.getElementById('crrmaOverflowMenu').classList.remove('show');}
   if(leadBannerLabelMenu&&!e.target.closest('.lbn-pick')){leadBannerLabelMenu=false;if(draftLead)renderLeadModal();}
+  if(feedFilterOpen&&!e.target.closest('.feed-filter')){feedFilterOpen=false;if(draftLead)renderLeadModal();}
   if(shipQtyOpen>=0&&!e.target.closest('.ts-qty-menu')&&!e.target.closest('.ts-qty')){shipQtyOpen=-1;if(draftLead)renderLeadModal();}
   if(!e.target.closest('.omni-addfilter-wrap')&&calFilterMenuOpen){calFilterMenuOpen=false;const mc=document.getElementById('calFilterMenu');if(mc)mc.classList.remove('show');}
   if(!e.target.closest('.omni-addfilter-wrap')&&tasksFilterMenuOpen){tasksFilterMenuOpen=false;const m=document.getElementById('tasksFilterMenu');if(m)m.classList.remove('show');}
