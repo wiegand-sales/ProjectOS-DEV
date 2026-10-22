@@ -370,6 +370,11 @@ table.vt col.c1{width:34%}table.vt col.c2,table.vt col.c3{width:16%}table.vt col
 .modal-left .section-hdr{color:#4b5b60}
 .modal-left label{color:#66767b;font-size:11.5px;font-weight:400;text-transform:none;letter-spacing:0}
 .time-select{width:92px;flex-shrink:0}
+.modal-left input[type=text],.modal-left input[type=date],.modal-left input[type=number],.modal-left input[type=tel],.modal-left input[type=email],.modal-left select{height:36px;box-sizing:border-box;padding-top:0;padding-bottom:0}
+.modal-left .add-check-row{align-items:center}
+.modal-left .add-check-row .btn{height:36px;width:36px;min-width:36px;padding:0;justify-content:center;flex-shrink:0}
+.modal-left .check-hdr{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px;min-height:24px}
+.modal-left .check-hdr .btn{height:26px;padding:0 9px}
 .kd-coll-hdr{width:100%;display:flex;align-items:center;gap:8px;border:0;background:transparent;padding:0;cursor:pointer;font-family:inherit;text-align:left}
 .kd-coll-hdr .ttl{font-size:11px;font-weight:600;color:#4b5b60;text-transform:uppercase;letter-spacing:.04em}
 .kd-coll-hdr .sum{margin-left:auto;font-size:12px;color:#66767b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:60%}
@@ -1333,7 +1338,7 @@ let localSettingsTrusted=false;
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-10-22T18:30:00.000Z';
+const BUILD_VERSION='2026-10-22T18:45:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -7855,8 +7860,8 @@ function renderLeadModal(){
           </div>
 
           <div style="margin-top:14px">
-            <div class="section-hdr" style="margin-bottom:6px">
-              <span>Checkliste ${checkTotal?`(${checkDone}/${checkTotal})`:''}</span>
+            <div class="check-hdr">
+              <label style="margin:0">Checkliste ${checkTotal?`(${checkDone}/${checkTotal})`:''}</label>
               ${checkTotal?`<button class="btn btn-sm" onclick="deleteChecklist()"><i class="ti ti-trash"></i> Löschen</button>`:''}
             </div>
             ${checkTotal?`<div class="checklist-progress-track"><div class="checklist-progress-fill" style="width:${pct}%"></div></div>`:''}
