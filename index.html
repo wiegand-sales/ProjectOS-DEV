@@ -1157,6 +1157,8 @@ label{font-size:12px;font-weight:500;color:var(--text2);display:block;margin-bot
               <div id="filterMenuLabels" class="fm-body"></div>
               <div class="fm-sec" id="fmSecArt" onclick="toggleFilterSection('art',event)"><i class="ti ti-building-store"></i><span>Art</span><span class="fm-sum" id="fmSumArt"></span><i class="ti ti-chevron-right fm-chev"></i></div>
               <div id="filterMenuArt" class="fm-body"></div>
+              <div class="fm-sec" id="fmSecFu" onclick="toggleFilterSection('fu',event)"><i class="ti ti-clock"></i><span>FollowUp</span><span class="fm-sum" id="fmSumFu"></span><i class="ti ti-chevron-right fm-chev"></i></div>
+              <div id="filterMenuFu" class="fm-body"></div>
               <div class="fm-sec" id="fmSecLoss" onclick="toggleFilterSection('loss',event)"><i class="ti ti-circle-x"></i><span>Verlustgrund</span><span class="fm-sum" id="fmSumLoss"></span><i class="ti ti-chevron-right fm-chev"></i></div>
               <div id="filterMenuLoss" class="fm-body"></div>
             </div>
@@ -1444,7 +1446,7 @@ let localSettingsTrusted=false;
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-10-23T09:30:00.000Z';
+const BUILD_VERSION='2026-10-23T10:00:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -2892,7 +2894,7 @@ const ART_FILTER_OPTIONS=[['all','Alle'],...ART_VALUES.map(v=>[v,v])];
 function artMatches(l,f){return !f||f==='all'||!l||(l.art||'')===f;}
 function artFilterItems(cur,fn){return ART_FILTER_OPTIONS.map(([v,lab])=>`<div class="filtermenu-item ${cur===v?'active':''}" onclick="event.stopPropagation();${fn}('${v}')"><span>${esc(lab)}</span>${cur===v?'<i class="ti ti-check"></i>':''}</div>`).join('');}
 function artToken(cur,fn){return cur&&cur!=='all'?`<div class="omni-token"><i class="ti ti-building-store" style="font-size:12px"></i>Art: ${esc(cur)}<i class="ti ti-x" onclick="${fn}('all')"></i></div>`:'';}
-let activeArtFilter='all',dashboardArtFilter='all',activeTasksArtFilter='all',calArtFilter='all';
+let activeFuFilter='all',activeArtFilter='all',dashboardArtFilter='all',activeTasksArtFilter='all',calArtFilter='all';
 let activeLabelFilters=[];
 let activeTasksAgentFilter='all';
 let activeTasksBoardFilter='all';
@@ -4189,6 +4191,7 @@ function getFilteredLeads(skipLossFilter){
       if(!(wantsNone&&hasNoLabel)&&!matchesOther)return false;
     }
     if(!artMatches(l,activeArtFilter))return false;
+    if(!fuFilterOk(l))return false;
     if(q&&!leadMatchesSearch(l,q,qPhoneKeys))return false;
     if(activeLossFilter&&!skipLossFilter&&isLostStatus(l.status)){
       const r=(l.lossReason||'').trim();
@@ -4273,6 +4276,7 @@ function renderOmniTokens(){
   });
   updateFilterSectionSummaries();
   html+=artToken(activeArtFilter,'setArtFilter');
+  if(activeFuFilter!=='all')html+=`<div class="omni-token"><i class="ti ti-clock" style="font-size:12px"></i>FollowUp: ${activeFuFilter==='none'?'Ohne':'Heute'}<i class="ti ti-x" onclick="setFuFilter('all')"></i></div>`;
   if(activeLossFilter){
     html+=`<div class="omni-token"><i class="ti ti-circle-x" style="font-size:12px"></i>Verlustgrund: ${esc(activeLossFilter==='__none__'?'Ohne Grund':activeLossFilter)}<i class="ti ti-x" onclick="setLossFilter('')"></i></div>`;
   }
@@ -4293,6 +4297,16 @@ function setLossFilter(v){
   activeLossFilter=v||'';
   renderLossFilterMenu();renderOmniTokens();renderBoard();
 }
+const FU_FILTER_OPTIONS=[['all','Alle'],['none','Ohne'],['today','Heute']];
+function fuFilterOk(l){
+  if(activeFuFilter==='all')return true;
+  if(isClosedLead(l))return false; // Gewonnen/Verloren haben keinen naechsten Schritt
+  const fu=String(l.followup||'').trim();
+  if(activeFuFilter==='none')return !fu;
+  return !!fu&&daysUntil(fu)<=0; // heute + ueberfaellig
+}
+function setFuFilter(v){activeFuFilter=v||'all';renderFuFilterMenu();renderLossFilterMenu();renderOmniTokens();renderBoard();}
+function renderFuFilterMenu(){const el=document.getElementById('filterMenuFu');if(el)el.innerHTML=FU_FILTER_OPTIONS.map(([v,lab])=>`<div class="filtermenu-item ${activeFuFilter===v?'active':''}" onclick="event.stopPropagation();setFuFilter('${v}')"><span>${lab}${v==='today'?' <span style="color:var(--text3);font-weight:400">(inkl. überfällig)</span>':''}</span>${activeFuFilter===v?'<i class="ti ti-check"></i>':''}</div>`).join('');}
 function setArtFilter(v){activeArtFilter=v||'all';renderArtFilterMenu();renderLossFilterMenu();renderOmniTokens();renderBoard();}
 function renderArtFilterMenu(){const el=document.getElementById('filterMenuArt');if(el)el.innerHTML=artFilterItems(activeArtFilter,'setArtFilter');}
 function renderLossFilterMenu(){
@@ -4318,7 +4332,7 @@ function toggleFilterSection(key,e){
   applyFilterSections();
 }
 function applyFilterSections(){
-  [['agents','Agents'],['labels','Labels'],['art','Art'],['loss','Loss']].forEach(([k,id])=>{
+  [['agents','Agents'],['labels','Labels'],['art','Art'],['fu','Fu'],['loss','Loss']].forEach(([k,id])=>{
     const sec=document.getElementById('fmSec'+id),body=document.getElementById('filterMenu'+id);
     if(sec)sec.classList.toggle('open',filterSectionOpen===k);
     if(body)body.classList.toggle('open',filterSectionOpen===k);
@@ -4331,6 +4345,7 @@ function updateFilterSectionSummaries(){
   const lb=activeLabelFilters.map(f=>f==='__none__'?'Ohne Label':((labelById(f)||{}).name||'')).filter(Boolean);
   set('Labels',lb.length?(lb.length===1?lb[0]:lb.length+' gewählt'):'Alle',lb.length);
   set('Art',activeArtFilter==='all'?'Alle':activeArtFilter,activeArtFilter!=='all');
+  set('Fu',activeFuFilter==='all'?'Alle':(activeFuFilter==='none'?'Ohne':'Heute'),activeFuFilter!=='all');
   set('Loss',activeLossFilter?(activeLossFilter==='__none__'?'Ohne Grund':activeLossFilter):'Alle',activeLossFilter);
   applyFilterSections();
 }
@@ -4515,7 +4530,7 @@ function renderBoard(){
   }
   board.innerHTML = partHintHtml + colsHtml + addTileHtml;
   renderBoardSortMenu();
-  renderLossFilterMenu();renderArtFilterMenu();
+  renderLossFilterMenu();renderArtFilterMenu();renderFuFilterMenu();
   {const t=document.getElementById('boardPartTitle');if(t)t.textContent=BOARD_PARTS[currentBoardPart];}
   renderBoardNav();
 
