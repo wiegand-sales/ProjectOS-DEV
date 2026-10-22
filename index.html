@@ -440,6 +440,10 @@ button.ts-pill.fc-vk.mod::after{content:"";position:absolute;top:-3px;right:-3px
 .kd-coll-hdr i{color:#66767b;transition:transform .15s}
 .kd-coll-hdr.open i{transform:rotate(180deg)}
 .lbl-row{position:relative}
+.lbl-color-row{display:flex;align-items:center;gap:10px;padding:6px 0 10px 30px;border-bottom:1px solid var(--border2,#e4ebea)}
+.lbl-color-hint{font-size:11.5px;color:#66767b}
+.lbl-color-row .color-swatch{width:22px;height:22px;padding:0;border-radius:5px}
+.lbl-color-row .color-swatch:not(.disabled):hover{transform:scale(1.12)}
 .lbl-grip{cursor:grab;color:var(--text3);display:inline-flex;align-items:center;margin-right:2px}
 .lbl-row.lbl-dragging{opacity:.45}
 .lbl-row.lbl-drop-before{box-shadow:inset 0 2px 0 #206A72}
@@ -1446,7 +1450,7 @@ let localSettingsTrusted=false;
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-10-23T10:00:00.000Z';
+const BUILD_VERSION='2026-10-23T10:30:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -3705,7 +3709,14 @@ function roleLabel(r){return r==='admin'?'Admin':r==='am'?'Account Manager':'Sal
 function labelById(id){return LABELS.find(l=>l.id===id);}
 // Reihenfolge der Labels = Reihenfolge in den Einstellungen (Okt. 2026)
 function orderedLabelIds(ids){const pos=id=>{const i=LABELS.findIndex(x=>x.id===id);return i<0?1e9:i;};return (ids||[]).filter(id=>labelById(id)).slice().sort((a,b)=>pos(a)-pos(b));}
-let labelDragId=null;
+let labelDragId=null,editingLabelColorId=null;
+function toggleLabelColorEdit(id){editingLabelColorId=editingLabelColorId===id?null:id;refreshLabelUi();}
+function labelColorPickerHtml(lb){
+  const used=LABELS.filter(x=>x.id!==lb.id).map(x=>String(x.color).toLowerCase());
+  const pal=LABEL_PALETTE.includes(lb.color)?LABEL_PALETTE:[lb.color,...LABEL_PALETTE];
+  return `<div class="lbl-color-row" role="group" aria-label="Farbe für ${esc(lb.name)}"><span class="lbl-color-hint">Farbe wählen:</span><div class="color-swatch-row" style="margin:0">${pal.map(c=>{const cur=String(c).toLowerCase()===String(lb.color).toLowerCase();const isUsed=!cur&&used.includes(String(c).toLowerCase());return `<button type="button" class="color-swatch ${cur?'selected':''} ${isUsed?'disabled':''}" style="background:${c}" ${isUsed?'disabled title="Bereits von einem anderen Label genutzt"':`onclick="setLabelColor('${lb.id}','${c}')" title="${cur?'Aktuelle Farbe':'Diese Farbe wählen'}"`} aria-label="${c}${cur?' (aktuell)':''}"></button>`;}).join('')}</div></div>`;
+}
+function setLabelColor(id,c){const lb=labelById(id);if(!lb)return;const taken=LABELS.some(x=>x.id!==id&&String(x.color).toLowerCase()===String(c).toLowerCase());if(taken)return;lb.color=c;editingLabelColorId=null;saveState();refreshLabelUi();}
 function moveLabel(id,delta){
   const i=LABELS.findIndex(x=>x.id===id),j=i+delta;
   if(i<0||j<0||j>=LABELS.length)return;
@@ -6616,9 +6627,10 @@ function renderSettings(){
       <span style="flex:1;font-size:11px;color:var(--text2)">${useCount} Lead(s)</span>
       <button class="check-item-del" onclick="moveLabel('${lb.id}',-1)" title="Nach oben" aria-label="${esc(lb.name)} nach oben" ${li===0?'disabled style="opacity:.3;cursor:default"':''}><i class="ti ti-chevron-up"></i></button>
       <button class="check-item-del" onclick="moveLabel('${lb.id}',1)" title="Nach unten" aria-label="${esc(lb.name)} nach unten" ${li===LABELS.length-1?'disabled style="opacity:.3;cursor:default"':''}><i class="ti ti-chevron-down"></i></button>
+      <button class="check-item-del" onclick="toggleLabelColorEdit('${lb.id}')" title="Farbe ändern" aria-label="Farbe von ${esc(lb.name)} ändern" aria-expanded="${editingLabelColorId===lb.id}" ${editingLabelColorId===lb.id?'style="color:#206A72"':''}><i class="ti ti-palette"></i></button>
       <button class="check-item-del" onclick="startEditLabelSettings('${lb.id}')" title="Umbenennen"><i class="ti ti-pencil"></i></button>
       <button class="check-item-del" onclick="deleteLabelGlobal('${lb.id}')" title="Löschen"><i class="ti ti-trash"></i></button>
-    </div>`;
+    </div>${editingLabelColorId===lb.id?labelColorPickerHtml(lb):''}`;
   }).join(''):'<p style="font-size:12px;color:var(--text3)">Noch keine Labels angelegt.</p>';
 
   const milestonesHtml=PROJECT.milestones.map(m=>{
@@ -6735,7 +6747,7 @@ function renderSettings(){
         </div>
         <div class="info-section">
           <div class="section-hdr" style="margin-top:0">Labels</div>
-          <p style="font-size:11px;color:var(--text3);margin:-4px 0 8px">Reihenfolge per Ziehen am Griff oder mit den Pfeilen ändern – so erscheinen sie auch auf den Leads. Werden auf Lead-Karten zur Kategorisierung genutzt.</p>
+          <p style="font-size:11px;color:var(--text3);margin:-4px 0 8px">Reihenfolge per Ziehen am Griff oder mit den Pfeilen ändern – so erscheinen sie auch auf den Leads. Farbe über das Paletten-Symbol ändern. Werden auf Lead-Karten zur Kategorisierung genutzt.</p>
           ${labelsHtml}
           <p style="font-size:11px;color:var(--text3);margin-top:10px">Neue Labels legst du direkt in einer Lead-Karte an (Bereich "Labels").</p>
         </div>
