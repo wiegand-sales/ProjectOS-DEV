@@ -444,6 +444,42 @@ button.ts-pill.fc-vk.mod::after{content:"";position:absolute;top:-3px;right:-3px
 .lbl-row.lbl-dragging{opacity:.45}
 .lbl-row.lbl-drop-before{box-shadow:inset 0 2px 0 #206A72}
 .lbl-row.lbl-drop-after{box-shadow:inset 0 -2px 0 #206A72}
+.card.sc{padding:0;height:auto;min-height:0;overflow:visible;border-top:1px solid rgba(0,0,0,.07)}
+.card.sc.card-followup-overdue{background:#f6f7f5;border-left:1px solid rgba(0,0,0,.07);padding-left:0}
+.card.sc.card-followup-overdue:hover{background:#fff}
+.sc-band{display:flex;align-items:center;gap:6px;padding:5px 11px;font-size:11.5px;font-weight:700;border-radius:var(--r-md) var(--r-md) 0 0}
+.sc-band i{font-size:13px}
+.sc-band .sc-bt{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.sc-band .sc-br{margin-left:auto;display:flex;gap:8px;align-items:center;font-weight:600;white-space:nowrap}
+.sc-band.over{background:#fcebeb;color:#a32d2d}.sc-band.today{background:#faeeda;color:#7a4e07}.sc-band.soon{background:#E9F0F1;color:#206A72}
+.sc-band.none{background:#eceeed;color:#66767b}.sc-band.lost{background:#f6e2e2;color:#a32d2d}.sc-band.won{background:#e3f5ee;color:#0b5e45}
+.sc-aging{display:inline-flex;align-items:center;gap:2px;font-weight:700}
+.sc-aging i{font-size:12px}
+.sc-bd{position:relative;padding:8px 11px 9px}
+.sc-co{font-weight:700;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text)}
+.sc-sub{font-size:12px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
+.sc-meta{display:flex;align-items:center;gap:7px;margin-top:20px;min-height:20px}
+.sc-meta .sc-r{margin-left:auto;display:flex;align-items:center}
+.sc-dots{display:inline-flex;gap:3px}.sc-dots i{width:9px;height:9px;border-radius:3px;display:block}
+.sc-ck{display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:600;color:var(--text3)}.sc-ck i{font-size:12px}
+.sc-money{display:inline-flex;align-items:center;gap:5px;border-radius:6px;padding:1px 7px;font-size:11px;font-weight:600;background:#E9F0F1;color:#206A72;white-space:nowrap}
+.sc-money .sc-truck{display:inline-flex;align-items:center;gap:3px}.sc-money .sc-truck i{font-size:15px}
+.sc-money .sc-sep{opacity:.5}
+.sc-money.mid{background:#faeeda;color:#7a4e07}.sc-money.late{background:#fcebeb;color:#a32d2d}
+.sc-dotw{position:absolute;top:-4px;right:-4px;z-index:6;display:inline-flex;cursor:default}
+.sc-rdot{width:12px;height:12px;border-radius:50%;background:#e24b4a;box-shadow:0 0 0 2px var(--bg2,#f4f6f6)}
+.sc-tip{position:absolute;top:18px;right:-6px;width:240px;background:#0d3d43;color:#fff;border-radius:8px;padding:7px 9px;font-size:11.5px;display:none;box-shadow:0 10px 24px rgba(0,0,0,.22);z-index:40}
+.sc-tip b{display:block;font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;color:#9fc9cd;margin-bottom:3px}
+.sc-tr{display:flex;gap:6px}.sc-tr span:first-child{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.sc-tr span:last-child{white-space:nowrap;color:#cfe6e8}.sc-tr .o{color:#f7c1c1}
+.sc-dotw:hover .sc-tip,.sc-dotw:focus-within .sc-tip{display:block}
+.card.sc .card-reorder{top:6px;right:6px}
+.card.sc .card-bulk-checkbox{top:8px;right:10px}
+.card.sc.sc-ready{box-shadow:inset 3px 0 0 #534ab7}
+.card.sc.sc-ready:hover{box-shadow:inset 3px 0 0 #534ab7,0 4px 8px rgba(15,61,66,.08),0 10px 24px rgba(15,61,66,.09)}
+.sc-ho{position:absolute;right:10px;bottom:8px;display:inline-flex;align-items:center;gap:4px;border:0;background:#534ab7;color:#fff;border-radius:7px;padding:4px 9px;font-size:11.5px;font-weight:700;cursor:pointer;opacity:0;transform:translateY(3px);transition:opacity .15s,transform .15s;box-shadow:0 4px 12px rgba(83,74,183,.35);font-family:inherit}
+.card.sc:hover .sc-ho,.sc-ho:focus-visible{opacity:1;transform:none}
+.card.sc.sc-ready:hover .sc-meta .sc-r{visibility:hidden}
+@media (prefers-reduced-motion:reduce){.sc-ho{transition:none}}
 .board-part-hint{flex:0 0 260px;align-self:flex-start;border:1.5px dashed var(--purple-dark);border-radius:var(--r-md);padding:16px;background:var(--purple-bg);font-size:13px;color:var(--purple-dark);display:flex;flex-direction:column;gap:10px;}
 .board-part-hint button{align-self:flex-start;}
 .nav-icon-badge{width:36px;height:36px;border-radius:9px;background:linear-gradient(180deg,#27808a 0%,#206A72 100%);box-shadow:0 6px 16px rgba(32,106,114,.3);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
@@ -1410,7 +1446,7 @@ let localSettingsTrusted=false;
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-10-23T08:00:00.000Z';
+const BUILD_VERSION='2026-10-23T09:00:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -3954,6 +3990,12 @@ function renderFollowupTimeline(lead){
   });
   html+='</div>';
   return html;
+}
+// Free Toner verschickt setzen + Versanddatum merken (fuer "Toner seit X Tagen" auf der Karte)
+function setTonerSent(obj,v){
+  if(!obj)return;
+  if(v==='Ja'){if(obj.tonerSent!=='Ja')obj.tonerSentAt=TODAY;obj.tonerSent='Ja';}
+  else{obj.tonerSent=v;obj.tonerSentAt='';}
 }
 function blankLead(){return{id:null,company:'',customerNumber:'',art:'B2B',address:'',orderCount:'',revenue:'',shipPrinter:{model:'',skus:[{sku:'',priceEk:'',priceVk:''},{sku:'',priceEk:'',priceVk:''},{sku:'',priceEk:'',priceVk:''},{sku:'',priceEk:'',priceVk:''}]},demandPrinters:[],actualPrinters:[],contact:'',phone:'',email:'',competitor:'',status:COLUMNS[0].id,tonerSent:'Nein',members:[],labelIds:[],firstContact:'',followup:'',followupHistory:[],forecast:'',actual:'',lossReason:'',lossComment:'',notes:'',checklist:[],activity:[],files:[],tasks:[],topArticles:[{skuOem:'',skuKompa:'',title:''},{skuOem:'',skuKompa:'',title:''},{skuOem:'',skuKompa:'',title:''}],order:Date.now()};}
 // ── OUTLOOK-TERMINEINLADUNG (ICS-Datei) ──
@@ -6996,53 +7038,69 @@ function createAgent(){
 }
 function startEditLabelSettings(id){editingLabelId=id;renderSettings();const el=document.getElementById('editLabelInput_'+id);if(el){el.focus();el.select();}}
 
+// Lead-Karte "Status zuerst" (Okt. 2026): Status-Band oben, Firma/Ansprechpartner, unten Labels + Toner-Tage/Marge,
+// roter Punkt bei offenen Aufgaben, "An PQL uebergeben" beim Ueberfahren (AM: Auftrag).
+function leadMarginOf(l,kind){
+  const ps=(kind==='actual'?l.actualPrinters:l.demandPrinters)||[];
+  return ps.reduce((sum,p)=>sum+(p.skus||[]).reduce((s,x)=>s+((parseFloat(x.priceVk)||0)-(parseFloat(x.priceEk)||0))*(parseFloat(x.qty)||0),0),0);
+}
 function cardHtml(l,isFirst,isLast){
-  const labelsHtml=orderedLabelIds(l.labelIds).map(id=>{const lb=labelById(id);return lb?`<span class="label-chip" style="background:${lb.color}">${esc(lb.name)}</span>`:'';}).join('');
-  const membersHtml=(l.members||[]).slice(0,4).map(id=>{const a=agentById(id);return a?`<div class="member-av" style="background:${COLOR_BG[a.color]};color:${COLOR_TEXT[a.color]}" title="${esc(a.name)}">${ini(a.name)}</div>`:'';}).join('');
-  const checkTotal=(l.checklist||[]).length;
-  const checkDone=(l.checklist||[]).filter(c=>c.done).length;
-  let dueHtml='';
-  let isOverdueFollowup=false;
-  if(l.followup){
-    const d=daysUntil(l.followup);
-    isOverdueFollowup=d<0;
-    const cls=d<0?'due-overdue':(d<=2?'due-soon':'due-ok');
-    const ftime=((l.followup||'').split('T')[1]||'').slice(0,5);
-    const dlabel=d<0?`${Math.abs(d)}T überfällig`:((d===0?'heute':fmtDate(l.followup))+(ftime?` · ${ftime}`:''));
-    dueHtml=`<span class="due-badge ${cls}"><i class="ti ti-clock" style="font-size:11px"></i>${dlabel}</span>`;
-  }
-  const metaBadges=[];
-  if(checkTotal)metaBadges.push(`<span class="chip-badge"><i class="ti ti-checklist" style="font-size:11px"></i>${checkDone}/${checkTotal}</span>`);
-  const openTaskList=(l.tasks||[]).filter(t=>!t.done);
-  const openTasks=openTaskList.length;
-  // Eine Aufgabe kann eine eigene Frist haben, die unabhaengig vom Lead-Follow-up
-  // ueberfaellig sein kann. Ist mindestens eine offene Aufgabe ueberfaellig, wird der
-  // Chip dringlicher (rot) statt im normalen Beige-Ton dargestellt.
-  const hasOverdueTask=openTaskList.some(t=>t.dueDate&&daysUntil(t.dueDate)<0);
-  if(openTasks)metaBadges.push(`<span class="chip-badge ${hasOverdueTask?'chip-badge-task-overdue':'chip-badge-task-open'}"><i class="ti ti-list-check" style="font-size:11px"></i>${openTasks} offen</span>`);
-  if(l.forecast)metaBadges.push(`<span class="chip-badge chip-badge-money"><i class="ti ti-currency-euro" style="font-size:11px"></i>${fmtEur(l.forecast)}</span>`);
-  const colColor=colById(l.status)?colById(l.status).color:'gray';
+  const col=colById(l.status);
+  const won=!!(col&&col.outcome==='won'),lost=!!(col&&col.outcome==='lost'),closed=won||lost;
+  const ddmm=d=>{const t=fmtDate(String(d).slice(0,10));return t?t.slice(0,6):'';};
+  const ic=(n)=>`<i class="ti ti-${n}"></i>`;
+  // Status-Band
   const agingDays=l.statusSince?Math.abs(daysUntil(l.statusSince)):null;
-  const agingHtml=(agingDays!==null&&agingDays>=7&&!isClosedLead(l))?`<span class="aging-badge" title="Seit ${agingDays} Tagen in dieser Liste"><i class="ti ti-hourglass" style="font-size:10px"></i>${agingDays}T</span>`:'';
+  const aging=(agingDays!==null&&agingDays>=7&&!closed)?`<span class="sc-aging" title="Seit ${agingDays} Tagen in dieser Liste">${ic('hourglass')}${agingDays}T</span>`:'';
+  let band,isOverdueFollowup=false;
+  if(lost)band=`<div class="sc-band lost">${ic('x')}<span class="sc-bt">Verloren${l.lossReason?' · '+esc(l.lossReason):''}</span><span class="sc-br">${l.statusSince?ddmm(l.statusSince):''}</span></div>`;
+  else if(won)band=`<div class="sc-band won">${ic('trophy')}<span class="sc-bt">Gewonnen</span><span class="sc-br">${l.statusSince?ddmm(l.statusSince):''}</span></div>`;
+  else if(l.followup){
+    const d=daysUntil(l.followup);isOverdueFollowup=d<0;
+    const ftime=((l.followup||'').split('T')[1]||'').slice(0,5);
+    const cls=d<0?'over':(d===0?'today':'soon');
+    const txt=d<0?`überfällig seit ${Math.abs(d)} T`:(d===0?`heute${ftime?' '+ftime:''}`:(d===1?`morgen${ftime?' '+ftime:''}`:`in ${d} T`));
+    band=`<div class="sc-band ${cls}">${ic('clock')}<span class="sc-bt">${txt}</span><span class="sc-br">${aging}${ddmm(l.followup)}${ftime&&(d<0||d>=2)?' · '+ftime:''}</span></div>`;
+  }else band=`<div class="sc-band none">${ic('clock')}<span class="sc-bt">Kein FollowUp</span><span class="sc-br">${aging}</span></div>`;
+  // Labels als Punkte, Checkliste
+  const lids=orderedLabelIds(l.labelIds);
+  const dots=lids.length?`<span class="sc-dots" title="${esc(lids.map(id=>labelById(id).name).join(', '))}">${lids.map(id=>`<i style="background:${labelById(id).color}"></i>`).join('')}</span>`:'';
+  const checkTotal=(l.checklist||[]).length,checkDone=(l.checklist||[]).filter(c=>c.done).length;
+  const ck=checkTotal?`<span class="sc-ck" title="Checkliste">${ic('checklist')}${checkDone}/${checkTotal}</span>`:'';
+  // Toner + Marge
+  let money=null,moneyTitle='';
+  if(won){const m=leadMarginOf(l,'actual');if(m){money=m;moneyTitle='Marge Auftrag';}}
+  else if(!lost){const m=leadMarginOf(l,'demand');if(m){money=m;moneyTitle='Marge Forecast';}}
+  const tonerOn=l.tonerSent==='Ja'&&!closed;
+  const tDays=tonerOn&&l.tonerSentAt?Math.max(0,Math.abs(daysUntil(l.tonerSentAt))):null;
+  const tLev=tDays===null?'':(tDays>=60?'late':(tDays>=40?'mid':''));
+  let right='';
+  if(tonerOn||money!==null){
+    const tPart=tonerOn?`<span class="sc-truck" title="${tDays!==null?'Toner seit '+tDays+' Tagen verschickt':'Toner verschickt'}">${ic('truck-delivery')}${tDays!==null?`<b>${tDays} T</b>`:''}</span>`:'';
+    const mPart=money!==null?`<span title="${moneyTitle}">${fmtEur(money)}</span>`:'';
+    right=`<span class="sc-money ${tLev}">${tPart}${tPart&&mPart?'<span class="sc-sep">·</span>':''}${mPart}</span>`;
+  }
+  // offene Aufgaben: roter Punkt
+  const openTaskList=(l.tasks||[]).filter(t=>!t.done);
+  const taskDot=openTaskList.length?`<span class="sc-dotw" tabindex="0" onclick="event.stopPropagation()" aria-label="${openTaskList.length} offene Aufgabe(n)"><span class="sc-rdot"></span><span class="sc-tip" role="tooltip"><b>Offene Aufgaben</b>${openTaskList.slice(0,6).map(t=>{const ov=t.dueDate&&daysUntil(t.dueDate)<0;return `<span class="sc-tr"><span>${esc(t.text)}</span><span class="${ov?'o':''}">${t.dueDate?(ov?'überfällig ':'')+ddmm(t.dueDate):''}</span></span>`;}).join('')}${openTaskList.length>6?`<span class="sc-tr"><span>+ ${openTaskList.length-6} weitere</span></span>`:''}</span></span>`:'';
+  // Uebergabe an PQL (nur AM: Auftrag)
+  const handover=!bulkMode&&l.status==='am_order'&&colById('fu_feedback');
   const isSelected=bulkSelected.has(l.id);
   const clickAction=bulkMode?`toggleBulkSelect(${l.id})`:`openLeadModal(${l.id})`;
-  return `<div class="card ${isSelected?'card-selected':''} ${isOverdueFollowup?'card-followup-overdue':''}" style="border-top:3px solid ${COLOR_HEX[colColor]}" draggable="${!bulkMode}" data-id="${l.id}" ondragstart="onDragStart(event,${l.id})" ondragend="onDragEnd(event)" ondragover="onCardDragOver(event)" ondragleave="onCardDragLeave(event)" ondrop="onCardDrop(event,${l.id})" onclick="${clickAction}">
-    ${bulkMode?`<input type="checkbox" class="card-bulk-checkbox" ${isSelected?'checked':''} onclick="event.stopPropagation();toggleBulkSelectPreserveScroll(this,${l.id})">`:`
-    <div class="card-reorder" onclick="event.stopPropagation()">
-      ${!isFirst?`<button onclick="event.stopPropagation();moveLeadUp(${l.id})" title="Nach oben"><i class="ti ti-chevron-up"></i></button>`:''}
-      ${!isLast?`<button onclick="event.stopPropagation();moveLeadDown(${l.id})" title="Nach unten"><i class="ti ti-chevron-down"></i></button>`:''}
-    </div>`}
-    <div class="card-company">${esc(l.company)} ${agingHtml}</div>
-    <div class="card-contact">${esc(l.contact)}${l.customerNumber?` · ${esc(l.customerNumber)}`:''}</div>
-    <div class="card-labels-slot">${labelsHtml}${(isLostStatus(l.status)&&l.lossReason)?`<span class="label-chip" style="background:#fcebeb;color:#a32d2d">${esc(l.lossReason)}</span>`:''}</div>
-    <div class="card-badges-row">${metaBadges.join('')}</div>
-    ${(!bulkMode&&l.status==='am_order'&&colById('fu_feedback'))?`<button class="card-handover" onclick="event.stopPropagation();handOverToPql(${l.id})" title="Nach „${esc(colById('fu_feedback').name)}“ im Board: PQL schieben"><i class="ti ti-arrow-right"></i> An PQL übergeben</button>`:''}
-    <div class="card-spacer"></div>
-    <div class="card-divider"></div>
-    <div class="card-foot">
-      <div class="member-stack">${membersHtml}</div>
-      ${dueHtml}
+  return `<div class="card sc ${isSelected?'card-selected':''} ${isOverdueFollowup?'card-followup-overdue':''} ${handover?'sc-ready':''}" draggable="${!bulkMode}" data-id="${l.id}" ondragstart="onDragStart(event,${l.id})" ondragend="onDragEnd(event)" ondragover="onCardDragOver(event)" ondragleave="onCardDragLeave(event)" ondrop="onCardDrop(event,${l.id})" onclick="${clickAction}">
+    ${taskDot}
+    ${band}
+    <div class="sc-bd">
+      ${bulkMode?`<input type="checkbox" class="card-bulk-checkbox" ${isSelected?'checked':''} onclick="event.stopPropagation();toggleBulkSelectPreserveScroll(this,${l.id})">`:`
+      <div class="card-reorder" onclick="event.stopPropagation()">
+        ${!isFirst?`<button onclick="event.stopPropagation();moveLeadUp(${l.id})" title="Nach oben"><i class="ti ti-chevron-up"></i></button>`:''}
+        ${!isLast?`<button onclick="event.stopPropagation();moveLeadDown(${l.id})" title="Nach unten"><i class="ti ti-chevron-down"></i></button>`:''}
+      </div>`}
+      <div class="sc-co" title="${esc(l.company)}">${esc(l.company)}</div>
+      <div class="sc-sub">${esc(l.contact)}${l.customerNumber?` · ${esc(l.customerNumber)}`:''}</div>
+      <div class="sc-meta">${dots}${ck}<span class="sc-r">${right}</span></div>
     </div>
+    ${handover?`<button class="sc-ho" onclick="event.stopPropagation();handOverToPql(${l.id})" title="Nach „${esc(colById('fu_feedback').name)}“ im Board: PQL schieben">An PQL übergeben <i class="ti ti-arrow-right"></i></button>`:''}
   </div>`;
 }
 // ── MEHRFACHAUSWAHL / BULK-ZUWEISUNG ──
@@ -7277,7 +7335,7 @@ function handOverToPql(id){
   l.activity.unshift(act);pushActivityToDb(l.id,act);
   trackClosedStage(l,oldSt,target.id);trackStatusSince(l,oldSt,target.id);maybeSendListNotification(l,oldSt,target.id);
   ensureFirstContactFor(l,target.id);
-  if(l.tonerSent!=='Ja')l.tonerSent='Ja';
+  if(l.tonerSent!=='Ja')setTonerSent(l,'Ja');
   l.status=target.id;
   l.order=Date.now();
   saveState();
@@ -7286,7 +7344,7 @@ function handOverToPql(id){
 function handOverDraftToPql(){
   if(!draftLead||draftLead.status!=='am_order'||!colById('fu_feedback'))return;
   draftLead.status='fu_feedback';
-  if(draftLead.tonerSent!=='Ja')draftLead.tonerSent='Ja';
+  if(draftLead.tonerSent!=='Ja')setTonerSent(draftLead,'Ja');
   saveLead(false);
 }
 // Karten innerhalb derselben Liste nach oben/unten verschieben
@@ -7861,7 +7919,7 @@ function renderLeadModal(){
               </select>
             </div>
             <div><label>Free Toner verschickt</label>
-              <select style="width:100%" onchange="draftLead.tonerSent=this.value;renderLeadModal()">
+              <select style="width:100%" onchange="setTonerSent(draftLead,this.value);renderLeadModal()">
                 <option value="Nein" ${draftLead.tonerSent==='Nein'?'selected':''}>Nein</option>
                 <option value="Ja" ${draftLead.tonerSent==='Ja'?'selected':''}>Ja</option>
               </select>
