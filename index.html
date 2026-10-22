@@ -1397,7 +1397,7 @@ let localSettingsTrusted=false;
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-10-22T22:00:00.000Z';
+const BUILD_VERSION='2026-10-22T22:15:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -8249,7 +8249,7 @@ function updateDemandPrinterSku(id,idx,field,val){
 const FC_MAX=12;
 let fcQ={demand:'',actual:''},fcQtyOpen=null,fcVkEdit=null;
 function fcList(kind){return kind==='demand'?draftLead.demandPrinters:draftLead.actualPrinters;}
-function fcRows(kind){const out=[];(fcList(kind)||[]).forEach(p=>(p.skus||[]).forEach((x,si)=>{if(String(x.sku||'').trim())out.push({p,si,x});}));return out;}
+function fcRows(kind){const out=[];(fcList(kind)||[]).forEach(p=>(p.skus||[]).forEach((x,si)=>{if(x&&['sku','qty','priceEk','priceVk'].some(k=>String(x[k]===undefined||x[k]===null?'':x[k]).trim()))out.push({p,si,x});}));return out;}
 function fcRecompute(kind){if(kind==='demand')recomputeForecast();else recomputeActual();}
 function fcTotals(kind){let u=0,e=0,n=0;fcRows(kind).forEach(({x})=>{const q=parseFloat(x.qty)||0;u+=(parseFloat(x.priceVk)||0)*q;e+=(parseFloat(x.priceEk)||0)*q;n+=q;});return {u,e,m:u-e,n};}
 function fcCardHtml(kind,r,k,hit){
@@ -8269,19 +8269,19 @@ function fcCardHtml(kind,r,k,hit){
   const ro=modalReadOnly;
   return `<div class="ts-card fc ${cls}">
     <span class="ts-qty ${cls}" ${ro?'':`onclick="fcToggleQty('${key}',event)"`} title="Menge ändern">${q}×</span>${qtyOpen?`<div class="fc-qpop" onclick="event.stopPropagation()"><input type="number" min="1" step="1" id="fcQtyIn" value="${q||1}" onkeydown="if(event.key==='Enter')fcSetQty('${key}',this.value);if(event.key==='Escape'){fcQtyOpen=null;renderLeadModal();}">${[10,20,50,100].map(n=>`<button type="button" onclick="fcSetQty('${key}',${n})">${n}</button>`).join('')}<button type="button" class="ok" onclick="fcSetQty('${key}',document.getElementById('fcQtyIn').value)">OK</button></div>`:''}
-    <span class="t" title="${esc(title||sku)}">${title?esc(title):'<span style="color:var(--text3);font-weight:500">Nicht im Artikelstamm</span>'}</span>${ro?'<span></span>':`<button class="bin" onclick="fcRemove('${key}')" title="Artikel entfernen"><i class="ti ti-trash"></i></button>`}
-    <span class="sku">${esc(sku)}<span class="ts-pill fc-sum">${fmtEurCent((vk||0)*q)}</span></span>
+    <span class="t" title="${esc(title||sku)}">${title?esc(title):`<span style="color:var(--text3);font-weight:500">${String(sku||'').trim()?'Nicht im Artikelstamm':'Ohne SKU'}</span>`}</span>${ro?'<span></span>':`<button class="bin" onclick="fcRemove('${key}')" title="Artikel entfernen"><i class="ti ti-trash"></i></button>`}
+    <span class="sku">${String(sku||'').trim()?esc(sku):'–'}<span class="ts-pill fc-sum">${fmtEurCent((vk||0)*q)}</span></span>
     <span class="vals"><span class="ts-pill">EK ${ek!==null?fmtEurCent(ek):'–'}</span>${vkOpen?`<span class="fc-vkin">VK <input id="fcVkIn" inputmode="decimal" value="${vk!==null?vk.toFixed(2).replace('.',','):''}" onkeydown="if(event.key==='Enter'){event.preventDefault();fcSaveVk('${key}',this.value);}if(event.key==='Escape'){fcVkEdit=null;renderLeadModal();}" onblur="fcSaveVk('${key}',this.value)"> €</span>`:`<button type="button" class="ts-pill fc-vk ${mod?'mod':''}" ${ro?'disabled':`onclick="fcVkEdit='${key}';renderLeadModal();setTimeout(()=>{const i=document.getElementById('fcVkIn');if(i){i.focus();i.select();}},0)"`} title="${mod?'Angepasst · Artikelstamm: '+fmtEurCent(shipNum(a.vk))+' · ':''}Klicken zum Ändern">VK ${vk!==null?fmtEurCent(vk):'–'}</button>`}<span class="ts-pill ${cls}">RMA ${rma!==null?String(rma).replace('.',',')+' %':'–'}</span></span>
   </div>`;
 }
 function fcPanelHtml(kind){
-  const t=fcTotals(kind),f=fcTotals('demand');const isA=kind==='actual';const diff=t.u-f.u;
+  const t=fcTotals(kind);const isA=kind==='actual';
   const rows=fcRows(kind);
   const tiles=`<div class="ts-tiles fcx">
     <div class="ts-tile">Umsatz<b>${fmtEurCent(t.u)}</b></div>
     <div class="ts-tile">EK gesamt<b>${fmtEurCent(t.e)}</b></div>
     <div class="ts-tile main">Marge<b>${fmtEurCent(t.m)}</b></div>
-    ${isA?`<div class="ts-tile ${diff>=0?'fc-pos':'fc-neg'}">Differenz<b>${diff>=0?'+':''}${fmtEurCent(diff)}</b><small>zum Forecast</small></div>`:`<div class="ts-tile">Stück<b>${t.n.toLocaleString('de-DE')}</b></div>`}</div>`;
+    <div class="ts-tile">Stück<b>${t.n.toLocaleString('de-DE')}</b></div></div>`;
   const search=rows.length<FC_MAX&&!modalReadOnly?`<div class="ts-search"><input type="text" id="fcSearch_${kind}" placeholder="Artikel suchen (Titel oder SKU) …" value="${esc(fcQ[kind])}" oninput="fcQ['${kind}']=this.value;fcRenderResults('${kind}')" onblur="setTimeout(()=>{const r=document.getElementById('fcRes_${kind}');if(r)r.innerHTML='';},180)" autocomplete="off" style="width:100%"><div id="fcRes_${kind}" class="ts-res-inline"></div></div>`
     :(rows.length>=FC_MAX?`<div style="font-size:11px;color:var(--text3);margin-bottom:2px">Maximal ${FC_MAX} Artikel – zum Tauschen zuerst einen entfernen.</div>`:'');
   const head=`<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><span style="font-size:11px;color:var(--text3)">${rows.length} von ${FC_MAX} Artikeln</span>${isA&&!modalReadOnly?`<button class="btn btn-sm" style="margin-left:auto" onclick="copyForecastToActual()" title="Übernimmt die Artikel aus dem Forecast als Ausgangspunkt"><i class="ti ti-copy"></i> Forecast übernehmen</button>`:''}</div>`;
