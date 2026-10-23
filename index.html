@@ -1478,7 +1478,7 @@ let localSettingsTrusted=false;
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-10-23T14:00:00.000Z';
+const BUILD_VERSION='2026-10-23T14:15:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -2921,7 +2921,7 @@ function runDataIntegrityCheck(){
 let activeAgentFilters=[];
 // Kundenart-Filter (Okt. 2026): in Board, Dashboard, Aktivitaeten und Kalender
 // Kundenarten: hier zentral pflegen (Auswahl, Filter, Dashboard, CSV-Import)
-const ART_VALUES=['B2B','B2C','Händler','Gemeinde / Staat'];
+const ART_VALUES=['B2B','B2C','Händler','Öffentliche Einrichtung'];
 const ART_FILTER_OPTIONS=[['all','Alle'],...ART_VALUES.map(v=>[v,v])];
 function artMatches(l,f){return !f||f==='all'||!l||(l.art||'')===f;}
 function artFilterItems(cur,fn){return ART_FILTER_OPTIONS.map(([v,lab])=>`<div class="filtermenu-item ${cur===v?'active':''}" onclick="event.stopPropagation();${fn}('${v}')"><span>${esc(lab)}</span>${cur===v?'<i class="ti ti-check"></i>':''}</div>`).join('');}
@@ -9993,7 +9993,7 @@ function csvEur(v){
 const FIELD_REGISTRY={
   company:{label:'Firmenname',group:'Kundeninformationen',importable:true,aliases:['firmenname','firma','company','unternehmen','name','kundenname'],example:'Musterfirma GmbH',get:l=>l.company,set:(l,v)=>l.company=v},
   customerNumber:{label:'Kundennummer',group:'Kundeninformationen',importable:true,aliases:['kundennummer','kd-nr','kdnr','kundennr','customer number'],example:'10099',get:l=>l.customerNumber,set:(l,v)=>{if(isValidCustomerNumber(v))l.customerNumber=v.trim();}},
-  art:{label:'Art',group:'Kundeninformationen',importable:true,aliases:['art','typ','type','kundentyp'],example:'B2B',get:l=>l.art,set:(l,v)=>{const u=String(v||'').trim().toUpperCase();if(u==='B2B'||u==='B2C')l.art=u;else if(u==='HÄNDLER'||u==='HAENDLER'||u==='HANDLER')l.art='Händler';else if(/^(GEMEINDE|STAAT|BEHÖRDE|BEHOERDE|ÖFFENTLICH|OEFFENTLICH|KOMMUNE)/.test(u)||u.replace(/\s+/g,'')==='GEMEINDE/STAAT')l.art='Gemeinde / Staat';}},
+  art:{label:'Art',group:'Kundeninformationen',importable:true,aliases:['art','typ','type','kundentyp'],example:'B2B',get:l=>l.art,set:(l,v)=>{const u=String(v||'').trim().toUpperCase();if(u==='B2B'||u==='B2C')l.art=u;else if(u==='HÄNDLER'||u==='HAENDLER'||u==='HANDLER')l.art='Händler';else if(/^(GEMEINDE|STAAT|BEHÖRDE|BEHOERDE|ÖFFENTLICH|OEFFENTLICH|KOMMUNE)/.test(u)||u.replace(/\s+/g,'')==='GEMEINDE/STAAT')l.art='Öffentliche Einrichtung';}},
   address:{label:'Adresse',group:'Kundeninformationen',importable:true,aliases:['adresse','address','anschrift'],example:'Musterstraße 1, 12345 Musterstadt',get:l=>l.address,set:(l,v)=>l.address=v},
   orderCount:{label:'Anzahl Bestellungen',group:'Kundeninformationen',importable:true,aliases:['anzahl bestellungen','bestellungen','anzahl'],example:'3',get:l=>l.orderCount,set:(l,v)=>l.orderCount=parseGermanNumber(v)},
   revenue:{label:'Umsatz (EUR)',group:'Kundeninformationen',importable:true,aliases:['umsatz (eur)','umsatz','revenue'],example:'1500',get:l=>csvEur(l.revenue),set:(l,v)=>l.revenue=parseGermanNumber(v)},
