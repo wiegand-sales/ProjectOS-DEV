@@ -676,6 +676,17 @@ div.pf2-dr{cursor:default}
 .dg{margin:0 0 6px}
 .ds1-g3{grid-template-columns:repeat(3,minmax(0,1fr));align-items:stretch}
 .ds3-offer{display:flex;flex-direction:column}
+.ds3-wgrid{display:grid;grid-template-columns:300px minmax(0,1fr);gap:22px;align-items:start}
+.ds3-side{border-right:1px solid #e1e8e8;padding-right:20px}
+.ds3-rows{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:24px;row-gap:2px}
+.ds3-sthd{font-size:10.5px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;margin:14px 0 6px}
+.ds3-stack{display:flex;height:16px;border-radius:8px;overflow:hidden;gap:2px;background:#E9F0F1}
+.ds3-stack i{display:block;min-width:4px}
+.ds3-stlg{display:grid;grid-template-columns:1fr;gap:4px;margin-top:8px}
+.ds3-stl{display:grid;grid-template-columns:10px minmax(0,1fr) auto 26px;gap:6px;align-items:center;font-size:12px}
+.ds3-stl i{width:9px;height:9px;border-radius:50%}
+.ds3-stl span{color:var(--text2)}.ds3-stl b{color:var(--text);font-variant-numeric:tabular-nums}.ds3-stl small{color:var(--text3);text-align:right}
+@media (max-width:1100px){.ds3-wgrid{grid-template-columns:1fr}.ds3-side{border-right:0;padding-right:0;border-bottom:1px solid #e1e8e8;padding-bottom:12px}.ds3-rows{grid-template-columns:1fr}}
 .ds3-sw{display:flex;gap:2px;background:#E9F0F1;border-radius:8px;padding:2px;margin-left:auto}
 .ds3-sw button{border:0;background:transparent;border-radius:6px;padding:2px 8px;font-size:11px;color:var(--text2);font-family:inherit;cursor:pointer}
 .ds3-sw button[aria-pressed="true"]{background:#fff;color:#206A72;font-weight:700;box-shadow:0 1px 3px rgba(0,0,0,.08)}
@@ -1678,7 +1689,7 @@ let localSettingsTrusted=false;
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-10-27T00:00:00.000Z';
+const BUILD_VERSION='2026-10-27T00:15:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -5792,8 +5803,9 @@ function renderDashboard(){
         <div style="margin-top:8px">${movementsRowsHtml}</div>
       </details>
     </div>
-    <div class="ds1-grid ds1-g3">${dashStep1Html('fSql')}${dashStep1Html('fPql')}${dashOfferHtml(dl)}</div>
+    <div class="ds1-grid ds1-g2">${dashStep1Html('fSql')}${dashStep1Html('fPql')}</div>
     <div class="ds1-agelg">Balkenfarbe in SQL/PQL = Ø Tage in der Liste: <i style="background:rgb(79,163,171)"></i>frisch <i style="background:rgb(48,112,118)"></i>ca. 20 Tage <i style="background:rgb(18,61,66)"></i>40 Tage und länger</div>
+    <div class="ds1-grid">${dashOfferHtml(dl)}</div>
     `)}
     ${dashGroup('today','Heute zu tun','checklist',`${overdueLeads.length} FollowUps überfällig${riskLeads.length?' · '+riskLeads.length+' RMA-Risiko':''}`,()=>`
     <div class="ds1-grid ds1-g2">${dashStep1Html('risks')}
@@ -6264,15 +6276,20 @@ function dashOfferHtml(dl){
   const r=22,cf=2*Math.PI*r;const ring=quote===null?`<div class="ds3-ring-empty">–</div>`:`<svg width="58" height="58" viewBox="0 0 58 58" role="img" aria-label="Abschlussquote ${quote} %"><circle cx="29" cy="29" r="${r}" fill="none" stroke="#E9F0F1" stroke-width="7"/><circle cx="29" cy="29" r="${r}" fill="none" stroke="#206A72" stroke-width="7" stroke-linecap="round" stroke-dasharray="${(cf*quote/100).toFixed(1)} ${cf.toFixed(1)}" transform="rotate(-90 29 29)"/><text x="29" y="33" text-anchor="middle" font-size="12" font-weight="700" fill="#206A72">${quote}%</text></svg>`;
   const dotc=f=>f===null?'#b9c4c6':f<0?'#c0392b':f===0?'#d38e2c':'#206A72';
   const fuTxt=f=>f===null?'kein FollowUp':f<0?`${-f} T überfällig`:f===0?'FollowUp heute':`FollowUp in ${f} T`;
-  const mx=list.length?list[0].m||1:1;const shown=dashOfferExpand?list:list.slice(0,6);
+  const mx=list.length?list[0].m||1:1;const shown=dashOfferExpand?list:list.slice(0,10);
   const owner=l=>{const a=agentById((l.members||[])[0]);return a?ini(a.name):'';};
   const rows=shown.map(x=>`<button type="button" class="ds3-lb" onclick="openLeadModal(${JSON.stringify(x.l.id)})" title="${esc(x.l.company||'')} öffnen"><span class="dot" style="background:${dotc(x.fu)}"></span><span class="co">${esc(x.l.company||'–')}</span><span class="mg">${fmtEurCent(x.m)}</span><span class="bar"><i style="width:${Math.max(2,x.m/mx*100)}%"></i></span><span class="sub">${fuTxt(x.fu)} · ${offer?(x.d===null?'–':x.d+' T im Angebot'):esc(colById(x.l.status)?colById(x.l.status).name:'')} · ${esc(owner(x.l))}</span></button>`).join('');
   const sw=`<div class="ds3-sw" role="group" aria-label="Ansicht"><button type="button" aria-pressed="${offer}" onclick="dashOfferSet('offer')">Angebote</button><button type="button" aria-pressed="${!offer}" onclick="dashOfferSet('all')">Alle offenen</button></div>`;
-  return `<div class="ds1-box ds3-offer"><div class="ds1-bh"><h2><span class="ds1-pill vertrieb">PQL</span>${offer?'FollowUp: Angebot':'Top Forecast'}</h2>${sw}</div>
-    <div class="ds3-qr"><div class="sum"><b>${fmtEur(Math.round(tot))||'0 €'}</b><span>Forecast-Marge · ${list.length} ${offer?(list.length===1?'Angebot':'Angebote'):'offene Leads'}${offer&&avg!==null?' · Ø '+avg+' T im Angebot':''}</span></div>${offer?`<div class="q">${ring}<span>Abschlussquote${closed.length?`<br><small>${wonN} von ${closed.length} · 6 Mon.</small>`:''}</span></div>`:''}</div>
-    ${rows||`<div style="font-size:12px;color:var(--text3);padding:8px 0">${offer?(col?'Keine Leads in „FollowUp: Angebot“.':'Keine Liste „FollowUp: Angebot“ gefunden.'):'Keine offenen Leads mit Forecast.'}</div>`}
-    ${list.length>6?`<button type="button" class="ds3-more" onclick="dashOfferMore()">${dashOfferExpand?'Weniger anzeigen':`Alle ${list.length} anzeigen`}</button>`:''}
-    <div class="ds3-leg"><span><i style="background:#c0392b"></i>überfällig</span><span><i style="background:#d38e2c"></i>heute</span><span><i style="background:#206A72"></i>geplant</span><span><i style="background:#b9c4c6"></i>kein FollowUp</span></div></div>`;
+  // Grafik: Forecast-Marge nach FollowUp-Status (gestapelter Balken)
+  const st=[['od','überfällig','#c0392b',x=>x.fu!==null&&x.fu<0],['td','heute','#d38e2c',x=>x.fu===0],['pl','geplant','#206A72',x=>x.fu!==null&&x.fu>0],['no','kein FollowUp','#b9c4c6',x=>x.fu===null]].map(([k,l,c,f])=>{const it=list.filter(f);return {k,l,c,n:it.length,m:it.reduce((a,x)=>a+x.m,0)};});
+  const stack=tot?`<div class="ds3-stack" role="img" aria-label="Forecast-Marge nach FollowUp-Status">${st.filter(x=>x.m>0).map(x=>`<i style="flex:${x.m};background:${x.c}" title="${x.l}: ${x.n} · ${fmtEur(Math.round(x.m))||'0 €'}"></i>`).join('')}</div>`:'<div class="ds3-stack"><i style="flex:1;background:#E9F0F1"></i></div>';
+  const stLeg=st.map(x=>`<div class="ds3-stl"><i style="background:${x.c}"></i><span>${x.l}</span><b>${fmtEur(Math.round(x.m))||'0 €'}</b><small>${x.n}</small></div>`).join('');
+  return `<div class="ds1-box ds3-offer ds3-wide"><div class="ds1-bh"><h2><span class="ds1-pill vertrieb">PQL</span>${offer?'FollowUp: Angebot':'Top Forecast'}</h2><span class="r" style="margin-left:10px">${offer?'deine heißesten Leads':'offene Leads mit der höchsten Forecast-Marge'} · Klick öffnet den Lead</span>${sw}</div>
+    <div class="ds3-wgrid"><div class="ds3-side">
+      <div class="ds3-qr"><div class="sum"><b>${fmtEur(Math.round(tot))||'0 €'}</b><span>Forecast-Marge · ${list.length} ${offer?(list.length===1?'Angebot':'Angebote'):'offene Leads'}${offer&&avg!==null?' · Ø '+avg+' T im Angebot':''}</span></div>${offer?`<div class="q">${ring}<span>Abschlussquote${closed.length?`<br><small>${wonN} von ${closed.length} · 6 Mon.</small>`:''}</span></div>`:''}</div>
+      <div class="ds3-sthd">Marge nach FollowUp-Status</div>${stack}<div class="ds3-stlg">${stLeg}</div>
+    </div><div class="ds3-main"><div class="ds3-rows">${rows||`<div style="font-size:12px;color:var(--text3);padding:8px 0">${offer?(col?'Keine Leads in „FollowUp: Angebot“.':'Keine Liste „FollowUp: Angebot“ gefunden.'):'Keine offenen Leads mit Forecast.'}</div>`}</div>
+    ${list.length>10?`<button type="button" class="ds3-more" onclick="dashOfferMore()">${dashOfferExpand?'Weniger anzeigen':`Alle ${list.length} anzeigen`}</button>`:''}</div></div></div>`;
 }
 // Erfolgreiche Gespraeche: Leads, die je Tag nach "AM: Auftrag" verschoben wurden (letzte 30 Tage)
 function dashAmPerDayHtml(dl){
