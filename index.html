@@ -630,6 +630,9 @@ button.ds1-rr{cursor:pointer}button.ds1-rr:hover{filter:brightness(.97)}
 .ds2-heat .h{color:var(--text3);text-align:center}.ds2-heat .d{color:var(--text3);display:flex;align-items:center}
 .ds2-heat .c{height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-weight:700}
 @media (max-width:1100px){.ds2-g21,.ds2-g3{grid-template-columns:1fr}}
+.pf-section{border-radius:18px;margin-bottom:14px}
+.pf-section .movements-strip{gap:8px}
+.pf-section .movements-item{background:#E9F0F1;border-radius:999px;padding:5px 12px}
 .board-part-hint{flex:0 0 260px;align-self:flex-start;border:1.5px dashed var(--purple-dark);border-radius:var(--r-md);padding:16px;background:var(--purple-bg);font-size:13px;color:var(--purple-dark);display:flex;flex-direction:column;gap:10px;}
 .board-part-hint button{align-self:flex-start;}
 .nav-icon-badge{width:36px;height:36px;border-radius:9px;background:linear-gradient(180deg,#27808a 0%,#206A72 100%);box-shadow:0 6px 16px rgba(32,106,114,.3);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
@@ -1596,7 +1599,7 @@ let localSettingsTrusted=false;
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-10-26T20:00:00.000Z';
+const BUILD_VERSION='2026-10-26T20:30:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -5082,6 +5085,39 @@ function stageGradientColor(i,n){
   return `rgb(${c[0]},${c[1]},${c[2]})`;
 }
 // Horizontaler Trapez-Trichter: Hoehe pro Stufe verjuengt sich proportional zur Leadanzahl
+// Fliessender Pipeline-Trichter (Okt. 2026): SQL -> PQL -> Gewonnen, Verlorene als rote Abfluesse je Liste
+function pipelineFlowHtml(dl){
+  const stages=[...COLUMNS.filter(c=>colBoard(c)==='akquise'&&!c.outcome),...COLUMNS.filter(c=>colBoard(c)==='vertrieb'&&!c.outcome),...COLUMNS.filter(c=>c.outcome==='won')];
+  const S=stages.map(c=>({c,part:c.outcome==='won'?'won':colBoard(c)==='akquise'?'sql':'pql',n:dl.filter(l=>l.status===c.id).length}));
+  const lost=dl.filter(l=>isLost(l));
+  S.forEach(x=>x.lost=lost.filter(l=>l.closedFromStage===x.c.id).length);
+  const lostKnown=S.reduce((a,x)=>a+x.lost,0),lostSum=lost.length,lostUnknown=lostSum-lostKnown;
+  const lostSql=lost.filter(l=>leadBoardPart(l)==='akquise').length,lostPql=lostSum-lostSql;
+  const total=S.reduce((a,x)=>a+x.n,0)+lostSum;
+  if(!S.length||!total)return '<p style="font-size:12px;color:var(--text3)">Keine Leads im gewählten Zeitraum/Filter.</p>';
+  const COL={sql:'#206A72',pql:'#ba7517',won:'#1d7a5a'};
+  const pct=v=>total?Math.round(v/total*100)+' %':'0 %';
+  const n=S.length,w=1200,lw=150,fw=w-lw,step=fw/n,mx=Math.max(1,...S.map(x=>x.n)),cy=100;
+  const hh=c=>14+Math.sqrt(c/mx)*86;const ys=S.map(x=>hh(x.n));const T=v=>cy-v,B=v=>cy+v;const xs=S.map((_,i)=>i*step+step/2);
+  let top=`M0,${T(ys[0])} `;
+  for(let i=0;i<n;i++){const x0=i*step,x1=(i+1)*step,y=ys[i],ny=i<n-1?ys[i+1]:ys[i];top+=`L${x0+step*.25},${T(y)} C${x0+step*.75},${T(y)} ${x1-step*.25},${T(ny)} ${x1},${T(ny)} `;}
+  let bot=`L${fw},${B(ys[n-1])} `;
+  for(let i=n-1;i>=0;i--){const x0=i*step,x1=(i+1)*step,y=ys[i],ny=i<n-1?ys[i+1]:ys[i];bot+=`C${x1-step*.25},${B(ny)} ${x0+step*.75},${B(y)} ${x0+step*.25},${B(y)} L${x0},${B(y)} `;}
+  const defs=`<defs><linearGradient id="pfg" x1="0" x2="1">${S.map((x,i)=>`<stop offset="${(n>1?i/(n-1):0).toFixed(3)}" stop-color="${COL[x.part]}"/>`).join('')}</linearGradient><linearGradient id="plg" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#c0392b" stop-opacity=".25"/><stop offset="1" stop-color="#c0392b"/></linearGradient></defs>`;
+  const lmx=Math.max(1,...S.map(x=>x.lost));const base=B(Math.max(...ys))+14;
+  const drops=S.map((x,i)=>{if(!x.lost)return '';const cx=xs[i],y0=B(ys[i])-2,r=7+Math.sqrt(x.lost/lmx)*11,yb=base+18;
+    return `<g style="cursor:pointer" onclick="switchBoardPart('${x.part==='sql'?'akquise':'vertrieb'}')"><title>${esc(x.c.name)}: ${x.lost} verloren</title><path d="M${cx-4},${y0} C${cx-4},${y0+10} ${cx-2},${yb-r-6} ${cx},${yb-r} C${cx+2},${yb-r-6} ${cx+4},${y0+10} ${cx+4},${y0} Z" fill="url(#plg)"/><circle cx="${cx}" cy="${yb}" r="${r}" fill="#c0392b"/><text x="${cx}" y="${yb+4}" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">${x.lost}</text></g>`;}).join('');
+  const h=base+18+32+22;
+  const short=nm=>String(nm).replace(/^FollowUp:\s*/,'').replace(/^Leads:\s*/,'');
+  const hit=S.map((x,i)=>`<rect x="${i*step}" y="${cy-110}" width="${step}" height="220" fill="transparent" style="cursor:pointer" onclick="switchBoardPart('${x.part==='sql'?'akquise':'vertrieb'}')"><title>${esc(x.c.name)}: ${x.n} (${pct(x.n)}) – im Board öffnen</title></rect>`).join('');
+  const divs=S.map((x,i)=>i?`<line x1="${i*step}" x2="${i*step}" y1="${cy-110}" y2="${cy+110}" stroke="#fff" stroke-opacity=".5" stroke-width="1.5"/>`:'').join('');
+  const fs=n>14?14:17;
+  const lab=S.map((x,i)=>`<text x="${xs[i]}" y="${cy+4}" text-anchor="middle" font-size="${fs}" font-weight="700" fill="#fff" pointer-events="none">${x.n.toLocaleString('de-DE')}</text><text x="${xs[i]}" y="${cy+20}" text-anchor="middle" font-size="10.5" fill="#fff" opacity=".85" pointer-events="none">${pct(x.n)}</text><text x="${xs[i]}" y="${h-6}" text-anchor="middle" font-size="10.5" fill="currentColor" opacity=".75">${esc(short(x.c.name))}</text>`).join('');
+  const sx=fw+lw/2+6,sr=40;
+  const sum=`<circle cx="${sx}" cy="${cy}" r="${sr}" fill="#fcebeb" stroke="#c0392b" stroke-width="2"/><text x="${sx}" y="${cy-4}" text-anchor="middle" font-size="22" font-weight="700" fill="#a32d2d">${lostSum.toLocaleString('de-DE')}</text><text x="${sx}" y="${cy+13}" text-anchor="middle" font-size="10.5" fill="#a32d2d">${pct(lostSum)}</text><text x="${sx}" y="${cy+sr+16}" text-anchor="middle" font-size="11" font-weight="700" fill="#a32d2d">Verloren gesamt</text><text x="${sx}" y="${cy+sr+30}" text-anchor="middle" font-size="10" fill="currentColor" opacity=".6">SQL ${lostSql} · PQL ${lostPql}</text>${lostUnknown?`<text x="${sx}" y="${cy+sr+43}" text-anchor="middle" font-size="9.5" fill="currentColor" opacity=".5">${lostUnknown} ohne Liste</text>`:''}`;
+  const legend=`<div class="ds2-legend" style="margin:0 0 8px"><span><i style="background:#206A72"></i>SQL · Akquise</span><span><i style="background:#ba7517"></i>PQL · Vertrieb</span><span><i style="background:#1d7a5a"></i>Gewonnen</span><span><i style="background:#c0392b"></i>Verloren aus dieser Liste</span></div>`;
+  return legend+`<svg viewBox="0 0 ${w} ${h}" style="width:100%;height:auto;color:var(--text);display:block" role="img" aria-label="Pipeline-Trichter mit Verlusten">${defs}${drops}<path d="${top}${bot}Z" fill="url(#pfg)" opacity=".92" pointer-events="none"/>${divs}${lab}${hit}${sum}</svg>`;
+}
 function horizontalFunnelHtml(funnelCounts,total){
   const active=funnelCounts.filter(x=>x.c.outcome!=='lost');
   if(!active.length||!active.some(x=>x.count>0))return '<p style="font-size:12px;color:var(--text3)">Keine Leads im gewählten Zeitraum/Filter.</p>';
@@ -5660,6 +5696,20 @@ function renderDashboard(){
 
   document.getElementById('dashboardContent').innerHTML=`
     ${dashboardHeroHtml()}
+    <div class="info-section pf-section">
+      <div class="section-hdr" style="margin-top:0">Pipeline-Trichter <span style="font-weight:400;color:var(--text3);font-size:11px">(Anzahl · Anteil an allen Leads · rot = verloren aus dieser Liste)</span></div>
+      <div>${pipelineFlowHtml(dl)}</div>
+      <div class="movements-strip">
+        <div class="movements-item"><i class="ti ti-arrows-shuffle" style="color:var(--purple)"></i><strong>${movements.total}</strong> Bewegungen (${movementDays} Tage)</div>
+        <div class="movements-item"><i class="ti ti-arrow-forward-up" style="color:var(--text2)"></i><strong>${movements.forward}</strong> vorwärts</div>
+        <div class="movements-item"><i class="ti ti-trophy" style="color:var(--green-dark)"></i><strong>${movements.toWon}</strong> gewonnen</div>
+        <div class="movements-item"><i class="ti ti-x" style="color:var(--red)"></i><strong>${movements.toLost}</strong> verloren</div>
+      </div>
+      <details class="movements-details">
+        <summary>Einzelne Bewegungen anzeigen</summary>
+        <div style="margin-top:8px">${movementsRowsHtml}</div>
+      </details>
+    </div>
     ${dashStep1Html()}
     ${dashStep2Html()}
     <div class="info-section ${projStatus.glass?'project-status-glass':''}" style="border-color:${projStatus.boxBorder};background:${projStatus.boxBg}">
@@ -5683,20 +5733,6 @@ function renderDashboard(){
       <div class="info-section" style="display:flex;flex-direction:column">
         ${followupGanttHtml(dl)}
       </div>
-    </div>
-    <div class="info-section">
-      <div class="section-hdr" style="margin-top:0">Pipeline-Trichter <span style="font-weight:400;color:var(--text3);font-size:11px">(Anzahl · Anteil an allen Leads)</span></div>
-      <div class="funnel-wrap">${funnelHtml}</div>
-      <div class="movements-strip">
-        <div class="movements-item"><i class="ti ti-arrows-shuffle" style="color:var(--purple)"></i><strong>${movements.total}</strong> Bewegungen (${movementDays} Tage)</div>
-        <div class="movements-item"><i class="ti ti-arrow-forward-up" style="color:var(--text2)"></i><strong>${movements.forward}</strong> vorwärts</div>
-        <div class="movements-item"><i class="ti ti-trophy" style="color:var(--green-dark)"></i><strong>${movements.toWon}</strong> gewonnen</div>
-        <div class="movements-item"><i class="ti ti-x" style="color:var(--red)"></i><strong>${movements.toLost}</strong> verloren</div>
-      </div>
-      <details class="movements-details">
-        <summary>Einzelne Bewegungen anzeigen</summary>
-        <div style="margin-top:8px">${movementsRowsHtml}</div>
-      </details>
     </div>
     <div class="dash-row-1-1">
       <div class="info-section" style="border-color:${lostLeads.length?'var(--red)':'var(--border)'}">
