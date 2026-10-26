@@ -560,6 +560,11 @@ button.ts-pill.fc-vk.mod::after{content:"";position:absolute;top:-3px;right:-3px
 .ord-f label{font-size:11px;color:var(--text3);display:flex;flex-direction:column;gap:3px;margin:0}
 .ord-f input{height:36px;box-sizing:border-box;padding-top:0;padding-bottom:0}
 .ord-foot{display:flex;justify-content:space-between;align-items:center;margin-top:10px;font-size:11.5px;color:var(--text3)}
+.ord-add{display:flex;align-items:center;gap:8px;border:1.5px dashed var(--border2);border-radius:12px;padding:7px 10px 7px 14px;margin-top:8px}
+.ord-add-l{display:inline-flex;align-items:center;gap:6px;font-weight:600;color:var(--text2);font-size:13px}
+.ord-add .btn{height:28px}
+.ord-add-pet{border-color:#206A72!important;color:#206A72!important}
+.ord-add-pet:hover{background:#E9F0F1!important}
 .ord-del{border:0;background:transparent;color:var(--text3);font-size:12px;display:inline-flex;gap:5px;align-items:center;cursor:pointer;font-family:inherit}
 .ord-del:hover{color:var(--red)}
 .ts-tile small{display:block;font-size:10px;font-weight:500;text-transform:none;letter-spacing:0;opacity:.8}
@@ -1529,7 +1534,7 @@ let localSettingsTrusted=false;
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-10-26T17:00:00.000Z';
+const BUILD_VERSION='2026-10-26T17:30:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -8812,7 +8817,7 @@ function ordersPanelHtml(){
   const last=os.length?fmtDate(String(os[0].date||'').slice(0,10)):'–';
   const ro=modalReadOnly;
   const tiles=`<div class="ts-tiles fcx"><div class="ts-tile">Umsatz<b>${fmtEurCent(tot.u)}</b></div><div class="ts-tile">EK gesamt<b>${fmtEurCent(tot.e)}</b></div><div class="ts-tile main">Marge<b>${fmtEurCent(tot.u-tot.e)}</b></div><div class="ts-tile">Aufträge<b>${os.length}</b><small>${os.length?'letzter '+last:'noch keiner'}</small></div></div>`;
-  const head=ro?'':`<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px"><button class="btn btn-primary btn-sm" onclick="ordNew()"><i class="ti ti-plus"></i> Neuer Auftrag</button><button class="btn btn-sm" style="margin-left:auto" onclick="copyForecastToActual()" title="Legt einen neuen Auftrag mit den Artikeln aus dem Forecast an"><i class="ti ti-copy"></i> Forecast übernehmen</button></div>`;
+  const addRow=ro?'':`<div class="ord-add"><span class="ord-add-l"><i class="ti ti-plus"></i> Neuer Auftrag</span><span style="flex:1"></span><button type="button" class="btn btn-sm ord-add-pet" onclick="ordNew()" title="Leeren Auftrag mit heutigem Datum anlegen">Leer</button><button type="button" class="btn btn-sm" onclick="copyForecastToActual()" title="Neuen Auftrag mit den Artikeln aus dem Forecast anlegen"><i class="ti ti-copy"></i> Aus Forecast</button></div>`;
   const cards=os.map(o=>{const t=ordTotals(o);const no=ordNo(o);const op=String(ordOpen)===String(o.id);
     const rows=(o.skus||[]).map((x,si)=>({p:o,si,x})).filter(r=>ordFilled(r.x));
     return `<div class="ord-card ${op?'open':''}"><button type="button" class="ord-h" onclick="ordToggle('${o.id}')" aria-expanded="${op}"><span class="ord-nr">${no}</span><span class="ord-ti"><b>Auftrag ${no} · ${fmtDate(String(o.date||'').slice(0,10))}</b><small>${t.k} Artikel${o.beleg?' · '+esc(o.beleg):''} · ${fmtEurCent(t.u)}</small></span><span class="ord-mg">${fmtEurCent(t.u-t.e)}</span><i class="ti ti-chevron-right ord-ch"></i></button>
@@ -8822,7 +8827,7 @@ function ordersPanelHtml(){
         ${rows.map((r,k)=>fcCardHtml('actual',r,k,false)).join('')||'<div style="font-size:12px;color:var(--text3);margin-top:6px">Noch keine Artikel – über die Suche hinzufügen.</div>'}
         <div class="ord-foot"><span>${rows.length} von ${ORD_MAX} Artikeln · ${t.n.toLocaleString('de-DE')} Stück</span>${ro?'':`<button type="button" class="ord-del" onclick="ordDelete('${o.id}')"><i class="ti ti-trash"></i> Auftrag löschen</button>`}</div>
       </div>`:''}</div>`;}).join('');
-  return head+tiles+(cards||`<div style="font-size:12px;color:var(--text3);margin-top:6px">Noch kein Auftrag – über „Neuer Auftrag“ anlegen.</div>`);
+  return tiles+cards+addRow;
 }
 function fcRecompute(kind){if(kind==='demand')recomputeForecast();else recomputeActual();}
 function fcTotals(kind){let u=0,e=0,n=0;fcRows(kind).forEach(({x})=>{const q=parseFloat(x.qty)||0;u+=(parseFloat(x.priceVk)||0)*q;e+=(parseFloat(x.priceEk)||0)*q;n+=q;});return {u,e,m:u-e,n};}
