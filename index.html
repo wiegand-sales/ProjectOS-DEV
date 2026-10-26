@@ -1534,7 +1534,7 @@ let localSettingsTrusted=false;
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-10-26T18:00:00.000Z';
+const BUILD_VERSION='2026-10-26T18:15:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -4361,7 +4361,7 @@ function downloadCalendarInvite(){
     icsFold('DTSTAMP:'+dtstamp),
     icsFold('DTSTART:'+start),
     icsFold('DTEND:'+end),
-    icsFold('SUMMARY:'+icsEscape('Telefontermin – '+draftLead.company)),
+    icsFold('SUMMARY:'+icsEscape(`Wiegand & Partner - Telefontermin am ${followupDateFmt} um ${startTime} Uhr`)),
     icsFold('DESCRIPTION:'+icsEscape(bodyText)),
     icsFold('X-ALT-DESC;FMTTYPE=text/html:'+icsEscape(bodyHtml)),
     icsFold('LOCATION:'+icsEscape('Telefonat')),
