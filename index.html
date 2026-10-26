@@ -587,6 +587,14 @@ button.ts-pill.fc-vk.mod::after{content:"";position:absolute;top:-3px;right:-3px
 .ds1-fr .c2{text-align:right;font-weight:700}.ds1-fr .c2 small{display:block;font-weight:500;color:var(--text3);font-size:10.5px}
 .ds1-mini{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:12px}
 .ds1-fbox{display:flex;flex-direction:column}
+.ds1-ho-ch{font-size:12px;color:#534ab7;transition:transform .15s;margin-right:3px;vertical-align:-1px}.ds1-fr-ho.open .ds1-ho-ch{transform:rotate(90deg)}
+.ds1-fr-ho .n{color:#534ab7;font-weight:600}
+.ds1-ho-list{margin:2px 0 6px 18px;border-left:2px solid #e2e0f7;padding:2px 0 2px 10px;display:flex;flex-direction:column;gap:2px;max-height:240px;overflow-y:auto}
+.ds1-ho-it{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr) 78px minmax(0,1fr);gap:8px;align-items:center;border:0;background:transparent;padding:4px 6px;border-radius:6px;text-align:left;font-family:inherit;font-size:12px;cursor:pointer}
+.ds1-ho-it:hover{background:#eeedfe}
+.ds1-ho-it .co{font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ds1-ho-it .me{color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ds1-ho-empty{font-size:12px;color:var(--text3);padding:4px 6px}
 .ds1-agelg{font-size:11.5px;color:var(--text3);margin:-6px 2px 14px;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
 .ds1-agelg i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-left:8px}
 .ds1-fbox .ds1-mini{margin-top:auto;padding-top:12px}
@@ -1628,7 +1636,7 @@ let localSettingsTrusted=false;
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-10-26T22:30:00.000Z';
+const BUILD_VERSION='2026-10-26T22:45:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -5968,7 +5976,8 @@ async function loadTasksHeroActs(){
 }
 // ── Dashboard-Banner (Okt. 2026): Stil wie "Meine Aufgaben", 3 Kennzahlen oben, 6 unten ──
 // ── Dashboard Schritt 1 (Okt. 2026): Trichter SQL/PQL, Risiken, Mitarbeiter ──
-let dashTeamSort='marge',dashTeamDir=-1;
+let dashTeamSort='marge',dashTeamDir=-1,dashHandoverOpen=false;
+function dashToggleHandover(){dashHandoverOpen=!dashHandoverOpen;renderDashboard();}
 function dashGoBoard(part){switchView('board');setBoardPart(part);renderBoard();}
 function dashGoFuToday(){switchView('board');setFuFilter('today');}
 function dashGoLabel(id){switchView('board');if(!activeLabelFilters.includes(id))toggleLabelFilter(id);else renderBoard();}
@@ -5984,7 +5993,8 @@ function dashStep1Html(want){
   // Listenwechsel SQL -> PQL
   const partOfName=n=>{const cs=COLUMNS.filter(c=>c.name===n.trim());const ps=[...new Set(cs.map(c=>colBoard(c)))];return ps.length===1?ps[0]:null;};
   const parseSC=t=>{const m=/^Status geändert:\s*"?(.+?)"?\s*→\s*"?(.+?)"?\s*$/.exec(String(t||''));return m?[m[1],m[2]]:null;};
-  const handovers=loading?[]:acts.filter(r=>r.type!=='comment'&&dd(r).slice(0,7)===ym&&byAgent(r)&&(x=>x&&partOfName(x[0])==='akquise'&&partOfName(x[1])==='vertrieb')(parseSC(r.text)));
+  const scIds1=new Set(sc.map(l=>String(l.id)));
+  const handovers=loading?[]:acts.filter(r=>r.type!=='comment'&&scIds1.has(String(r.lead_id))&&dd(r).slice(0,7)===ym&&byAgent(r)&&(x=>x&&partOfName(x[0])==='akquise'&&partOfName(x[1])==='vertrieb')(parseSC(r.text)));
   const com=loading?[]:acts.filter(r=>r.type==='comment'&&dd(r).slice(0,7)===ym);
   const ne=r=>/^nicht erreicht/i.test(String(r.text||'').trim());
   const q=list=>list.length?Math.round(list.filter(r=>!ne(r)).length/list.length*100):null;
@@ -5994,9 +6004,13 @@ function dashStep1Html(want){
   const colRows=part=>COLUMNS.filter(c=>colBoard(c)===part&&!c.outcome).map(c=>{const ls=sc.filter(l=>l.status===c.id);const dd2=ls.filter(l=>l.statusSince).map(l=>Math.max(0,-daysUntil(String(l.statusSince).slice(0,10))));
     const avg=dd2.length?Math.round(dd2.reduce((a,b)=>a+b,0)/dd2.length):null;return [c.name,ls.length,ageShade(avg),avg,dd2.filter(x=>x>30).length];});
   const sqlRows=colRows('akquise');const pqlRows=colRows('vertrieb');
+  const handoverList=()=>{const byLead=new Map();handovers.forEach(r=>{const k=String(r.lead_id);const prev=byLead.get(k);if(!prev||String(r.date)>String(prev.date))byLead.set(k,r);});
+    const items=[...byLead.values()].sort((a,b)=>String(b.date).localeCompare(String(a.date))).map(r=>{const l=leads.find(x=>String(x.id)===String(r.lead_id));const a=agentById(r.author);
+      return l?`<button type="button" class="ds1-ho-it" onclick="event.stopPropagation();openLeadModal(${JSON.stringify(l.id)})"><span class="co">${esc(l.company||'–')}</span><span class="me">${esc(colById(l.status)?colById(l.status).name:'')}</span><span class="me">${fmtDate(dd(r))}</span><span class="me">${esc(a?a.name:'')}</span></button>`:'';}).join('');
+    return `<div class="ds1-ho-list">${items||'<div class="ds1-ho-empty">Keine Übergaben in diesem Monat.</div>'}</div>`;};
   const sqlAgeAll=sc.filter(l=>!isClosedLead(l)&&leadBoardPart(l)==='akquise'&&l.statusSince).map(l=>Math.max(0,-daysUntil(String(l.statusSince).slice(0,10))));
   const sqlAvgAge=sqlAgeAll.length?Math.round(sqlAgeAll.reduce((a,b)=>a+b,0)/sqlAgeAll.length):null;
-  sqlRows.push([`→ an PQL übergeben (${mName})`,loading?null:handovers.length,'#534ab7']);
+  sqlRows.push([`An PQL übergeben (${mName})`,loading?null:new Set(handovers.map(r=>String(r.lead_id))).size,'#534ab7',undefined,undefined,'handover']);
   sqlRows.push([`Leads: Verloren (${mName})`,sc.filter(l=>isLost(l)&&leadBoardPart(l)==='akquise'&&inMonth(l.statusSince||l.closedAt)).length,'#c0392b']);
   pqlRows.push([`Leads: Gewonnen (${mName})`,sc.filter(l=>isWon(l)&&inMonth(l.statusSince||l.closedAt)).length,'#1d7a5a']);
   pqlRows.push([`Leads: Verloren (${mName})`,sc.filter(l=>isLost(l)&&leadBoardPart(l)==='vertrieb'&&inMonth(l.statusSince||l.closedAt)).length,'#c0392b']);
@@ -6007,9 +6021,11 @@ function dashStep1Html(want){
   const tDays=tonerOpen.filter(l=>l.tonerSentAt).map(l=>Math.abs(daysUntil(l.tonerSentAt)));
   const avgT=tDays.length?Math.round(tDays.reduce((a,b)=>a+b,0)/tDays.length):null;const late=tDays.filter(d=>d>=60).length;
   const funnel=(part,title,rows,minis)=>{const vals=rows.map(r=>r[1]||0);const mx=Math.max(...vals,1);const first=vals[0]||0;
-    return `<div class="ds1-box ds1-fbox"><div class="ds1-bh"><h2><span class="ds1-pill ${part}">${part==='akquise'?'SQL':'PQL'}</span>${title}</h2><span class="r">Leads je Liste · Anteil · Ø Tage in der Liste</span></div><div class="ds1-fun">${rows.map(([n,c,col,age,old])=>{const w=c===null?0:Math.max(c?6:0,Math.round(c/mx*100));
+    return `<div class="ds1-box ds1-fbox"><div class="ds1-bh"><h2><span class="ds1-pill ${part}">${part==='akquise'?'SQL':'PQL'}</span>${title}</h2><span class="r">Leads je Liste · Anteil · Ø Tage in der Liste</span></div><div class="ds1-fun">${rows.map(([n,c,col,age,old,kind])=>{const w=c===null?0:Math.max(c?6:0,Math.round(c/mx*100));
       const lbl=c===null||!c?'':(age!==undefined&&age!==null&&w>22?`${c} · Ø ${age} T`:(w>14?String(c):''));
       const tip=age!==undefined&&age!==null?` · Ø ${age} Tage in der Liste${old?`, ${old} länger als 30 Tage`:''}`:'';
+      if(kind==='handover'){const open=dashHandoverOpen&&c;const hl=open?handoverList():'';
+        return `<button type="button" class="ds1-fr ds1-fr-ho ${open?'open':''}" onclick="dashToggleHandover()" aria-expanded="${!!open}" title="Übergebene Leads anzeigen"><span class="n"><i class="ti ti-chevron-right ds1-ho-ch"></i>${esc(n)}</span><span class="ds1-bar"><i style="width:${w}%;background:${col}"></i><span>${lbl}</span></span><span class="c2">${c===null?'…':c}<small>${c===null||!first?'':Math.round(c/first*100)+' %'}</small></span></button>${hl}`;}
       return `<button type="button" class="ds1-fr" onclick="dashGoBoard('${part}')" title="${esc(n)}${tip} – im Board öffnen"><span class="n">${esc(n)}</span><span class="ds1-bar"><i style="width:${w}%;background:${col}"></i><span>${lbl}</span></span><span class="c2">${c===null?'…':c}<small>${c===null||!first?'':Math.round(c/first*100)+' %'}</small></span></button>`;}).join('')}</div>
       <div class="ds1-mini">${minis.map(([l,v,cls])=>`<div class="${cls}">${l}<b>${v}</b></div>`).join('')}</div></div>`;};
   const fSql=funnel('akquise','Akquise',sqlRows,[['Erreichbar',qM===null?'…':qM+' %','good'],['Leads in SQL',sqlTotal.toLocaleString('de-DE'),''],['Ø Verweildauer',sqlAvgAge===null?'–':sqlAvgAge+' T','']]);
