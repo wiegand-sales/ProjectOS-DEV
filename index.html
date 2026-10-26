@@ -587,6 +587,8 @@ button.ts-pill.fc-vk.mod::after{content:"";position:absolute;top:-3px;right:-3px
 .ds1-fr .c2{text-align:right;font-weight:700}.ds1-fr .c2 small{display:block;font-weight:500;color:var(--text3);font-size:10.5px}
 .ds1-mini{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:12px}
 .ds1-fbox{display:flex;flex-direction:column}
+.ds1-agelg{font-size:11.5px;color:var(--text3);margin:-6px 2px 14px;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.ds1-agelg i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-left:8px}
 .ds1-fbox .ds1-mini{margin-top:auto;padding-top:12px}
 .ds1-g2{align-items:stretch}
 .ds1-mini div{background:#E9F0F1;border-radius:10px;padding:8px 10px;font-size:10.5px;color:#206A72;font-weight:700;text-transform:uppercase;letter-spacing:.03em}
@@ -1626,7 +1628,7 @@ let localSettingsTrusted=false;
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-10-26T22:15:00.000Z';
+const BUILD_VERSION='2026-10-26T22:30:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -5741,7 +5743,7 @@ function renderDashboard(){
       </details>
     </div>
     ${dashStep1Html('funnels')}
-    <div class="ds1-box" style="margin-bottom:14px"><div class="ds1-bh"><h2>Verweildauer je Liste</h2><span class="r">offene Leads · Ø Tage in der aktuellen Liste</span></div>${dashDwellHtml(dl)}<div class="ds2-why"><b>Warum:</b> zeigt, wo Leads „einschlafen“ – Listen mit vielen Leads über 30 Tagen zuerst bearbeiten.</div></div>
+    <div class="ds1-agelg">Balkenfarbe = Ø Tage in der Liste: <i style="background:rgb(79,163,171)"></i>frisch <i style="background:rgb(48,112,118)"></i>ca. 20 Tage <i style="background:rgb(18,61,66)"></i>40 Tage und länger</div>
     `)}
     ${dashGroup('today','Heute zu tun','checklist',`${overdueLeads.length} FollowUps überfällig${riskLeads.length?' · '+riskLeads.length+' RMA-Risiko':''}`,()=>`
     <div class="ds1-grid ds1-g12">${dashStep1Html('risks')}<div class="info-section" style="margin:0">
@@ -5987,8 +5989,13 @@ function dashStep1Html(want){
   const ne=r=>/^nicht erreicht/i.test(String(r.text||'').trim());
   const q=list=>list.length?Math.round(list.filter(r=>!ne(r)).length/list.length*100):null;
   // Trichter
-  const colRows=part=>COLUMNS.filter(c=>colBoard(c)===part&&!c.outcome).map(c=>[c.name,sc.filter(l=>l.status===c.id).length,'#206A72']);
-  const sqlRows=colRows('akquise');const pqlRows=colRows('vertrieb').map(r=>[r[0],r[1],'#ba7517']);
+  // Verweildauer je Liste: Farbe = Petrol, heller = frisch, dunkler = laenger in der Liste (voll dunkel ab 40 Tagen)
+  const ageShade=d=>{if(d===null)return '#206A72';const t=Math.min(1,d/40);const a=[79,163,171],b=[18,61,66];return `rgb(${a.map((v,i)=>Math.round(v+(b[i]-v)*t)).join(',')})`;};
+  const colRows=part=>COLUMNS.filter(c=>colBoard(c)===part&&!c.outcome).map(c=>{const ls=sc.filter(l=>l.status===c.id);const dd2=ls.filter(l=>l.statusSince).map(l=>Math.max(0,-daysUntil(String(l.statusSince).slice(0,10))));
+    const avg=dd2.length?Math.round(dd2.reduce((a,b)=>a+b,0)/dd2.length):null;return [c.name,ls.length,ageShade(avg),avg,dd2.filter(x=>x>30).length];});
+  const sqlRows=colRows('akquise');const pqlRows=colRows('vertrieb');
+  const sqlAgeAll=sc.filter(l=>!isClosedLead(l)&&leadBoardPart(l)==='akquise'&&l.statusSince).map(l=>Math.max(0,-daysUntil(String(l.statusSince).slice(0,10))));
+  const sqlAvgAge=sqlAgeAll.length?Math.round(sqlAgeAll.reduce((a,b)=>a+b,0)/sqlAgeAll.length):null;
   sqlRows.push([`→ an PQL übergeben (${mName})`,loading?null:handovers.length,'#534ab7']);
   sqlRows.push([`Leads: Verloren (${mName})`,sc.filter(l=>isLost(l)&&leadBoardPart(l)==='akquise'&&inMonth(l.statusSince||l.closedAt)).length,'#c0392b']);
   pqlRows.push([`Leads: Gewonnen (${mName})`,sc.filter(l=>isWon(l)&&inMonth(l.statusSince||l.closedAt)).length,'#1d7a5a']);
@@ -6000,10 +6007,12 @@ function dashStep1Html(want){
   const tDays=tonerOpen.filter(l=>l.tonerSentAt).map(l=>Math.abs(daysUntil(l.tonerSentAt)));
   const avgT=tDays.length?Math.round(tDays.reduce((a,b)=>a+b,0)/tDays.length):null;const late=tDays.filter(d=>d>=60).length;
   const funnel=(part,title,rows,minis)=>{const vals=rows.map(r=>r[1]||0);const mx=Math.max(...vals,1);const first=vals[0]||0;
-    return `<div class="ds1-box ds1-fbox"><div class="ds1-bh"><h2><span class="ds1-pill ${part}">${part==='akquise'?'SQL':'PQL'}</span>${title}</h2><span class="r">Leads je Liste · Anteil</span></div><div class="ds1-fun">${rows.map(([n,c,col])=>{const w=c===null?0:Math.max(c?6:0,Math.round(c/mx*100));
-      return `<button type="button" class="ds1-fr" onclick="dashGoBoard('${part}')" title="${esc(n)} – im Board öffnen"><span class="n">${esc(n)}</span><span class="ds1-bar"><i style="width:${w}%;background:${col}"></i><span>${c!==null&&w>14?c:''}</span></span><span class="c2">${c===null?'…':c}<small>${c===null||!first?'':Math.round(c/first*100)+' %'}</small></span></button>`;}).join('')}</div>
+    return `<div class="ds1-box ds1-fbox"><div class="ds1-bh"><h2><span class="ds1-pill ${part}">${part==='akquise'?'SQL':'PQL'}</span>${title}</h2><span class="r">Leads je Liste · Anteil · Ø Tage in der Liste</span></div><div class="ds1-fun">${rows.map(([n,c,col,age,old])=>{const w=c===null?0:Math.max(c?6:0,Math.round(c/mx*100));
+      const lbl=c===null||!c?'':(age!==undefined&&age!==null&&w>22?`${c} · Ø ${age} T`:(w>14?String(c):''));
+      const tip=age!==undefined&&age!==null?` · Ø ${age} Tage in der Liste${old?`, ${old} länger als 30 Tage`:''}`:'';
+      return `<button type="button" class="ds1-fr" onclick="dashGoBoard('${part}')" title="${esc(n)}${tip} – im Board öffnen"><span class="n">${esc(n)}</span><span class="ds1-bar"><i style="width:${w}%;background:${col}"></i><span>${lbl}</span></span><span class="c2">${c===null?'…':c}<small>${c===null||!first?'':Math.round(c/first*100)+' %'}</small></span></button>`;}).join('')}</div>
       <div class="ds1-mini">${minis.map(([l,v,cls])=>`<div class="${cls}">${l}<b>${v}</b></div>`).join('')}</div></div>`;};
-  const fSql=funnel('akquise','Akquise',sqlRows,[['Erreichbar',qM===null?'…':qM+' %','good'],['Leads in SQL',sqlTotal.toLocaleString('de-DE'),''],[`Verloren in SQL (${mName.slice(0,3)}.)`,lostSql,lostSql?'warn':'']]);
+  const fSql=funnel('akquise','Akquise',sqlRows,[['Erreichbar',qM===null?'…':qM+' %','good'],['Leads in SQL',sqlTotal.toLocaleString('de-DE'),''],['Ø Verweildauer',sqlAvgAge===null?'–':sqlAvgAge+' T','']]);
   const fPql=funnel('vertrieb','Vertrieb',pqlRows,[['Toner draußen',tonerOpen.length,''],['Ø Testlaufzeit',avgT===null?'–':avgT+' T',avgT!==null&&avgT>=40?'warn':''],['> 60 Tage',late,late?'bad':'']]);
   // Risiken
   const od=sc.filter(l=>!isClosedLead(l)&&l.followup&&daysUntil(l.followup)<0);const od7=od.filter(l=>daysUntil(l.followup)<-7).length;
