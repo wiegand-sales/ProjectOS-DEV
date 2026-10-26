@@ -1534,7 +1534,7 @@ let localSettingsTrusted=false;
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-10-26T17:30:00.000Z';
+const BUILD_VERSION='2026-10-26T18:00:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -4326,10 +4326,11 @@ function downloadCalendarInvite(){
   }
   const contactName=draftLead.contact||draftLead.company;
   const followupDateFmt=fmtDate(draftLead.followup);
-  const bodyText=`Hallo ${draftLead.contact||'zusammen'},\n\nvielen Dank für das nette Gespräch.\n\nWie besprochen melde ich mich am ${followupDateFmt} telefonisch bei Ihnen. Dann würde ich Ihnen gerne unseren kostenlosen Toner vorstellen und gemeinsam schauen, ob dieser für Ihren Drucker infrage kommt. Ich freue mich auf unser Gespräch.\n\nViele Grüße\nPeter Rode\nHead of Sales`;
   const organizer=currentAgent();
   const organizerName=organizer?organizer.name:'Vertrieb';
   const organizerEmail=(organizer&&organizer.email)?organizer.email:'kein-reply@wiegand-gmbh.de';
+  // Funktion im Gruss: Peter Rode = Head of Sales, alle anderen = Account Manager (oder eigenes Feld "jobTitle")
+  const organizerTitle=(organizer&&organizer.jobTitle)||(organizerName==='Peter Rode'?'Head of Sales':'Account Manager');
   // Wurde beim Follow-up-Datum tatsaechlich eine Uhrzeit gewaehlt (nicht die Standard-
   // Mitternacht eines unangetasteten Zeitfelds), wird genau diese fuer den Termin
   // verwendet - sonst greift wie bisher der Standard-Vorschlag 10:00 Uhr.
@@ -4339,10 +4340,16 @@ function downloadCalendarInvite(){
   const [startH,startM]=startTime.split(':').map(Number);
   const endDate=new Date(2000,0,1,startH,startM+30);
   const endTime=`${String(endDate.getHours()).padStart(2,'0')}:${String(endDate.getMinutes()).padStart(2,'0')}`;
+  const weekday=['Sonntag','Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag'][new Date(followupDatePart+'T12:00:00').getDay()];
+  const INVITE_PHONE='+49 8142-1305-368';
+  const greet=draftLead.contact||'zusammen';
+  const bodyText=`Servus ${greet},\n\nvielen Dank für das nette Gespräch!\n\nWie besprochen rufe ich Sie am ${weekday}, ${followupDateFmt}, um ${startTime} Uhr an. Den Termin finden Sie in dieser Einladung – so geht er nicht verloren.\n\nBei Fragen erreichen Sie mich gerne telefonisch unter ${INVITE_PHONE}.\n\nIch freue mich auf unser Gespräch.\n\nViele Grüße aus Bayern\n\n${organizerName}\n${organizerTitle}`;
+  const h=t=>String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const bodyHtml=`<html><body style="font-family:Arial,sans-serif;font-size:14px">Servus ${h(greet)},<br><br>vielen Dank für das nette Gespräch!<br><br>Wie besprochen rufe ich Sie am ${h(weekday)}, ${h(followupDateFmt)}, um ${h(startTime)} Uhr an. Den Termin finden Sie in dieser Einladung – so geht er nicht verloren.<br><br>Bei Fragen erreichen Sie mich gerne telefonisch unter ${h(INVITE_PHONE)}.<br><br>Ich freue mich auf unser Gespräch.<br><br>Viele Grüße aus Bayern<br><br><b>${h(organizerName)}</b><br>${h(organizerTitle)}</body></html>`;
   const start=berlinLocalToUTCString(followupDatePart,startTime);
   const end=berlinLocalToUTCString(followupDatePart,endTime);
   const dtstamp=new Date().toISOString().replace(/[-:]/g,'').split('.')[0]+'Z';
-  const uid=`${draftLead.id||genId()}-${Date.now()}@salesos.wiegand-gmbh.de`;
+  const uid=`${draftLead.id||genId()}-${Date.now()}@projectos.wiegand-gmbh.de`;
   const lines=[
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
@@ -4356,6 +4363,7 @@ function downloadCalendarInvite(){
     icsFold('DTEND:'+end),
     icsFold('SUMMARY:'+icsEscape('Telefontermin – '+draftLead.company)),
     icsFold('DESCRIPTION:'+icsEscape(bodyText)),
+    icsFold('X-ALT-DESC;FMTTYPE=text/html:'+icsEscape(bodyHtml)),
     icsFold('LOCATION:'+icsEscape('Telefonat')),
     icsFold(`ORGANIZER;CN=${icsEscape(organizerName)}:mailto:${organizerEmail}`),
     icsFold(`ATTENDEE;CN=${icsEscape(contactName)};RSVP=TRUE:mailto:${draftLead.email.trim()}`),
