@@ -544,6 +544,25 @@ button.ts-pill.fc-vk.mod::after{content:"";position:absolute;top:-3px;right:-3px
 .art-pn .art-cur{background:#206A72;border-color:#206A72;color:#fff;font-weight:700}
 #artFilterMenu{left:auto;right:0}
 @media (max-width:1100px){.art-row{grid-template-columns:1fr}.art-fields{grid-template-columns:repeat(5,minmax(0,1fr))}}
+.ord-card{border:1px solid #e1e8e8;border-radius:12px;background:#fff;margin-top:8px;overflow:hidden}
+.ord-card.open{border-color:#206A72}
+.ord-h{display:flex;align-items:center;gap:10px;width:100%;padding:9px 12px;border:0;background:transparent;text-align:left;cursor:pointer;font-family:inherit}
+.ord-h:hover{background:#f7f7f5}
+.ord-nr{width:26px;height:26px;border-radius:50%;background:#E9F0F1;color:#206A72;font-weight:700;font-size:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.ord-card.open .ord-nr{background:#206A72;color:#fff}
+.ord-ti{display:flex;flex-direction:column;min-width:0}
+.ord-ti b{font-size:13px;font-weight:600}
+.ord-ti small{font-size:11.5px;color:var(--text3)}
+.ord-mg{margin-left:auto;font-weight:700;color:#206A72;white-space:nowrap}
+.ord-ch{color:var(--text3);transition:transform .15s}.ord-card.open .ord-ch{transform:rotate(90deg)}
+.ord-b{padding:4px 12px 12px;border-top:1px solid #e1e8e8}
+.ord-f{display:grid;grid-template-columns:160px minmax(0,1fr);gap:8px;margin-top:10px}
+.ord-f label{font-size:11px;color:var(--text3);display:flex;flex-direction:column;gap:3px;margin:0}
+.ord-f input{height:36px;box-sizing:border-box;padding-top:0;padding-bottom:0}
+.ord-foot{display:flex;justify-content:space-between;align-items:center;margin-top:10px;font-size:11.5px;color:var(--text3)}
+.ord-del{border:0;background:transparent;color:var(--text3);font-size:12px;display:inline-flex;gap:5px;align-items:center;cursor:pointer;font-family:inherit}
+.ord-del:hover{color:var(--red)}
+.ts-tile small{display:block;font-size:10px;font-weight:500;text-transform:none;letter-spacing:0;opacity:.8}
 .board-part-hint{flex:0 0 260px;align-self:flex-start;border:1.5px dashed var(--purple-dark);border-radius:var(--r-md);padding:16px;background:var(--purple-bg);font-size:13px;color:var(--purple-dark);display:flex;flex-direction:column;gap:10px;}
 .board-part-hint button{align-self:flex-start;}
 .nav-icon-badge{width:36px;height:36px;border-radius:9px;background:linear-gradient(180deg,#27808a 0%,#206A72 100%);box-shadow:0 6px 16px rgba(32,106,114,.3);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
@@ -1510,7 +1529,7 @@ let localSettingsTrusted=false;
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-10-26T16:00:00.000Z';
+const BUILD_VERSION='2026-10-26T17:00:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -5809,9 +5828,13 @@ function dashboardHeroHtml(){
   const wonDate=l=>dOf(l.statusSince||l.closedAt);
   const wonM=l=>leadMarginOf(l,'actual')||leadMarginOf(l,'demand');
   const won=sc.filter(l=>isWon(l));
-  const mMonth=won.filter(l=>wonDate(l).slice(0,7)===ym).reduce((a,l)=>a+wonM(l),0);
-  const mPrev=won.filter(l=>wonDate(l).slice(0,7)===pym).reduce((a,l)=>a+wonM(l),0);
-  const mBars=weeks.map((_,i)=>won.filter(l=>wIdx(wonDate(l))===i).reduce((a,l)=>a+wonM(l),0));
+  // jeder Auftrag zaehlt im Monat seines Datums (ohne Auftrag: Forecast-Marge zum Gewinn-Datum)
+  const wonOrders=won.flatMap(l=>{const ps=(l.actualPrinters||[]).filter(p=>(p.skus||[]).some(ordFilled));
+    if(!ps.length)return [{d:wonDate(l),m:leadMarginOf(l,'demand')}];
+    return ps.map(p=>({d:String(p.date||'').slice(0,10)||wonDate(l),m:(p.skus||[]).reduce((s2,x)=>s2+((parseFloat(x.priceVk)||0)-(parseFloat(x.priceEk)||0))*(parseFloat(x.qty)||0),0)}));});
+  const mMonth=wonOrders.filter(o=>o.d.slice(0,7)===ym).reduce((a,o)=>a+o.m,0);
+  const mPrev=wonOrders.filter(o=>o.d.slice(0,7)===pym).reduce((a,o)=>a+o.m,0);
+  const mBars=weeks.map((_,i)=>wonOrders.filter(o=>wIdx(o.d)===i).reduce((a,o)=>a+o.m,0));
   // 2) Toner verschickt
   const tl=sc.filter(l=>l.tonerSent==='Ja'&&l.tonerSentAt);
   const tMonth=tl.filter(l=>String(l.tonerSentAt).slice(0,7)===ym).length,tPrev=tl.filter(l=>String(l.tonerSentAt).slice(0,7)===pym).length;
@@ -7981,7 +8004,7 @@ function releaseLeadLock(leadId){
 function openLeadModal(id){
   editingLeadId=id;
   draftLead=id?JSON.parse(JSON.stringify(leads.find(x=>x.id===id))):blankLead();
-  labelPopoverOpen=false;memberPopoverOpen=false;activityFeedFilter='comments';feedFilterOpen=false;composePending=[];draftFileNote='';fcQ={demand:'',actual:''};fcQtyOpen=null;fcVkEdit=null;histEdit=null;lwAddOpen=false;taskMentionPopoverOpen=false;pendingTaskAssigneeId=null;draftTaskText='';draftCommentText='';editingCommentId=null;rightTab='comments';openTimePickerField=null;
+  labelPopoverOpen=false;memberPopoverOpen=false;activityFeedFilter='comments';feedFilterOpen=false;composePending=[];draftFileNote='';fcQ={demand:'',actual:''};fcQtyOpen=null;fcVkEdit=null;histEdit=null;lwAddOpen=false;ordOpen=null;ordQ={};taskMentionPopoverOpen=false;pendingTaskAssigneeId=null;draftTaskText='';draftCommentText='';editingCommentId=null;rightTab='comments';openTimePickerField=null;
   clearTimeout(lockHeartbeatTimer);
   const existingLock=id?getLeadLock(id):null;
   if(existingLock&&existingLock.agentId!==currentUser){
@@ -8209,7 +8232,7 @@ function renderLeadModal(){
   if(rightTab==='forecast'){
     rightContentHtml=fcPanelHtml('demand');
   }else if(rightTab==='actual'){
-    rightContentHtml=fcPanelHtml('actual');
+    rightContentHtml=ordersPanelHtml();
   }else if(rightTab==='tasks'){
     rightContentHtml=`<div style="overflow-y:auto;flex:1">
       <div class="info-section">
@@ -8343,7 +8366,7 @@ function renderLeadModal(){
         </div>
 
         <div class="info-section left-fc">
-          ${leftCollHdr('actual','Auftrag',`${fcRows('actual').length} Artikel · ${fmtEur(actualComputedNow)||'0 €'} · Marge ${fmtEur(actualMarginNow)||'0 €'}`)}
+          ${leftCollHdr('actual','Aufträge',`${(draftLead.actualPrinters||[]).filter(p=>(p.skus||[]).some(ordFilled)).length} · ${fmtEur(actualComputedNow)||'0 €'} · Marge ${fmtEur(actualMarginNow)||'0 €'}`)}
           <div ${leftOpen.actual?'':'hidden'} class="left-coll-body">${actualPanel}</div>
         </div>
 
@@ -8741,6 +8764,66 @@ const FC_MAX=12;
 let fcQ={demand:'',actual:''},fcQtyOpen=null,fcVkEdit=null;
 function fcList(kind){return kind==='demand'?draftLead.demandPrinters:draftLead.actualPrinters;}
 function fcRows(kind){const out=[];(fcList(kind)||[]).forEach(p=>(p.skus||[]).forEach((x,si)=>{if(x&&['sku','qty','priceEk','priceVk'].some(k=>String(x[k]===undefined||x[k]===null?'':x[k]).trim()))out.push({p,si,x});}));return out;}
+// ── Mehrere Auftraege je Lead (Okt. 2026): jede Gruppe in actualPrinters = ein Auftrag {id,date,beleg,skus} ──
+let ordOpen=null,ordQ={};
+const ORD_MAX=12;
+function ordFilled(x){return x&&['sku','qty','priceEk','priceVk'].some(k=>String(x[k]===undefined||x[k]===null?'':x[k]).trim());}
+function ordList(){return (draftLead&&draftLead.actualPrinters)||[];}
+function ordsSorted(){return ordList().slice().sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))||(Number(b.id)-Number(a.id)));}
+function ordNo(o){const asc=ordList().slice().sort((a,b)=>String(a.date||'').localeCompare(String(b.date||''))||(Number(a.id)-Number(b.id)));return asc.indexOf(o)+1;}
+function ordTotals(o){return (o.skus||[]).reduce((t,x)=>{const q=parseFloat(x.qty)||0;t.u+=(parseFloat(x.priceVk)||0)*q;t.e+=(parseFloat(x.priceEk)||0)*q;t.n+=q;if(ordFilled(x))t.k++;return t;},{u:0,e:0,n:0,k:0});}
+// Bestehende Auftraege ohne Datum -> zu "Auftrag 1" zusammenfassen (Datum: gewonnen bzw. heute)
+function ordMigrate(l){
+  const ps=(l.actualPrinters||[]);if(!ps.length)return;
+  const old=ps.filter(p=>!p.date);if(!old.length)return;
+  const rows=old.flatMap(p=>(p.skus||[]).filter(ordFilled));
+  const keep=ps.filter(p=>p.date);
+  if(rows.length)keep.push({id:genId(),model:'',date:String(l.statusSince||l.closedAt||TODAY).slice(0,10),beleg:'',skus:rows});
+  l.actualPrinters=keep;
+}
+function ordNew(skus){const o={id:genId(),model:'',date:TODAY,beleg:'',skus:skus||[]};draftLead.actualPrinters.push(o);ordOpen=o.id;recomputeActual();autoPersistIfEditing();renderLeadModal();return o;}
+function ordToggle(id){ordOpen=String(ordOpen)===String(id)?null:id;renderLeadModal();}
+function ordSet(id,field,val){const o=ordList().find(x=>String(x.id)===String(id));if(!o)return;o[field]=val;autoPersistIfEditing();if(field==='date')renderLeadModal();}
+function ordDelete(id){const o=ordList().find(x=>String(x.id)===String(id));if(!o)return;const t=ordTotals(o);
+  if(!confirm(`Auftrag ${ordNo(o)} vom ${fmtDate(String(o.date||'').slice(0,10))} (${t.k} Artikel, ${fmtEurCent(t.u)}) wirklich löschen?`))return;
+  draftLead.actualPrinters=ordList().filter(x=>x!==o);if(String(ordOpen)===String(id))ordOpen=null;recomputeActual();autoPersistIfEditing();renderLeadModal();}
+function ordPick(id,articleId){
+  if(modalReadOnly)return;const o=ordList().find(x=>String(x.id)===String(id));const a=ARTICLES.find(x=>String(x.id)===String(articleId));if(!o||!a)return;
+  const rows=(o.skus||[]).filter(ordFilled);if(rows.length>=ORD_MAX)return;
+  if(rows.some(x=>String(x.sku).toLowerCase()===String(a.sku).toLowerCase()))return;
+  const rec={sku:a.sku,qty:1,priceEk:shipNum(a.ek)!==null?shipNum(a.ek):'',priceVk:shipNum(a.vk)!==null?shipNum(a.vk):'',title:a.title||'',articleId:a.id};
+  const blank=(o.skus||[]).findIndex(x=>!ordFilled(x));if(blank>=0)o.skus[blank]=rec;else o.skus.push(rec);
+  ordQ[id]='';recomputeActual();autoPersistIfEditing();renderLeadModal();
+  setTimeout(()=>{const i=document.getElementById('ordSearch_'+id);if(i)i.focus();},0);
+}
+function ordRenderResults(id){
+  const el=document.getElementById('ordRes_'+id);if(!el)return;const o=ordList().find(x=>String(x.id)===String(id));if(!o)return;
+  const q=(ordQ[id]||'').toLowerCase().trim();if(q.length<2){el.innerHTML='';return;}
+  const all=ARTICLES.filter(a=>a.sku&&(String(a.sku).toLowerCase().includes(q)||String(a.title||'').toLowerCase().includes(q)));
+  const hits=all.slice(0,12);if(!hits.length){el.innerHTML=`<div style="font-size:12px;color:var(--text3);padding:8px 2px">Kein Artikel gefunden.</div>`;return;}
+  el.innerHTML=`<div class="ts-hits">${hits.map(a=>{const rma=shipNum(a.crRma);const cls=rma===null?'':crRmaCellClass(rma);const dis=(o.skus||[]).some(x=>String(x.sku).toLowerCase()===String(a.sku).toLowerCase());
+    return `<div class="ts-card ts-hit ${cls} ${dis?'dis':''}" ${dis?'title="Bereits in diesem Auftrag"':`onmousedown="event.preventDefault();ordPick('${id}','${esc(String(a.id))}')" title="Artikel übernehmen"`}><span class="ts-qty ${cls}">${dis?'<i class="ti ti-check"></i>':'<i class="ti ti-plus"></i>'}</span><span class="t">${esc(a.title||a.sku)}</span><span class="bin add">${dis?'<i class="ti ti-check"></i>':'<i class="ti ti-circle-plus"></i>'}</span><span class="sku">${esc(a.sku)}${dis?' · bereits drin':''}</span><span class="vals"><span class="ts-pill">EK ${shipNum(a.ek)!==null?fmtEurCent(shipNum(a.ek)):'–'}</span><span class="ts-pill">VK ${shipNum(a.vk)!==null?fmtEurCent(shipNum(a.vk)):'–'}</span><span class="ts-pill ${cls}">RMA ${rma!==null?String(rma).replace('.',',')+' %':'–'}</span></span></div>`;}).join('')}${all.length>12?`<div style="font-size:11px;color:var(--text3);padding:6px 2px 0">+ ${all.length-12} weitere Treffer – Suche genauer eingeben</div>`:''}</div>`;
+}
+function ordersPanelHtml(){
+  ordMigrate(draftLead);
+  const os=ordsSorted();
+  if(ordOpen===null&&os.length)ordOpen=os[0].id;
+  const tot=os.reduce((t,o)=>{const x=ordTotals(o);t.u+=x.u;t.e+=x.e;return t;},{u:0,e:0});
+  const last=os.length?fmtDate(String(os[0].date||'').slice(0,10)):'–';
+  const ro=modalReadOnly;
+  const tiles=`<div class="ts-tiles fcx"><div class="ts-tile">Umsatz<b>${fmtEurCent(tot.u)}</b></div><div class="ts-tile">EK gesamt<b>${fmtEurCent(tot.e)}</b></div><div class="ts-tile main">Marge<b>${fmtEurCent(tot.u-tot.e)}</b></div><div class="ts-tile">Aufträge<b>${os.length}</b><small>${os.length?'letzter '+last:'noch keiner'}</small></div></div>`;
+  const head=ro?'':`<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px"><button class="btn btn-primary btn-sm" onclick="ordNew()"><i class="ti ti-plus"></i> Neuer Auftrag</button><button class="btn btn-sm" style="margin-left:auto" onclick="copyForecastToActual()" title="Legt einen neuen Auftrag mit den Artikeln aus dem Forecast an"><i class="ti ti-copy"></i> Forecast übernehmen</button></div>`;
+  const cards=os.map(o=>{const t=ordTotals(o);const no=ordNo(o);const op=String(ordOpen)===String(o.id);
+    const rows=(o.skus||[]).map((x,si)=>({p:o,si,x})).filter(r=>ordFilled(r.x));
+    return `<div class="ord-card ${op?'open':''}"><button type="button" class="ord-h" onclick="ordToggle('${o.id}')" aria-expanded="${op}"><span class="ord-nr">${no}</span><span class="ord-ti"><b>Auftrag ${no} · ${fmtDate(String(o.date||'').slice(0,10))}</b><small>${t.k} Artikel${o.beleg?' · '+esc(o.beleg):''} · ${fmtEurCent(t.u)}</small></span><span class="ord-mg">${fmtEurCent(t.u-t.e)}</span><i class="ti ti-chevron-right ord-ch"></i></button>
+      ${op?`<div class="ord-b">
+        <div class="ord-f"><label>Auftragsdatum<input type="date" value="${esc(String(o.date||'').slice(0,10))}" ${ro?'disabled':''} onchange="ordSet('${o.id}','date',this.value)"></label><label>Belegnummer (optional)<input type="text" value="${esc(o.beleg||'')}" placeholder="z. B. AB-104512" ${ro?'disabled':''} oninput="ordSet('${o.id}','beleg',this.value)"></label></div>
+        ${!ro&&rows.length<ORD_MAX?`<div class="ts-search" style="margin-top:8px"><input type="text" id="ordSearch_${o.id}" placeholder="Artikel suchen (Titel oder SKU) …" value="${esc(ordQ[o.id]||'')}" oninput="ordQ['${o.id}']=this.value;ordRenderResults('${o.id}')" onblur="setTimeout(()=>{const r=document.getElementById('ordRes_${o.id}');if(r)r.innerHTML='';},180)" autocomplete="off" style="width:100%"><div id="ordRes_${o.id}" class="ts-res-inline"></div></div>`:''}
+        ${rows.map((r,k)=>fcCardHtml('actual',r,k,false)).join('')||'<div style="font-size:12px;color:var(--text3);margin-top:6px">Noch keine Artikel – über die Suche hinzufügen.</div>'}
+        <div class="ord-foot"><span>${rows.length} von ${ORD_MAX} Artikeln · ${t.n.toLocaleString('de-DE')} Stück</span>${ro?'':`<button type="button" class="ord-del" onclick="ordDelete('${o.id}')"><i class="ti ti-trash"></i> Auftrag löschen</button>`}</div>
+      </div>`:''}</div>`;}).join('');
+  return head+tiles+(cards||`<div style="font-size:12px;color:var(--text3);margin-top:6px">Noch kein Auftrag – über „Neuer Auftrag“ anlegen.</div>`);
+}
 function fcRecompute(kind){if(kind==='demand')recomputeForecast();else recomputeActual();}
 function fcTotals(kind){let u=0,e=0,n=0;fcRows(kind).forEach(({x})=>{const q=parseFloat(x.qty)||0;u+=(parseFloat(x.priceVk)||0)*q;e+=(parseFloat(x.priceEk)||0)*q;n+=q;});return {u,e,m:u-e,n};}
 function fcCardHtml(kind,r,k,hit){
@@ -8862,15 +8945,9 @@ function recomputeActual(){
   if(marginEl){marginEl.textContent=fmtEur(margin)||'0 €';marginEl.style.color=margin>=0?'var(--green-dark)':'var(--red)';}
 }
 function copyForecastToActual(){
-  if(draftLead.actualPrinters.length&&!confirm('Bereits vorhandene Angaben bei "Tatsächlich" werden dabei überschrieben. Fortfahren?'))return;
-  draftLead.actualPrinters=draftLead.demandPrinters.map(p=>({
-    id:genId(),
-    model:p.model,
-    skus:p.skus.map(s=>Object.assign({},s))
-  }));
-  recomputeActual();
-  autoPersistIfEditing();
-  renderLeadModal();
+  const rows=(draftLead.demandPrinters||[]).flatMap(p=>(p.skus||[]).filter(ordFilled)).map(x=>Object.assign({},x));
+  if(!rows.length){alert('Im Forecast sind noch keine Artikel.');return;}
+  ordNew(rows);
 }
 
 // Rechte Spalte: Tabs
