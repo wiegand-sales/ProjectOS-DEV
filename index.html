@@ -674,6 +674,17 @@ div.pf2-dr{cursor:default}
 .pf-section .movements-strip{gap:8px}
 .pf-section .movements-item{background:#E9F0F1;border-radius:999px;padding:5px 12px}
 .dg{margin:0 0 6px}
+.ds4-foot{display:flex;align-items:stretch;margin-top:14px;padding-top:12px;border-top:1px solid #e1e8e8;flex-wrap:wrap;row-gap:10px}
+.ds4-it{flex:1;min-width:140px;display:flex;align-items:baseline;gap:8px;border:0;background:transparent;text-align:left;padding:2px 14px;border-left:1px solid #e1e8e8;font-family:inherit;color:var(--text2)}
+.ds4-foot>.ds4-it:first-child{border-left:0;padding-left:2px}
+.ds4-gap+.ds4-it{border-left:0}
+.ds4-gap{width:1px;background:#c9d3d4;margin:0 4px}
+button.ds4-it{cursor:pointer}button.ds4-it:hover span{color:var(--text)}
+.ds4-it b{font-size:18px;font-weight:700;color:var(--text);font-variant-numeric:tabular-nums}
+.ds4-it span{font-size:12px;display:flex;flex-direction:column;line-height:1.3}
+.ds4-it small{font-size:10.5px;color:var(--text3)}
+.ds4-it.red b{color:#a32d2d}.ds4-it.amb b{color:#7a4e07}.ds4-it.pet b{color:#206A72}
+@media (max-width:1100px){.ds4-gap{display:none}.ds4-it{flex:1 1 30%}}
 .ds1-g3{grid-template-columns:repeat(3,minmax(0,1fr));align-items:stretch}
 .ds3-offer{display:flex;flex-direction:column}
 .ds3-wgrid{display:grid;grid-template-columns:300px minmax(0,1fr);gap:22px;align-items:start}
@@ -1689,7 +1700,7 @@ let localSettingsTrusted=false;
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-10-27T00:15:00.000Z';
+const BUILD_VERSION='2026-10-27T00:45:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -5805,18 +5816,17 @@ function renderDashboard(){
     </div>
     <div class="ds1-grid ds1-g2">${dashStep1Html('fSql')}${dashStep1Html('fPql')}</div>
     <div class="ds1-agelg">Balkenfarbe in SQL/PQL = Ø Tage in der Liste: <i style="background:rgb(79,163,171)"></i>frisch <i style="background:rgb(48,112,118)"></i>ca. 20 Tage <i style="background:rgb(18,61,66)"></i>40 Tage und länger</div>
-    <div class="ds1-grid">${dashOfferHtml(dl)}</div>
     `)}
     ${dashGroup('today','Heute zu tun','checklist',`${overdueLeads.length} FollowUps überfällig${riskLeads.length?' · '+riskLeads.length+' RMA-Risiko':''}`,()=>`
-    <div class="ds1-grid ds1-g2">${dashStep1Html('risks')}
-      <div class="info-section" style="display:flex;flex-direction:column;margin:0">
-        ${followupDayChartHtml(dl)}
-      </div>
+    <div class="info-section ds4-today" style="margin-bottom:14px">
+      ${followupDayChartHtml(dl)}
+      ${dashTodayFootHtml(dl)}
     </div>
       <div class="info-section" style="margin-bottom:14px">
         <div class="section-hdr" style="margin-top:0"><span style="display:flex;align-items:center;gap:6px"><i class="ti ti-shield-exclamation" style="color:${riskLeads.length?'var(--red)':'var(--text2)'}"></i> RMA-Risiko-Check</span> <span style="font-weight:400;color:var(--text3);font-size:11px">(aktive Leads mit SKU ≥5% Reklamationsquote)</span></div>
         ${riskSkuChartHtml}
         ${riskHtml}
+      </div>
       `)}
     ${dashGroup('team','Team','users','Wer bewegt was – und wann erreichen wir Kunden?',()=>`
     ${dashStep1Html('team')}
@@ -6313,6 +6323,28 @@ function dashAmPerDayHtml(dl){
   return `<div class="ds2-kp" style="margin:0 0 12px"><div>Leads nach AM: Auftrag<b>${total}</b><small>letzte 30 Tage</small></div><div>Ø je Arbeitstag<b>${work?(total/work).toFixed(1).replace('.',','):'–'}</b><small>Mo–Fr</small></div><div class="g">Bester Tag<b>${best||'–'}</b><small>${bestD?fmtDate(bestD):''}</small></div></div>
     <div class="ds3-days">${bars}</div><div class="ds2-legend">${lg||'<span>Noch keine Verschiebungen nach „AM: Auftrag“ in den letzten 30 Tagen.</span>'}</div>`;
 }
+// Heute zu tun (Okt. 2026): 6 Kennzahlen unter den Follow-up-Terminen – erst Termine, dann Qualitaet
+function dashTodayFootHtml(dl){
+  const open=dl.filter(l=>!isClosedLead(l));
+  const today=open.filter(l=>l.followup&&daysUntil(l.followup)===0);const todayPql=today.filter(l=>leadBoardPart(l)==='vertrieb').length;
+  const od=open.filter(l=>l.followup&&daysUntil(l.followup)<0);const od7=od.filter(l=>daysUntil(l.followup)<-7).length;
+  const noFu=open.filter(l=>!l.followup);
+  const toner60=open.filter(l=>l.tonerSent==='Ja'&&l.tonerSentAt&&-daysUntil(String(l.tonerSentAt).slice(0,10))>=60).length;
+  const artBySku=new Map();ARTICLES.forEach(a=>{const k=String(a.sku||'').trim().toLowerCase();if(k&&!artBySku.has(k))artBySku.set(k,a);});
+  const rma=open.filter(l=>(l.demandPrinters||[]).some(p=>(p.skus||[]).some(x=>{const a=(x.articleId&&ARTICLES.find(y=>y.id===x.articleId))||artBySku.get(String(x.sku||'').trim().toLowerCase());return a&&parseFloat(a.crRma)>=5;}))).length;
+  const chk=LABELS.find(x=>String(x.name).trim().toLowerCase()==='lead: überprüfen');const chkN=chk?dl.filter(l=>(l.labelIds||[]).includes(chk.id)).length:0;
+  const it=(cls,n,lab,sub,click)=>`<${click?'button type="button"':'div'} class="ds4-it ${cls}" ${click?`onclick="${click}" title="Im Board anzeigen"`:''}><b>${n.toLocaleString('de-DE')}</b><span>${lab}<small>${sub}</small></span></${click?'button':'div'}>`;
+  return `<div class="ds4-foot">
+    ${it(today.length?'pet':'',today.length,'Heute fällig',`davon ${todayPql} im PQL`,'dashGoFuToday()')}
+    ${it(od.length?'red':'',od.length,'Überfällig',`davon ${od7} älter als 7 Tage`,'dashGoFuToday()')}
+    ${it(noFu.length?'amb':'',noFu.length,'Ohne FollowUp','offene Leads ohne Termin','dashGoFuNone()')}
+    <span class="ds4-gap" aria-hidden="true"></span>
+    ${it(toner60?'amb':'',toner60,'Toner > 60 Tage','ohne Rückmeldung','')}
+    ${it(rma?'red':'',rma,'RMA > 5 %','im Forecast','')}
+    ${it(chkN?'amb':'',chkN,'Überprüfen','Label „Lead: Überprüfen“',chk?`dashGoLabel('${chk.id}')`:'')}
+  </div>`;
+}
+function dashGoFuNone(){switchView('board');setFuFilter('none');}
 // Verweildauer je Liste: wie lange liegen offene Leads schon in ihrer Liste?
 function dashDwellHtml(dl){
   const cols=[...COLUMNS.filter(c=>colBoard(c)==='akquise'&&!c.outcome),...COLUMNS.filter(c=>colBoard(c)==='vertrieb'&&!c.outcome)];
