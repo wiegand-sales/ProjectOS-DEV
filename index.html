@@ -636,6 +636,17 @@ button.ds1-rr{cursor:pointer}button.ds1-rr:hover{filter:brightness(.97)}
 .pf-section{border-radius:18px;margin-bottom:14px}
 .pf-section .movements-strip{gap:8px}
 .pf-section .movements-item{background:#E9F0F1;border-radius:999px;padding:5px 12px}
+.dg{margin:0 0 6px}
+.dg-h{display:flex;align-items:center;gap:8px;width:100%;border:0;background:transparent;padding:10px 2px 8px;cursor:pointer;font-family:inherit;text-align:left}
+.dg-h:hover .dg-t{color:#206A72}
+.dg-ch{font-size:15px;color:#174C52;transition:transform .15s}.dg.open .dg-ch{transform:rotate(90deg)}
+.dg-ic{font-size:15px;color:#206A72}
+.dg-t{font-size:12px;font-weight:700;color:#174C52;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap}
+.dg-line{flex:1;height:1px;background:#d5dfdf;min-width:20px}
+.dg-sum{font-size:11.5px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:55%}
+.dg-b{padding-top:4px}
+.dg-b .info-section{margin-bottom:14px}
+.dg-b .ds1-grid .info-section{margin:0}
 .board-part-hint{flex:0 0 260px;align-self:flex-start;border:1.5px dashed var(--purple-dark);border-radius:var(--r-md);padding:16px;background:var(--purple-bg);font-size:13px;color:var(--purple-dark);display:flex;flex-direction:column;gap:10px;}
 .board-part-hint button{align-self:flex-start;}
 .nav-icon-badge{width:36px;height:36px;border-radius:9px;background:linear-gradient(180deg,#27808a 0%,#206A72 100%);box-shadow:0 6px 16px rgba(32,106,114,.3);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
@@ -1602,7 +1613,7 @@ let localSettingsTrusted=false;
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-10-26T20:45:00.000Z';
+const BUILD_VERSION='2026-10-26T21:30:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -5699,6 +5710,8 @@ function renderDashboard(){
 
   document.getElementById('dashboardContent').innerHTML=`
     ${dashboardHeroHtml()}
+    ${excludedNoDate>0?`<div class="no-date-warning"><i class="ti ti-alert-triangle"></i> ${excludedNoDate} Lead${excludedNoDate===1?'':'s'} ohne Erstkontakt-Datum ${excludedNoDate===1?'wird':'werden'} bei "${activeDashboardPeriod==='week'?'Diese Woche':activeDashboardPeriod==='month'?'Dieser Monat':'Dieses Quartal'}" nicht mitgezählt, da der Zeitraum-Filter sich auf dieses Datum bezieht. <a onclick="switchView('board')">→ Im Board nachtragen</a></div>`:''}
+    ${dashGroup('pipeline','Pipeline','filter',`${dl.filter(l=>!isClosedLead(l)).length} offene Leads · ${dl.filter(l=>isWon(l)).length} gewonnen · ${lostLeads.length} verloren`,()=>`
     <div class="info-section pf-section">
       <div class="section-hdr" style="margin-top:0">Pipeline-Trichter <span style="font-weight:400;color:var(--text3);font-size:11px">(Anzahl · Anteil an allen Leads · rot = verloren aus dieser Liste)</span></div>
       <div>${pipelineFlowHtml(dl)}</div>
@@ -5713,21 +5726,15 @@ function renderDashboard(){
         <div style="margin-top:8px">${movementsRowsHtml}</div>
       </details>
     </div>
-    ${dashStep1Html()}
-    ${dashStep2Html()}
-    <div class="info-section ${projStatus.glass?'project-status-glass':''}" style="border-color:${projStatus.boxBorder};background:${projStatus.boxBg}">
-      <div class="project-status-row">
-        <div class="project-status-badge" style="background:${projStatus.badgeBg};color:${projStatus.badgeColor}"><i class="ti ti-flag-3"></i> ${projStatus.label}</div>
-        <div class="project-status-item"><span>Zeitrahmen</span><strong>${fmtDate(PROJECT.startDate)} – ${fmtDate(PROJECT.endDate)}</strong><div class="funnel-track" style="height:8px;margin-top:4px"><div class="funnel-bar" style="width:${timeProgress}%;background:var(--purple);font-size:0"></div></div><span class="project-status-sub">${daysRemaining>=0?daysRemaining+' Tage verbleibend':Math.abs(daysRemaining)+' Tage überzogen'} (${timeProgress}%)</span></div>
-        <div class="project-status-item"><span>Budget</span><strong>${fmtEur(allInvestSum)} / ${fmtEur(PROJECT.budget)}</strong><div class="funnel-track" style="height:8px;margin-top:4px"><div class="funnel-bar" style="width:${Math.min(100,budgetProgress)}%;background:${budgetProgress>=100?'var(--red)':'var(--amber)'};font-size:0"></div></div><span class="project-status-sub">${budgetProgress}% verbraucht</span></div>
-        <div class="project-status-item"><span>Meilensteine</span><strong>${doneMilestones} / ${PROJECT.milestones.length}</strong><div class="funnel-track" style="height:8px;margin-top:4px"><div class="funnel-bar" style="width:${milestoneProgress||0}%;background:var(--green-dark);font-size:0"></div></div><span class="project-status-sub">${overdueMilestones.length?overdueMilestones.length+' überfällig':'im Plan'}</span></div>
-        <div class="project-status-item"><span>Offene Risiken</span><strong style="color:${openRisks.length?'var(--red)':(projStatus.glass?'#7ED2DB':'var(--green-dark)')}">${openRisks.length}</strong><span class="project-status-sub">${openRisks.length?openRisks[0].text.slice(0,40)+(openRisks[0].text.length>40?'…':''):'keine offenen Risiken'}</span></div>
+    ${dashStep1Html('funnels')}
+    <div class="ds1-box" style="margin-bottom:14px"><div class="ds1-bh"><h2>Verweildauer je Liste</h2><span class="r">offene Leads · Ø Tage in der aktuellen Liste</span></div>${dashDwellHtml(dl)}<div class="ds2-why"><b>Warum:</b> zeigt, wo Leads „einschlafen“ – Listen mit vielen Leads über 30 Tagen zuerst bearbeiten.</div></div>
+    `)}
+    ${dashGroup('today','Heute zu tun','checklist',`${overdueLeads.length} FollowUps überfällig${riskLeads.length?' · '+riskLeads.length+' RMA-Risiko':''}`,()=>`
+    <div class="ds1-grid ds1-g12">${dashStep1Html('risks')}<div class="info-section" style="margin:0">
+        <div class="section-hdr" style="margin-top:0">Follow-up überfällig</div>
+        ${overdueTrendChartHtml(dl)}
+        ${overdueHtml}
       </div>
-    </div>
-    ${excludedNoDate>0?`<div class="no-date-warning"><i class="ti ti-alert-triangle"></i> ${excludedNoDate} Lead${excludedNoDate===1?'':'s'} ohne Erstkontakt-Datum ${excludedNoDate===1?'wird':'werden'} bei "${activeDashboardPeriod==='week'?'Diese Woche':activeDashboardPeriod==='month'?'Dieser Monat':'Dieses Quartal'}" nicht mitgezählt, da der Zeitraum-Filter sich auf dieses Datum bezieht. <a onclick="switchView('board')">→ Im Board nachtragen</a></div>`:''}
-    ${kpiHtml}
-    <div class="info-section">
-      ${dashboardActivityChartHtml(dl)}
     </div>
     <div class="dash-row-1-1" style="align-items:stretch">
       <div class="info-section" style="display:flex;flex-direction:column">
@@ -5735,6 +5742,27 @@ function renderDashboard(){
       </div>
       <div class="info-section" style="display:flex;flex-direction:column">
         ${followupGanttHtml(dl)}
+      </div>
+    </div>
+    <div class="dash-row-1-1">
+      <div class="info-section">
+        <div class="section-hdr" style="margin-top:0"><span style="display:flex;align-items:center;gap:6px"><i class="ti ti-shield-exclamation" style="color:${riskLeads.length?'var(--red)':'var(--text2)'}"></i> RMA-Risiko-Check</span> <span style="font-weight:400;color:var(--text3);font-size:11px">(aktive Leads mit SKU ≥5% Reklamationsquote)</span></div>
+        ${riskSkuChartHtml}
+        ${riskHtml}
+      </div>
+    </div>
+    `)}
+    ${dashGroup('team','Team','users',`${AGENTS.length} Mitarbeiter`,()=>`
+    ${dashStep1Html('team')}
+    <div class="ds1-grid ds1-g2" style="margin-top:14px">${dashStep2Html('goalsTeam')}<div class="ds1-box">${dashboardActivityChartHtml(dl)}</div></div>
+    `)}
+    ${dashGroup('dev','Entwicklung &amp; Wirkung','chart-line','Verlauf · Free-Toner-Wirkung · Durchlaufzeiten',()=>dashStep2Html('dev'))}
+    ${dashGroup('cust','Kunden &amp; Produkte','building-store','Kundenart · Artikel · Verlustgründe · Folgeaufträge · Herkunft',()=>`
+    ${dashStep2Html('cust')}
+    <div class="ds1-grid ds1-g2"><div class="ds1-box"><div class="ds1-bh"><h2>Folgeaufträge</h2><span class="r">gewonnene Kunden</span></div>${dashRepeatHtml(dl)}<div class="ds2-why"><b>Warum:</b> zeigt, ob Kunden nach dem ersten Auftrag wiederkommen – der eigentliche Wert der Free-Toner-Aktion.</div></div>
+      <div class="info-section" style="margin:0">
+        <div class="section-hdr" style="margin-top:0"><span style="display:flex;align-items:center;gap:6px"><i class="ti ti-map-pin" style="color:var(--purple)"></i> Kundenherkunft</span> <span style="font-weight:400;color:var(--text3);font-size:11px">(stilisiert, aus Adressfeld)</span></div>
+        ${customerOriginMapHtml(dl)}
       </div>
     </div>
     <div class="dash-row-1-1">
@@ -5747,29 +5775,29 @@ function renderDashboard(){
         <div class="funnel-wrap">${reasonHtml}</div>
       </div>
     </div>
-    <div class="dash-row-1-1">
-      <div class="info-section">
-        <div class="section-hdr" style="margin-top:0"><span style="display:flex;align-items:center;gap:6px"><i class="ti ti-map-pin" style="color:var(--purple)"></i> Kundenherkunft</span> <span style="font-weight:400;color:var(--text3);font-size:11px">(stilisiert, aus Adressfeld)</span></div>
-        ${customerOriginMapHtml(dl)}
-      </div>
-      <div class="info-section">
-        <div class="section-hdr" style="margin-top:0"><span style="display:flex;align-items:center;gap:6px"><i class="ti ti-shield-exclamation" style="color:${riskLeads.length?'var(--red)':'var(--text2)'}"></i> RMA-Risiko-Check</span> <span style="font-weight:400;color:var(--text3);font-size:11px">(aktive Leads mit SKU ≥5% Reklamationsquote)</span></div>
-        ${riskSkuChartHtml}
-        ${riskHtml}
-      </div>
-    </div>
-    <div class="dash-row-eq">
-      <div class="info-section">
-        <div class="section-hdr" style="margin-top:0">Follow-up überfällig</div>
-        ${overdueTrendChartHtml(dl)}
-        ${overdueHtml}
-      </div>
-      <div class="info-section">
+    `)}
+    ${dashGroup('goals','Ziele &amp; Prognose','target',(PROJECT.dashGoals&&PROJECT.dashGoals.team)?'Monatsziel '+(fmtEur(PROJECT.dashGoals.team)||''):'Monatsziel · Prognose · Disziplin · Erreichbarkeit',()=>`
+    ${dashStep2Html('goals')}
+    <div class="ds1-grid ds1-g2">${dashStep2Html('heat')}<div class="info-section" style="margin:0">
         <div class="section-hdr" style="margin-top:0">Top Forecast (offen)</div>
         ${topForecastChartHtml(dl)}
         ${topForecastHtml}
       </div>
-    </div>`;
+    </div>
+    `)}
+    ${dashGroup('project','Projekt &amp; Finanzen','briefcase',`${projStatus.label} · Budget ${budgetProgress}% verbraucht`,()=>`
+    <div class="info-section ${projStatus.glass?'project-status-glass':''}" style="border-color:${projStatus.boxBorder};background:${projStatus.boxBg}">
+      <div class="project-status-row">
+        <div class="project-status-badge" style="background:${projStatus.badgeBg};color:${projStatus.badgeColor}"><i class="ti ti-flag-3"></i> ${projStatus.label}</div>
+        <div class="project-status-item"><span>Zeitrahmen</span><strong>${fmtDate(PROJECT.startDate)} – ${fmtDate(PROJECT.endDate)}</strong><div class="funnel-track" style="height:8px;margin-top:4px"><div class="funnel-bar" style="width:${timeProgress}%;background:var(--purple);font-size:0"></div></div><span class="project-status-sub">${daysRemaining>=0?daysRemaining+' Tage verbleibend':Math.abs(daysRemaining)+' Tage überzogen'} (${timeProgress}%)</span></div>
+        <div class="project-status-item"><span>Budget</span><strong>${fmtEur(allInvestSum)} / ${fmtEur(PROJECT.budget)}</strong><div class="funnel-track" style="height:8px;margin-top:4px"><div class="funnel-bar" style="width:${Math.min(100,budgetProgress)}%;background:${budgetProgress>=100?'var(--red)':'var(--amber)'};font-size:0"></div></div><span class="project-status-sub">${budgetProgress}% verbraucht</span></div>
+        <div class="project-status-item"><span>Meilensteine</span><strong>${doneMilestones} / ${PROJECT.milestones.length}</strong><div class="funnel-track" style="height:8px;margin-top:4px"><div class="funnel-bar" style="width:${milestoneProgress||0}%;background:var(--green-dark);font-size:0"></div></div><span class="project-status-sub">${overdueMilestones.length?overdueMilestones.length+' überfällig':'im Plan'}</span></div>
+        <div class="project-status-item"><span>Offene Risiken</span><strong style="color:${openRisks.length?'var(--red)':(projStatus.glass?'#7ED2DB':'var(--green-dark)')}">${openRisks.length}</strong><span class="project-status-sub">${openRisks.length?openRisks[0].text.slice(0,40)+(openRisks[0].text.length>40?'…':''):'keine offenen Risiken'}</span></div>
+      </div>
+    </div>
+    ${kpiHtml}
+    <div class="ds1-box" style="margin-bottom:14px"><div class="ds1-bh"><h2>Wirtschaftlichkeit</h2><span class="r">gesamt · im gewählten Filter</span></div>${dashEconomicsHtml(dl,allInvestSum)}<div class="ds2-why"><b>Warum:</b> zeigt, ob sich die Free-Toner-Aktion rechnet – gewonnene Marge gegenüber Toner- und Versandkosten.</div></div>
+    `)}`;
   equalizeRowHeights();
 }
 // Gleicht Boxenhoehen pixelgenau per JS aus (CSS-Flex kann bei Bruch-Pixeln
@@ -5929,7 +5957,7 @@ function dashGoBoard(part){switchView('board');setBoardPart(part);renderBoard();
 function dashGoFuToday(){switchView('board');setFuFilter('today');}
 function dashGoLabel(id){switchView('board');if(!activeLabelFilters.includes(id))toggleLabelFilter(id);else renderBoard();}
 function dashTeamSortBy(k){if(dashTeamSort===k)dashTeamDir=-dashTeamDir;else{dashTeamSort=k;dashTeamDir=k==='name'?1:-1;}renderDashboard();}
-function dashStep1Html(){
+function dashStep1Html(want){
   const acts=tasksHeroActs&&tasksHeroActs.rows;const loading=!acts;
   let sc=activeDashboardAgentFilters.length?leads.filter(l=>(l.members||[]).some(m=>activeDashboardAgentFilters.includes(m))):leads;
   if(dashboardArtFilter!=='all')sc=sc.filter(l=>artMatches(l,dashboardArtFilter));
@@ -5996,11 +6024,12 @@ function dashStep1Html(){
   const tb=rows.map(r=>`<tr><td><span class="ds1-av" style="background:${COLOR_BG[r.color]||'#E9F0F1'};color:${COLOR_TEXT[r.color]||'#206A72'}">${esc(r.ini)}</span>${esc(r.name)}</td><td class="r">${nf(r.open)}</td><td class="r">${nf(r.talks)}</td><td class="r">${r.reach===null?(loading?'…':'–'):r.reach+' %'}</td><td class="r">${nf(r.pql)}</td><td class="r">${nf(r.won)}</td><td class="r"><b>${fmtEur(r.marge)||'0 €'}</b></td><td class="r">${r.od?`<span class="ds1-chip ${r.od>6?'red':'amb'}">${r.od}</span>`:'–'}</td></tr>`).join('');
   const totReach=loading?null:q(com.filter(r=>rows.some(x=>x.id===r.author)));
   const tf=`<tr><td>Gesamt</td><td class="r">${sum('open')}</td><td class="r">${loading?'…':sum('talks')}</td><td class="r">${totReach===null?(loading?'…':'–'):totReach+' %'}</td><td class="r">${loading?'…':sum('pql')}</td><td class="r">${sum('won')}</td><td class="r">${fmtEur(sum('marge'))||'0 €'}</td><td class="r">${sum('od')}</td></tr>`;
-  return `<div class="ds1-grid ds1-g2">${fSql}${fPql}</div>
-   <div class="ds1-grid ds1-g12">
-    <div class="ds1-box"><div class="ds1-bh"><h2>Risiken</h2><span class="r">jetzt</span></div><div class="ds1-risk">${risks}</div></div>
-    <div class="ds1-box"><div class="ds1-bh"><h2>Mitarbeiter</h2><span class="r">${mName} · Marge nach Auftragsdatum</span></div><div style="overflow-x:auto"><table class="ds1-tab"><thead><tr>${th}</tr></thead><tbody>${tb||`<tr><td colspan="8" style="color:var(--text3)">Keine Daten im Zeitraum.</td></tr>`}</tbody><tfoot>${tf}</tfoot></table></div></div>
-   </div>`;
+  const parts={
+    funnels:`<div class="ds1-grid ds1-g2">${fSql}${fPql}</div>`,
+    risks:`<div class="ds1-box"><div class="ds1-bh"><h2>Risiken</h2><span class="r">jetzt</span></div><div class="ds1-risk">${risks}</div></div>`,
+    team:`<div class="ds1-box"><div class="ds1-bh"><h2>Mitarbeiter</h2><span class="r">${mName} · Marge nach Auftragsdatum</span></div><div style="overflow-x:auto"><table class="ds1-tab"><thead><tr>${th}</tr></thead><tbody>${tb||`<tr><td colspan="8" style="color:var(--text3)">Keine Daten im Zeitraum.</td></tr>`}</tbody><tfoot>${tf}</tfoot></table></div></div>`};
+  if(want)return parts[want]||'';
+  return parts.funnels+`<div class="ds1-grid ds1-g12">${parts.risks}${parts.team}</div>`;
 }
 // ── Dashboard Schritt 2 (Okt. 2026): Entwicklung & Wirkung · Kunden & Produkte · Ziele & Prognose ──
 const DASH_STAGE_P=[0.2,0.4,0.6,0.7,0.8];
@@ -6012,7 +6041,7 @@ function dashSetGoal(kind,agentId){
     PROJECT.dashGoals.agents[agentId]={talks:Math.max(0,parseInt(t)||0),marge:Math.max(0,parseLocaleNumber(m)||0)};}
   saveState();renderDashboard();
 }
-function dashStep2Html(){
+function dashStep2Html(want){
   const acts=tasksHeroActs&&tasksHeroActs.rows;const loading=!acts;
   let sc=activeDashboardAgentFilters.length?leads.filter(l=>(l.members||[]).some(m=>activeDashboardAgentFilters.includes(m))):leads;
   if(dashboardArtFilter!=='all')sc=sc.filter(l=>artMatches(l,dashboardArtFilter));
@@ -6081,8 +6110,7 @@ function dashStep2Html(){
     if(ho&&isWon(l)){const w=dOf(l.statusSince||l.closedAt);if(w>=dd(ho))tPqlWon.push(daysBetween(dd(ho),w));}});
   const durRows=[['Neu → erstes Gespräch',median(tNewFirst),'#206A72'],['Erreicht → an PQL',median(tFirstPql),'#534ab7'],['An PQL → Gewonnen',median(tPqlWon),'#ba7517'],['Toner → Gewonnen',median(tTonerWon),'#1d7a5a']];
   const durMax=Math.max(1,...durRows.map(r=>r[1]||0));
-  const g1=`<div class="ds2-head">Entwicklung &amp; Wirkung</div>
-   <div class="ds1-grid ds2-g21">${box('Entwicklung · 12 Wochen','je Kalenderwoche',loading?ld:lineSvg([{n:'Neue Leads',c:'#206A72',v:sNew},{n:'An PQL übergeben',c:'#534ab7',v:sPql},{n:'Gewonnen',c:'#1d7a5a',v:sWon},{n:'Gespräche',c:'#7ED2DB',v:sTalk,r:true}],true),'zeigt, ob mehr Gespräche wirklich zu mehr Übergaben und Gewinnen führen.')}
+  const g1=`   <div class="ds1-grid ds2-g21">${box('Entwicklung · 12 Wochen','je Kalenderwoche',loading?ld:lineSvg([{n:'Neue Leads',c:'#206A72',v:sNew},{n:'An PQL übergeben',c:'#534ab7',v:sPql},{n:'Gewonnen',c:'#1d7a5a',v:sWon},{n:'Gespräche',c:'#7ED2DB',v:sTalk,r:true}],true),'zeigt, ob mehr Gespräche wirklich zu mehr Übergaben und Gewinnen führen.')}
     ${box('Free-Toner-Wirkung','Versand letzte 90 Tage',`<div class="ds2-big">${conv===null?'–':conv+' %'}</div><div class="ds2-sub">der verschickten Toner wurden zum Auftrag (${sentWon.length} von ${sent.length})</div>
      <div class="ds2-kp"><div class="g">Ø Tage bis Auftrag<b>${nf(median(toWin))}</b><small>Versand → Gewonnen (Median)</small></div><div>Marge je Toner<b>${perToner===null?'–':eur(perToner)}</b><small>abzgl. ${String(ship).replace('.',',')} € Versand</small></div><div class="w">Ohne Antwort<b>${noAnswer}</b><small>&gt; 45 Tage, offen</small></div></div>`,'beantwortet, ob sich ein kostenloser Toner lohnt.')}</div>
    <div class="ds1-grid ds1-g2">${box('Marge gewonnen · 12 Wochen','nach Auftragsdatum',barSvg(mWeek,'#206A72',v=>v>=1000?(v/1000).toFixed(1).replace('.',',')+' T€':Math.round(v)+' €'),'zeigt, ob Folgeaufträge die Marge über die Zeit tragen.')}
@@ -6099,8 +6127,7 @@ function dashStep2Html(){
       return `<tr><td title="${esc(e.sku)}">${esc((a&&a.title)||e.title||e.sku)}</td><td class="r">${nf(e.q)}</td><td class="r"><b>${eur(e.m)}</b></td><td class="r">${isNaN(r)?'–':`<span class="ds2-tag ${cls}">${String(r).replace('.',',')} %</span>`}</td></tr>`;}).join('')}</tbody></table>`:'<div style="font-size:12px;color:var(--text3)">Noch keine Aufträge in den letzten 90 Tagen.</div>';
   const lossBy=part=>{const m=new Map();sc.filter(l=>isLost(l)&&leadBoardPart(l)===part&&dOf(l.statusSince||l.closedAt)>=d90).forEach(l=>{const k=l.lossReason||'Ohne Angabe';m.set(k,(m.get(k)||0)+1);});return [...m.entries()].sort((a,b)=>b[1]-a[1]).slice(0,6);};
   const lS=lossBy('akquise'),lP=lossBy('vertrieb');
-  const g2=`<div class="ds2-head">Kunden &amp; Produkte</div>
-   <div class="ds1-grid ds1-g2">${box('Kundenart','letzte 90 Tage',artTab,'zeigt, welche Kundenart wie oft gewinnt und wie viel Marge bringt.')}${box('Top-Artikel in Aufträgen','letzte 90 Tage · nach Marge',topTab,'zeigt, welche Artikel das Geld bringen – und ob darunter Artikel mit erhöhter RMA-Quote sind.')}</div>
+  const g2=`   <div class="ds1-grid ds1-g2">${box('Kundenart','letzte 90 Tage',artTab,'zeigt, welche Kundenart wie oft gewinnt und wie viel Marge bringt.')}${box('Top-Artikel in Aufträgen','letzte 90 Tage · nach Marge',topTab,'zeigt, welche Artikel das Geld bringen – und ob darunter Artikel mit erhöhter RMA-Quote sind.')}</div>
    <div class="ds1-grid ds1-g2">${box('Verlustgründe · SQL','letzte 90 Tage',lS.length?hb(lS.map(([n,c])=>[n,c,'#206A72']),lS[0][1]):'<div style="font-size:12px;color:var(--text3)">Keine Verluste.</div>','zeigt, woran die Akquise scheitert.')}${box('Verlustgründe · PQL','letzte 90 Tage',lP.length?hb(lP.map(([n,c])=>[n,c,'#ba7517']),lP[0][1]):'<div style="font-size:12px;color:var(--text3)">Keine Verluste.</div>','zeigt, warum ein Test nicht zum Auftrag wird.')}</div>`;
   // ── 3 · Ziele & Prognose ──
   const goals=PROJECT.dashGoals||{team:0,agents:{}};
@@ -6134,13 +6161,58 @@ function dashStep2Html(){
   const goalRows=agents.map(a=>{const g=goals.agents&&goals.agents[a.id]||{};const talks=loading?null:comments.filter(r=>r.author===a.id&&dd(r).slice(0,7)===ym).length;const m=wonOrders.filter(o=>owner(o.l)===a.id&&o.d.slice(0,7)===ym).reduce((x,o)=>x+o.m,0);return {a,g,talks,m};}).filter(r=>r.g.talks||r.g.marge||r.talks||r.m);
   const gbar=(v,goal,col)=>goal?`<div style="display:flex;gap:8px;align-items:center"><span class="ds2-mbar" style="flex:1"><i style="width:${Math.min(100,(v||0)/goal*100)}%;background:${col}"></i></span><span class="ds2-sub">${col==='#206A72'?nf(v)+' / '+nf(goal):(Math.round((v||0)/100)/10).toLocaleString('de-DE')+' / '+(Math.round(goal/100)/10).toLocaleString('de-DE')+' T€'}</span></div>`:`<span class="ds2-sub">${col==='#206A72'?nf(v):eur(v||0)} · kein Ziel</span>`;
   const goalTab=`<table class="ds1-tab"><thead><tr><th>Mitarbeiter</th><th>Gespräche / Ziel</th><th>Marge / Ziel</th>${isAdmin()?'<th></th>':''}</tr></thead><tbody>${goalRows.map(r=>`<tr><td>${esc(r.a.name)}</td><td>${r.talks===null?'…':gbar(r.talks,r.g.talks,'#206A72')}</td><td>${gbar(r.m,r.g.marge,'#1d7a5a')}</td>${isAdmin()?`<td class="r"><button type="button" class="btn btn-sm" onclick="dashSetGoal('agent','${r.a.id}')" title="Ziele festlegen"><i class="ti ti-target"></i></button></td>`:''}</tr>`).join('')||`<tr><td colspan="4" style="color:var(--text3)">Keine Daten.</td></tr>`}</tbody></table>`;
-  const g3=`<div class="ds2-head">Ziele &amp; Prognose</div>
-   <div class="ds1-grid ds2-g3">${box('Monatsziel Marge',goal?`Ziel ${eur(goal)}`:'kein Ziel',goalBody+goalBtn,'zeigt im laufenden Monat, ob wir auf Kurs sind.')}
+  const g3=`   <div class="ds1-grid ds2-g3">${box('Monatsziel Marge',goal?`Ziel ${eur(goal)}`:'kein Ziel',goalBody+goalBtn,'zeigt im laufenden Monat, ob wir auf Kurs sind.')}
     ${box('Gewichtete Prognose','offene PQL-Leads',`<div class="ds2-big">${eur(progSum)}</div><div class="ds2-sub">erwartete Marge aus ${sc.filter(l=>pqlCols.some(c=>c.id===l.status)).length} offenen Leads</div>${hb(progRows.map(r=>[r[0],r[1],r[2]]),progMax,v=>eur(v))}`,'Forecast-Marge × angenommene Wahrscheinlichkeit je Liste (20 / 40 / 60 %).')}
-    ${box('FollowUp-Disziplin','fällig in den letzten 30 Tagen',`<div class="ds2-big" style="color:${disc===null?'inherit':disc>=80?'#1d7a5a':disc>=60?'#7a4e07':'#a32d2d'}">${disc===null?'–':disc+' %'}</div><div class="ds2-sub">der FollowUps spätestens am Fälligkeitstag erledigt</div><div class="ds2-kp" style="grid-template-columns:1fr 1fr"><div class="g">Pünktlich<b>${onTime}</b></div><div class="w">Verspätet<b>${late}</b><small>${avgLate===null?'':'Ø '+avgLate.toFixed(1).replace('.',',')+' Tage'}</small></div></div>`,'erledigt = nächstes FollowUp gesetzt oder Lead abgeschlossen.')}</div>
-   <div class="ds1-grid ds1-g2">${box('Erreichbarkeit nach Tag und Uhrzeit','Anteil erreicht · letzte 90 Tage',loading?ld:heat+(best?`<div class="ds2-sub" style="margin-top:8px">Am besten: <b>${days[best.di]} ${slots[best.si][0]}–${slots[best.si][1]} Uhr</b> (${Math.round(best.q*100)} % erreicht)</div>`:''),'Grundlage sind die Uhrzeiten der Kommentare.')}
-    ${box('Ziele je Mitarbeiter','laufender Monat',goalTab,'Ziele legt ein Admin über das Ziel-Symbol fest.')}</div>`;
-  return g1+g2+g3;
+    ${box('FollowUp-Disziplin','fällig in den letzten 30 Tagen',`<div class="ds2-big" style="color:${disc===null?'inherit':disc>=80?'#1d7a5a':disc>=60?'#7a4e07':'#a32d2d'}">${disc===null?'–':disc+' %'}</div><div class="ds2-sub">der FollowUps spätestens am Fälligkeitstag erledigt</div><div class="ds2-kp" style="grid-template-columns:1fr 1fr"><div class="g">Pünktlich<b>${onTime}</b></div><div class="w">Verspätet<b>${late}</b><small>${avgLate===null?'':'Ø '+avgLate.toFixed(1).replace('.',',')+' Tage'}</small></div></div>`,'erledigt = nächstes FollowUp gesetzt oder Lead abgeschlossen.')}</div>`;
+  const gHeat=`${box('Erreichbarkeit nach Tag und Uhrzeit','Anteil erreicht · letzte 90 Tage',loading?ld:heat+(best?`<div class="ds2-sub" style="margin-top:8px">Am besten: <b>${days[best.di]} ${slots[best.si][0]}–${slots[best.si][1]} Uhr</b> (${Math.round(best.q*100)} % erreicht)</div>`:''),'Grundlage sind die Uhrzeiten der Kommentare.')}`;
+  const gGoalTeam=`${box('Ziele je Mitarbeiter','laufender Monat',goalTab,'Ziele legt ein Admin über das Ziel-Symbol fest.')}`;
+  const parts={dev:g1,cust:g2,goals:g3,heat:gHeat,goalsTeam:gGoalTeam};
+  if(want)return parts[want]||'';
+  return g1+g2+g3+`<div class="ds1-grid ds1-g2">${gHeat}${gGoalTeam}</div>`;
+}
+// ── Dashboard-Gruppen (Okt. 2026): aufklappbar, Zustand gemerkt, zugeklappt = nicht berechnet ──
+let dashGroupsOpen=null;
+function dashGroupState(){
+  if(!dashGroupsOpen){try{dashGroupsOpen=JSON.parse(localStorage.getItem('projectos_dash_groups')||'null');}catch(e){dashGroupsOpen=null;}
+    if(!dashGroupsOpen||typeof dashGroupsOpen!=='object')dashGroupsOpen={pipeline:true,today:true,team:true,dev:false,cust:false,goals:false,project:false};}
+  return dashGroupsOpen;
+}
+function dashToggleGroup(k){const st=dashGroupState();st[k]=!st[k];try{localStorage.setItem('projectos_dash_groups',JSON.stringify(st));}catch(e){}renderDashboard();}
+function dashGroup(k,title,icon,summary,fn){
+  const open=!!dashGroupState()[k];let body='';
+  if(open){try{body=fn();}catch(e){console.warn('Dashboard-Gruppe',k,e);body=`<div class="ds1-box" style="color:var(--red)">Dieser Bereich konnte nicht berechnet werden: ${esc(e.message)}</div>`;}}
+  return `<section class="dg ${open?'open':''}" aria-label="${esc(title)}"><button type="button" class="dg-h" onclick="dashToggleGroup('${k}')" aria-expanded="${open}"><i class="ti ti-chevron-right dg-ch"></i><i class="ti ti-${icon} dg-ic"></i><span class="dg-t">${title}</span><span class="dg-line"></span><span class="dg-sum">${summary||''}</span></button>${open?`<div class="dg-b">${body}</div>`:''}</section>`;
+}
+// Verweildauer je Liste: wie lange liegen offene Leads schon in ihrer Liste?
+function dashDwellHtml(dl){
+  const cols=[...COLUMNS.filter(c=>colBoard(c)==='akquise'&&!c.outcome),...COLUMNS.filter(c=>colBoard(c)==='vertrieb'&&!c.outcome)];
+  const rows=cols.map(c=>{const ls=dl.filter(l=>l.status===c.id&&l.statusSince);const d=ls.map(l=>Math.max(0,-daysUntil(String(l.statusSince).slice(0,10))));
+    return {c,n:ls.length,avg:d.length?Math.round(d.reduce((a,b)=>a+b,0)/d.length):null,old:d.filter(x=>x>30).length};}).filter(r=>r.n);
+  if(!rows.length)return '<div style="font-size:12px;color:var(--text3)">Keine offenen Leads.</div>';
+  const mx=Math.max(1,...rows.map(r=>r.avg||0));
+  return rows.map(r=>{const col=r.avg>30?'#a32d2d':r.avg>14?'#ba7517':colBoard(r.c)==='akquise'?'#206A72':'#ba7517';
+    return `<div class="ds2-hb" style="grid-template-columns:170px minmax(0,1fr) 120px"><span class="n" title="${esc(r.c.name)}">${esc(r.c.name)}</span><span class="bar"><i style="width:${(r.avg||0)/mx*100}%;background:${col}"></i></span><b class="r">Ø ${r.avg} T${r.old?` <span class="ds1-chip ${r.old>5?'red':'amb'}" title="${r.old} Leads länger als 30 Tage in dieser Liste">${r.old} &gt;30 T</span>`:''}</b></div>`;}).join('');
+}
+// Folgeauftraege: wie viele Kunden bestellen ein zweites Mal?
+function dashRepeatHtml(dl){
+  const won=dl.filter(l=>isWon(l));
+  const ords=won.map(l=>(l.actualPrinters||[]).filter(p=>(p.skus||[]).some(ordFilled)).map(p=>({d:String(p.date||l.statusSince||'').slice(0,10),m:(p.skus||[]).reduce((a,x)=>a+((parseFloat(x.priceVk)||0)-(parseFloat(x.priceEk)||0))*(parseFloat(x.qty)||0),0)})).sort((a,b)=>a.d.localeCompare(b.d)));
+  const withOrd=ords.filter(o=>o.length);const rep=withOrd.filter(o=>o.length>=2);
+  const mAll=withOrd.reduce((a,o)=>a+o.reduce((b,x)=>b+x.m,0),0);const mRep=rep.reduce((a,o)=>a+o.slice(1).reduce((b,x)=>b+x.m,0),0);
+  const gaps=rep.map(o=>Math.round((new Date(o[1].d+'T12:00:00')-new Date(o[0].d+'T12:00:00'))/86400000)).filter(x=>x>=0);
+  const avgGap=gaps.length?Math.round(gaps.reduce((a,b)=>a+b,0)/gaps.length):null;
+  const share=withOrd.length?Math.round(rep.length/withOrd.length*100):null;
+  return `<div class="ds2-big">${share===null?'–':share+' %'}</div><div class="ds2-sub">der Kunden mit Auftrag haben nachbestellt (${rep.length} von ${withOrd.length})</div>
+   <div class="ds2-kp"><div class="g">Marge aus Folgeaufträgen<b>${fmtEur(Math.round(mRep))||'0 €'}</b><small>${mAll?Math.round(mRep/mAll*100):0} % der Auftragsmarge</small></div><div>Ø Abstand<b>${avgGap===null?'–':avgGap+' T'}</b><small>1. → 2. Auftrag</small></div><div>Ø Aufträge je Kunde<b>${withOrd.length?(withOrd.reduce((a,o)=>a+o.length,0)/withOrd.length).toFixed(1).replace('.',','):'–'}</b><small>gewonnene Kunden</small></div></div>`;
+}
+// Wirtschaftlichkeit: Investition gegen gewonnene Marge
+function dashEconomicsHtml(dl,invest){
+  const won=dl.filter(l=>isWon(l));
+  const marge=won.reduce((a,l)=>{const ps=(l.actualPrinters||[]).filter(p=>(p.skus||[]).some(ordFilled));return a+(ps.length?ps.reduce((b,p)=>b+(p.skus||[]).reduce((c,x)=>c+((parseFloat(x.priceVk)||0)-(parseFloat(x.priceEk)||0))*(parseFloat(x.qty)||0),0),0):leadMarginOf(l,'demand'));},0);
+  const net=marge-invest;const roi=invest?marge/invest:null;const perWin=won.length?invest/won.length:null;
+  const ok=net>=0;
+  return `<div class="ds2-big" style="color:${ok?'#1d7a5a':'#a32d2d'}">${roi===null?'–':roi.toFixed(1).replace('.',',')+' ×'}</div><div class="ds2-sub">gewonnene Marge je investiertem Euro · ${ok?'die Aktion trägt sich':'die Aktion trägt sich noch nicht'}</div>
+   <div class="ds2-kp"><div>Investition<b>${fmtEur(Math.round(invest))||'0 €'}</b><small>Toner &amp; Versand</small></div><div class="g">Marge gewonnen<b>${fmtEur(Math.round(marge))||'0 €'}</b><small>alle Aufträge</small></div><div class="${ok?'g':'w'}">Ergebnis<b>${(net>=0?'+':'−')+(fmtEur(Math.round(Math.abs(net)))||'0 €')}</b><small>${perWin===null?'':'Kosten je Gewinn '+(fmtEur(Math.round(perWin))||'0 €')}</small></div></div>`;
 }
 function dashboardHeroHtml(){
   loadTasksHeroActs();
