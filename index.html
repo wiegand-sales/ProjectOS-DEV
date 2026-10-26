@@ -1478,7 +1478,7 @@ let localSettingsTrusted=false;
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-10-23T14:15:00.000Z';
+const BUILD_VERSION='2026-10-23T16:00:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -1652,8 +1652,41 @@ const PENDING_PUSH_KEY='toner_kanban_pending_push_v1';
 let sbLastUpdatedAt=null;    // Zeitstempel des zuletzt bekannten, bestaetigten Cloud-Stands
 let sbPushTimer=null;
 
+// ── Artikelstamm in eigener Tabelle "articles" (Okt. 2026) ──
+// Sobald die Tabelle Artikel enthaelt, ist sie die Quelle. Die alte Kopie in den Einstellungen
+// (app_state) wird dann nur noch unveraendert durchgereicht (ARTICLES_SETTINGS), nie mehr geaendert.
+let articlesFromTable=false,articlesLoadedAt=0,ARTICLES_SETTINGS=null;
+const ART_COLS='id,sku,title,ek,vk,cr_rma,verkaufte_stk,oem_flag,kompa_flag,oem,herartnr,ink123,hersteller';
+function artFromRow(r){const n=v=>v===null||v===undefined?'':Number(v);return {id:Number(r.id),sku:r.sku||'',title:r.title||'',ek:n(r.ek),vk:n(r.vk),crRma:n(r.cr_rma),verkaufteStk:n(r.verkaufte_stk),oemFlag:r.oem_flag||'',kompaFlag:r.kompa_flag||'',oem:r.oem||'',herartnr:r.herartnr||'',ink123:r.ink123||'',hersteller:r.hersteller||''};}
+function artToRow(a){const n=v=>(v===''||v===null||v===undefined||isNaN(parseFloat(v)))?null:parseFloat(v);const t=v=>(v===''||v===undefined)?null:v;
+  return {id:Number(a.id),sku:String(a.sku||''),title:String(a.title||''),ek:n(a.ek),vk:n(a.vk),cr_rma:n(a.crRma),verkaufte_stk:n(a.verkaufteStk),oem_flag:t(a.oemFlag),kompa_flag:t(a.kompaFlag),oem:t(a.oem),herartnr:t(a.herartnr),ink123:t(a.ink123),hersteller:t(a.hersteller),updated_at:nowISO()};}
+async function loadArticlesTable(force){
+  if(!sbSession)return;
+  if(!force&&articlesFromTable&&Date.now()-articlesLoadedAt<5*60*1000)return;
+  try{
+    const rows=await fetchAllRows('articles?select='+ART_COLS+'&order=id.asc',{timeoutMs:30000});
+    if(rows&&rows.length){ARTICLES=rows.map(artFromRow);articlesFromTable=true;articlesLoadedAt=Date.now();
+      if(currentView==='crrma')renderCrRma();}
+  }catch(e){console.warn('Artikel-Tabelle nicht verfuegbar - Artikel aus den Einstellungen:',e.message);}
+}
+const artPending=new Map();let artTimer=null;
+function articlesQueueSave(a){if(!articlesFromTable||!a)return;artPending.set(a.id,a);clearTimeout(artTimer);artTimer=setTimeout(articlesFlush,600);}
+async function articlesFlush(){
+  const list=[...artPending.values()];artPending.clear();if(!list.length)return;
+  try{
+    for(const part of chunkList(list.map(artToRow),500)){
+      const r=await fetchWithTimeout(`${SUPABASE_URL}/rest/v1/articles?on_conflict=id`,{method:'POST',headers:Object.assign({},getSbHeaders(),{'Prefer':'resolution=merge-duplicates,return=minimal'}),body:JSON.stringify(part)},30000);
+      if(!r.ok)throw new Error('HTTP '+r.status+' '+(await r.text()).slice(0,120));
+    }
+  }catch(e){list.forEach(a=>artPending.set(a.id,a));alert('Artikel konnten nicht gespeichert werden: '+e.message+'\n\nBitte Verbindung prüfen – die Änderung wird beim nächsten Speichern erneut versucht.');}
+}
+async function articlesDeleteIds(ids){
+  if(!articlesFromTable||!ids.length)return;
+  try{for(const part of chunkList(ids,200)){const r=await fetchWithTimeout(`${SUPABASE_URL}/rest/v1/articles?id=in.(${part.join(',')})`,{method:'DELETE',headers:getSbHeaders()},30000);if(!r.ok)throw new Error('HTTP '+r.status);}}
+  catch(e){alert('Artikel konnten nicht gelöscht werden: '+e.message);}
+}
 function buildStatePayload(){
-  return {leads, COLUMNS, LABELS, AGENTS, ARTICLES, PROJECT, LEADLOCKS, nextId, nextLabelId, nextPrinterId, nextColId, nextAgentId, nextArticleId, nextMilestoneId, nextRiskId, nextNotifyRuleId};
+  return {leads, COLUMNS, LABELS, AGENTS, ARTICLES:(articlesFromTable?(ARTICLES_SETTINGS||[]):ARTICLES), PROJECT, LEADLOCKS, nextId, nextLabelId, nextPrinterId, nextColId, nextAgentId, nextArticleId, nextMilestoneId, nextRiskId, nextNotifyRuleId};
 }
 // Wie buildStatePayload(), aber OHNE die Leads - die leben jetzt in eigenen
 // Datenbank-Zeilen (Tabelle sales_leads) und werden getrennt ueber syncLeadsLayer()
@@ -1662,7 +1695,7 @@ function buildStatePayload(){
 // buildStatePayload() selbst bleibt fuer die LOKALE Zwischenspeicherung unveraendert,
 // damit ein Neuladen der Seite weiterhin alles aus dem Browser-Speicher wiederherstellen kann.
 function buildSettingsPayload(){
-  return {COLUMNS, LABELS, AGENTS, ARTICLES, PROJECT, LEADLOCKS, nextId, nextLabelId, nextPrinterId, nextColId, nextAgentId, nextArticleId, nextMilestoneId, nextRiskId, nextNotifyRuleId};
+  return {COLUMNS, LABELS, AGENTS, ARTICLES:(articlesFromTable?(ARTICLES_SETTINGS||[]):ARTICLES), PROJECT, LEADLOCKS, nextId, nextLabelId, nextPrinterId, nextColId, nextAgentId, nextArticleId, nextMilestoneId, nextRiskId, nextNotifyRuleId};
 }
 function applyStateData(data){
   // WICHTIG: "leads" wird hier bewusst NICHT mehr behandelt - siehe Erklaerung bei
@@ -1671,7 +1704,7 @@ function applyStateData(data){
   if(data.COLUMNS)COLUMNS=data.COLUMNS;
   if(data.LABELS)LABELS=data.LABELS;
   if(data.AGENTS)AGENTS=data.AGENTS;
-  if(data.ARTICLES)ARTICLES=data.ARTICLES;
+  if(data.ARTICLES){ARTICLES_SETTINGS=data.ARTICLES;if(!articlesFromTable)ARTICLES=data.ARTICLES;}
   if(data.LEADLOCKS)LEADLOCKS=data.LEADLOCKS;
   pruneExpiredLocks();
   if(data.PROJECT)PROJECT=Object.assign({milestones:[],risks:[],notificationsEnabled:true,notificationRules:[],csvFields:[],lastBackupDate:'',dashboardKpiHistory:[]},data.PROJECT);
@@ -2861,6 +2894,7 @@ async function previewAndRestoreBackup(dateStr){
     const calCount=hasCal?backupData.calendar_events.filter(e=>!e.deleted).length:0;
     if(!confirm(`Backup vom ${dateStr} enthält ${leadCount} Lead(s)${hasCal?` und ${calCount} Kalender-Aufgaben`:''}.\nAktuell im System: ${leads.length} Lead(s).\n\nWirklich diesen Stand wiederherstellen?\n\nACHTUNG: Das überschreibt den aktuellen Stand für ALLE im Team. Alles, was seit diesem Backup neu eingetragen wurde, geht dabei verloren. Nicht rückgängig zu machen (außer über ein anderes Backup).\n\nHINWEIS: Kommentare und Aktivitäten (in lead_activities) bleiben beim Restore erhalten und werden NICHT zurückgesetzt.`))return;
     applyStateData(JSON.parse(JSON.stringify(backupData)));
+    if(articlesFromTable&&Array.isArray(backupData.ARTICLES)&&backupData.ARTICLES.length){const byId=new Map(ARTICLES.map(a=>[a.id,a]));backupData.ARTICLES.forEach(a=>{const c=JSON.parse(JSON.stringify(a));byId.set(c.id,Object.assign(byId.get(c.id)||{},c));articlesQueueSave(byId.get(c.id));});ARTICLES=[...byId.values()];await articlesFlush();}
     // WICHTIG: applyStateData() kuemmert sich seit dem Umbau bewusst NICHT mehr um
     // Leads (die leben jetzt in eigenen Datenbank-Zeilen). Die Leads aus dem Backup
     // muessen daher hier explizit gesetzt werden - der anschliessende Lead-Abgleich
@@ -4626,7 +4660,7 @@ function switchView(view){
    if(nb)nb.classList.toggle('active',view==='board'&&currentBoardPart==='vertrieb');}
   if(view==='dashboard'){renderDashboardAgentChips();renderDashboardPeriodChips();renderDashboard();}
   if(view==='board'){renderLabelChips();renderBoard();}
-  if(view==='crrma')setTimeout(()=>renderCrRma(),0);
+  if(view==='crrma'){setTimeout(()=>renderCrRma(),0);loadArticlesTable(false);}
   if(view==='tasks'){renderTasksAgentChips();renderTasksView();}
   if(view==='calendar')renderCalendar();
   if(view==='activities'){renderActivityFilterChips();renderActivities();}
@@ -6299,6 +6333,7 @@ function updateArticleField(id,field,val){
   const a=ARTICLES.find(x=>x.id===id);
   if(!a)return;
   a[field]=(field==='sku'||field==='title')?val:(val===''?'':parseFloat(val));
+  articlesQueueSave(a);
 }
 function updateArticleMargin(id,val){
   const a=ARTICLES.find(x=>x.id===id);
@@ -6307,6 +6342,7 @@ function updateArticleMargin(id,val){
   const margin=parseFloat(val);
   if(isNaN(margin))return;
   a.vk=Math.round((ek+margin)*100)/100;
+  articlesQueueSave(a);
   saveState();
   renderCrRma();
 }
@@ -6314,11 +6350,13 @@ function deleteArticle(id){
   const a=ARTICLES.find(x=>x.id===id);
   if(!confirm(`Artikel "${a?a.sku:''}" wirklich löschen?`))return;
   ARTICLES=ARTICLES.filter(x=>x.id!==id);
+  articlesDeleteIds([id]);
   saveState();
   renderCrRma();
 }
 function addArticle(){
   ARTICLES.push({id:genId(),sku:'',title:'',ek:'',vk:'',crRma:'',verkaufteStk:''});
+  articlesQueueSave(ARTICLES[ARTICLES.length-1]);
   saveState();
   renderCrRma();
   const rows=document.querySelectorAll('.crrma-row input');
@@ -6328,7 +6366,9 @@ function deleteAllArticles(){
   if(ARTICLES.length===0){alert('Es sind keine Artikel vorhanden.');return;}
   if(!confirm(`Wirklich ALLE ${ARTICLES.length} Artikel unwiderruflich löschen? Das kann nicht rückgängig gemacht werden.`))return;
   if(!confirm('Bist du dir sicher? Dies löscht die komplette CR-RMA-Artikelliste.'))return;
+  const allIds=ARTICLES.map(a=>a.id);
   ARTICLES=[];
+  articlesDeleteIds(allIds);
   saveState();
   renderCrRma();
 }
@@ -6396,9 +6436,9 @@ function renderCrRma(){
           <div class="crrma-sortable" onclick="setCrrmaSort('sku')">SKU${sortArrow('sku')}</div>
           <div class="crrma-sortable" onclick="setCrrmaSort('title')">Titel${sortArrow('title')}</div>
           <div class="crrma-sortable" onclick="setCrrmaSort('ek')">EK (€)${sortArrow('ek')}</div>
-          <div class="crrma-sortable" onclick="setCrrmaSort('vk')">VK (€)${sortArrow('vk')}</div>
+          <div class="crrma-sortable" onclick="setCrrmaSort('vk')">VK netto (€)${sortArrow('vk')}</div>
           <div class="crrma-sortable" onclick="setCrrmaSort('margin')">Marge${sortArrow('margin')}</div>
-          <div class="crrma-sortable" onclick="setCrrmaSort('verkaufteStk')">Verkaufte Stk.${sortArrow('verkaufteStk')}</div>
+          <div class="crrma-sortable" onclick="setCrrmaSort('verkaufteStk')" title="Verkaufte Stück der letzten 12 Monate">Verkauft 12 M.${sortArrow('verkaufteStk')}</div>
           <div class="crrma-sortable" onclick="setCrrmaSort('crRma')">CR RMA (%)${sortArrow('crRma')}</div>
           <div></div>
         </div>
@@ -10422,7 +10462,7 @@ function triggerArticleCSVImport(){
   document.getElementById('articleCsvImportInput').click();
 }
 function exportArticleCSV(){
-  const headers=['SKU','Titel','EK (EUR)','VK (EUR)','Verkaufte Stk.','CR RMA (%)'];
+  const headers=['SKU','Titel','EK (EUR)','VK netto (EUR)','Verkauft 12 Monate','CR RMA (%)'];
   const rows=ARTICLES.map(a=>[a.sku,a.title,a.ek,a.vk,a.verkaufteStk,a.crRma]);
   const csvEscape=v=>{
     v=(v===undefined||v===null)?'':String(v);
@@ -10481,6 +10521,7 @@ function importArticleCSVFile(file){
           crRma:parseLocaleNumber(get('crRma'))||0,
           verkaufteStk:parseLocaleNumber(get('verkaufteStk'))||0,
         });
+        articlesQueueSave(ARTICLES[ARTICLES.length-1]);
         added++;
       });
       saveState();
@@ -10634,6 +10675,7 @@ async function bootstrapApp(){
       .then(r=>r.ok?r.json():null).then(rows=>{if(rows)window.__loginLogCache=rows;}).catch(()=>{});
     // Dashboard-Aktivitaets-Counts aus lead_activities voraufladen
     refreshDashActCountCache();
+    loadArticlesTable(true);
   }catch(e){
     console.warn('Initialer Sync beim Start fehlgeschlagen (wird automatisch per Hintergrund-Abgleich erneut versucht):',e);
     sbInitialSyncDone=true;
