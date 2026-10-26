@@ -635,6 +635,10 @@ button.ds1-rr{cursor:pointer}button.ds1-rr:hover{filter:brightness(.97)}
 @media (max-width:1100px){.ds2-g21,.ds2-g3{grid-template-columns:1fr}}
 .pf-section{margin-bottom:14px}
 .pf2{display:grid;column-gap:0;row-gap:8px;align-items:center}
+.pf2-dr{display:flex;flex-direction:column;align-items:center;margin-top:-8px;min-height:30px;border:0;background:transparent;padding:0;font-family:inherit;cursor:pointer}
+div.pf2-dr{cursor:default}
+.pf2-dr i{display:block;width:2px;height:9px;background:linear-gradient(rgba(192,57,43,.25),#c0392b)}
+.pf2-dr b{display:flex;align-items:center;justify-content:center;border-radius:50%;background:#c0392b;color:#fff;font-size:10.5px;font-weight:700;box-shadow:0 2px 5px rgba(192,57,43,.3)}
 .pf2-lostbox{height:84px;margin-left:16px;border-radius:12px;background:#fcebeb;border:1px solid #f3c9c9;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#a32d2d}
 .pf2-lostbox b{font-size:22px;line-height:1.1}
 .pf2-lostbox span{font-size:10.5px;font-weight:600}
@@ -1622,7 +1626,7 @@ let localSettingsTrusted=false;
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-10-26T21:45:00.000Z';
+const BUILD_VERSION='2026-10-26T22:15:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -5108,8 +5112,8 @@ function stageGradientColor(i,n){
   return `rgb(${c[0]},${c[1]},${c[2]})`;
 }
 // Horizontaler Trapez-Trichter: Hoehe pro Stufe verjuengt sich proportional zur Leadanzahl
-// Pipeline-Trichter (Okt. 2026): flach wie der alte (150 px), aber mit runden Uebergaengen.
-// Beschriftung unter der Form, Verlorene je Liste als rote Zeile, Summe als letzte Spalte.
+// Pipeline-Trichter (Okt. 2026, Variante 1 + E): durchgehend fliessende Welle (150 px, Farbverlauf
+// wie der alte Trichter, Hoehen linear mind. 20 px), Verlorene als kompakte Tropfen unter der Welle.
 function pipelineFlowHtml(dl){
   const stages=[...COLUMNS.filter(c=>colBoard(c)==='akquise'&&!c.outcome),...COLUMNS.filter(c=>colBoard(c)==='vertrieb'&&!c.outcome),...COLUMNS.filter(c=>c.outcome==='won')];
   const S=stages.map(c=>({c,part:colBoard(c)==='akquise'?'akquise':'vertrieb',n:dl.filter(l=>l.status===c.id).length}));
@@ -5121,18 +5125,26 @@ function pipelineFlowHtml(dl){
   if(!S.length||!total)return '<p style="font-size:12px;color:var(--text3)">Keine Leads im gewählten Zeitraum/Filter.</p>';
   const pct=v=>total?Math.round(v/total*100)+'%':'0%';
   const n=S.length,H=150,cy=H/2,mx=Math.max(1,...S.map(x=>x.n));
-  const hh=c=>4+Math.sqrt(c/mx)*(H/2-6);           // halbe Hoehe, mind. 8 px gesamt
-  const ys=S.map(x=>hh(x.n));
-  // Form: je Abschnitt 100 Einheiten breit, die letzten 35 % gehen weich in den naechsten ueber
-  const seg=S.map((x,i)=>{const x0=i*100,x1=x0+100,y=ys[i],ny=i<n-1?ys[i+1]:ys[i],k=x0+65;
-    const d=`M${x0},${cy-y} L${k},${cy-y} C${k+20},${cy-y} ${x1-20},${cy-ny} ${x1},${cy-ny} L${x1},${cy+ny} C${x1-20},${cy+ny} ${k+20},${cy+y} ${k},${cy+y} L${x0},${cy+y} Z`;
-    return `<path d="${d}" fill="${stageGradientColor(i,n)}" style="cursor:pointer" onclick="switchBoardPart('${x.part}')"><title>${esc(x.c.name)}: ${x.n} (${pct(x.n)}) – im Board öffnen</title></path>`;}).join('');
-  const divs=S.map((x,i)=>i?`<line x1="${i*100}" x2="${i*100}" y1="0" y2="${H}" stroke="#fff" stroke-opacity=".55" stroke-width="1" vector-effect="non-scaling-stroke"/>`:'').join('');
-  const svg=`<svg viewBox="0 0 ${n*100} ${H}" preserveAspectRatio="none" style="grid-column:1 / span ${n};width:100%;height:${H}px;display:block" role="img" aria-label="Pipeline-Trichter">${seg}${divs}</svg>`;
+  const half=c=>(20+(c/mx)*(H-20))/2;
+  const ys=S.map(x=>half(x.n));
+  // Catmull-Rom-Spline durch die Abschnittsmitten (oben und gespiegelt unten)
+  const P=[[0,ys[0]],...ys.map((y,i)=>[i*100+50,y]),[n*100,ys[n-1]]];
+  const spline=(pts,sign)=>{let d='';for(let i=0;i<pts.length-1;i++){const p0=pts[Math.max(0,i-1)],p1=pts[i],p2=pts[i+1],p3=pts[Math.min(pts.length-1,i+2)];
+    const c1=[p1[0]+(p2[0]-p0[0])/6,Math.min(H/2,p1[1]+(p2[1]-p0[1])/6)],c2=[p2[0]-(p3[0]-p1[0])/6,Math.min(H/2,p2[1]-(p3[1]-p1[1])/6)];
+    const Y=v=>(cy+sign*v).toFixed(1);d+=` C${c1[0].toFixed(1)},${Y(c1[1])} ${c2[0].toFixed(1)},${Y(c2[1])} ${p2[0]},${Y(p2[1])}`;}return d;};
+  const R=P.slice().reverse();
+  const shape=`M0,${(cy-P[0][1]).toFixed(1)}${spline(P,-1)} L${n*100},${(cy+R[0][1]).toFixed(1)}${spline(R,1)} Z`;
+  const grad=`<defs><linearGradient id="pfwg" x1="0" x2="1">${S.map((x,i)=>`<stop offset="${(n>1?i/(n-1):0).toFixed(3)}" stop-color="${stageGradientColor(i,n)}"/>`).join('')}</linearGradient><clipPath id="pfwc"><path d="${shape}"/></clipPath></defs>`;
+  const divs=S.map((x,i)=>i?`<line x1="${i*100}" x2="${i*100}" y1="0" y2="${H}" stroke="#fff" stroke-opacity=".45" stroke-width="1" vector-effect="non-scaling-stroke"/>`:'').join('');
+  const hit=S.map((x,i)=>`<rect x="${i*100}" y="0" width="100" height="${H}" fill="transparent" style="cursor:pointer" onclick="switchBoardPart('${x.part}')"><title>${esc(x.c.name)}: ${x.n} (${pct(x.n)}) – im Board öffnen</title></rect>`).join('');
+  const svg=`<svg viewBox="0 0 ${n*100} ${H}" preserveAspectRatio="none" style="grid-column:1 / span ${n};width:100%;height:${H}px;display:block" role="img" aria-label="Pipeline-Trichter">${grad}<path d="${shape}" fill="url(#pfwg)"/><g clip-path="url(#pfwc)">${divs}</g>${hit}</svg>`;
+  const lmx=Math.max(1,...S.map(x=>x.lost));
+  const drops=S.map(x=>{if(!x.lost)return '<div class="pf2-dr"></div>';const d=Math.round(18+Math.sqrt(x.lost/lmx)*10);
+    return `<button type="button" class="pf2-dr" onclick="switchBoardPart('${x.part}')" title="${esc(x.c.name)}: ${x.lost} verloren"><i></i><b style="width:${d}px;height:${d}px">${x.lost}</b></button>`;}).join('')+'<div></div>';
   const lostBox=`<div class="pf2-lostbox" title="Verloren gesamt: ${lostSum} (SQL ${lostSql} · PQL ${lostPql}${lostUnknown?' · '+lostUnknown+' ohne Liste':''})"><b>${lostSum.toLocaleString('de-DE')}</b><span>Verloren gesamt</span></div>`;
   const labels=S.map(x=>`<button type="button" class="pf2-lab" onclick="switchBoardPart('${x.part}')" title="${esc(x.c.name)}"><span class="nm">${esc(x.c.name)}</span><span class="v">${x.n.toLocaleString('de-DE')} / ${pct(x.n)}</span>${x.lost?`<span class="ls">✕ ${x.lost} verloren</span>`:'<span class="ls"></span>'}</button>`).join('');
   const lostLab=`<div class="pf2-lab pf2-lostlab"><span class="nm">Verloren</span><span class="v">${lostSum.toLocaleString('de-DE')} / ${pct(lostSum)}</span><span class="ls">SQL ${lostSql} · PQL ${lostPql}${lostUnknown?` · ${lostUnknown} ohne Liste`:''}</span></div>`;
-  return `<div class="pf2" style="grid-template-columns:repeat(${n},minmax(0,1fr)) 128px">${svg}${lostBox}${labels}${lostLab}</div>`;
+  return `<div class="pf2" style="grid-template-columns:repeat(${n},minmax(0,1fr)) 128px">${svg}${lostBox}${drops}${labels}${lostLab}</div>`;
 }
 function horizontalFunnelHtml(funnelCounts,total){
   const active=funnelCounts.filter(x=>x.c.outcome!=='lost');
