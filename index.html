@@ -524,9 +524,13 @@ button.ts-pill.fc-vk.mod::after{content:"";position:absolute;top:-3px;right:-3px
 .art-mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px}
 .art-fields{display:grid;grid-template-columns:repeat(5,104px);gap:8px}
 .art-fields label{font-size:10.5px;color:var(--text3);display:flex;flex-direction:column;gap:2px;margin:0}
-.art-num{width:100%!important;height:32px!important;text-align:right;font-size:13px!important;padding:0 8px!important}
-.art-num.miss{background:#faeeda!important;border-color:#f2d9a6!important}
-.art-num.rbad{background:#fcebeb!important;color:#a32d2d;font-weight:600}.art-num.rwarn{background:#faeeda!important;color:#7a4e07;font-weight:600}
+#crrmaContent .info-section{max-width:1240px;margin-left:auto;margin-right:auto}
+#crrmaContent input.art-num{width:100%;height:32px;text-align:right;font-size:13px;padding:0 8px;border:1px solid #e1e8e8;background:#efefec;border-radius:8px;color:var(--text);font-family:inherit;box-shadow:none;outline:none;transition:border-color .12s,background .12s;font-variant-numeric:tabular-nums}
+#crrmaContent input.art-num:hover{border-color:#cfd9d9}
+#crrmaContent input.art-num:focus{border-color:#206A72;background:#fff}
+#crrmaContent input.art-num.miss{background:#faeeda;border-color:#f2d9a6}
+#crrmaContent input.art-num.miss::placeholder{color:#7a4e07;opacity:.8}
+#crrmaContent input.art-num.rbad{background:#fcebeb;border-color:#f3c9c9;color:#a32d2d;font-weight:600}#crrmaContent input.art-num.rwarn{background:#faeeda;border-color:#f2d9a6;color:#7a4e07;font-weight:600}
 .art-mgbox{display:flex;align-items:center;justify-content:flex-end;height:32px;background:#E9F0F1;border-radius:8px;padding:0 8px}
 .art-mg{font-weight:700;color:#206A72;font-size:13px;font-variant-numeric:tabular-nums}.art-mg.neg{color:#a32d2d}
 .art-pg{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:12px;flex-wrap:wrap;font-size:12px;color:var(--text3)}
@@ -1501,7 +1505,7 @@ let localSettingsTrusted=false;
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-10-23T18:00:00.000Z';
+const BUILD_VERSION='2026-10-23T18:30:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -6464,11 +6468,11 @@ function renderCrRma(){
       <div class="art-info"><div class="art-t"><span title="${esc(a.title)}">${esc(a.title)||'<span style="color:var(--text3)">ohne Titel</span>'}</span>${ty?`<span class="art-tag ${ty}">${ty==='oem'?'OEM':'Kompa'}</span>`:''}</div>
         <div class="art-ids"><span>SKU <b>${esc(a.sku)||'–'}</b></span>${a.ink123?`<span>NL <b class="art-mono">${esc(a.ink123)}</b></span>`:''}${a.oem?`<span>OEM <b class="art-mono">${esc(a.oem)}</b></span>`:''}</div></div>
       <div class="art-fields">
-        <label>EK (€)<input class="art-num" data-f="ek" inputmode="decimal" value="${artFmt(ek,2)}" oninput="artLive(this)" onchange="artSave(${a.id},'ek',this)"></label>
-        <label>VK netto (€)<input class="art-num ${vk===null?'miss':''}" data-f="vk" inputmode="decimal" placeholder="fehlt" value="${artFmt(vk,2)}" oninput="artLive(this)" onchange="artSave(${a.id},'vk',this)"></label>
+        <label>EK (€)<input type="text" class="art-num" data-f="ek" inputmode="decimal" value="${artFmt(ek,2)}" oninput="artLive(this)" onchange="artSave(${a.id},'ek',this)"></label>
+        <label>VK netto (€)<input type="text" class="art-num ${vk===null?'miss':''}" data-f="vk" inputmode="decimal" placeholder="fehlt" value="${artFmt(vk,2)}" oninput="artLive(this)" onchange="artSave(${a.id},'vk',this)"></label>
         <label>Marge (€)<span class="art-mgbox"><span class="art-mg ${mg!==null&&mg<0?'neg':''}" title="Berechnet: VK netto − EK">${mg===null?'–':mg.toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2})+' €'}</span></span></label>
-        <label>RMA (%)<input class="art-num ${rc(rm)}" data-f="crRma" inputmode="decimal" placeholder="fehlt" value="${artFmt(rm,2)}" oninput="artLive(this)" onchange="artSave(${a.id},'crRma',this)"></label>
-        <label>Verkauft 12 M.<input class="art-num" data-f="verkaufteStk" inputmode="numeric" value="${st===null?'':Math.round(st)}" onchange="artSave(${a.id},'verkaufteStk',this)"></label>
+        <label>RMA (%)<input type="text" class="art-num ${rc(rm)}" data-f="crRma" inputmode="decimal" placeholder="fehlt" value="${artFmt(rm,2)}" oninput="artLive(this)" onchange="artSave(${a.id},'crRma',this)"></label>
+        <label>Verkauft 12 M.<input type="text" class="art-num" data-f="verkaufteStk" inputmode="numeric" value="${st===null?'':Math.round(st)}" onchange="artSave(${a.id},'verkaufteStk',this)"></label>
       </div></div>`;}).join('');
   const from=l.length?crrmaPage*ART_PAGE+1:0,to=Math.min(l.length,(crrmaPage+1)*ART_PAGE);
   const nums=[];for(let i=Math.max(0,crrmaPage-2);i<Math.min(pages,crrmaPage+3);i++)nums.push(i);
