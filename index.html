@@ -510,6 +510,31 @@ button.ts-pill.fc-vk.mod::after{content:"";position:absolute;top:-3px;right:-3px
 .card.sc:hover .sc-ho,.sc-ho:focus-visible{opacity:1;transform:none}
 .card.sc.sc-ready:hover .sc-meta .sc-r{visibility:hidden}
 @media (prefers-reduced-motion:reduce){.sc-ho{transition:none}}
+.art-list{border:1px solid var(--border2,#e4ebea);border-radius:12px;overflow:hidden;background:#fff;margin-top:10px}
+.art-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:18px;align-items:center;padding:10px 16px;border-bottom:1px solid #e9eeee}
+.art-row:last-child{border-bottom:0}
+.art-row:hover{background:rgba(32,106,114,.035)}
+.art-info{min-width:0}
+.art-t{font-weight:700;font-size:13.5px;display:flex;gap:8px;align-items:center;min-width:0}
+.art-t>span:first-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.art-tag{font-size:10.5px;font-weight:700;border-radius:5px;padding:0 6px;white-space:nowrap;flex-shrink:0}
+.art-tag.oem{background:#E9F0F1;color:#206A72}.art-tag.kom{background:#e3f5ee;color:#1d7a5a}
+.art-ids{display:flex;gap:14px;flex-wrap:wrap;margin-top:3px;font-size:12px;color:var(--text3)}
+.art-ids b{color:var(--text2);font-weight:600}
+.art-mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px}
+.art-fields{display:grid;grid-template-columns:repeat(5,104px);gap:8px}
+.art-fields label{font-size:10.5px;color:var(--text3);display:flex;flex-direction:column;gap:2px;margin:0}
+.art-num{width:100%!important;height:32px!important;text-align:right;font-size:13px!important;padding:0 8px!important}
+.art-num.miss{background:#faeeda!important;border-color:#f2d9a6!important}
+.art-num.rbad{background:#fcebeb!important;color:#a32d2d;font-weight:600}.art-num.rwarn{background:#faeeda!important;color:#7a4e07;font-weight:600}
+.art-mgbox{display:flex;align-items:center;justify-content:flex-end;height:32px;background:#E9F0F1;border-radius:8px;padding:0 8px}
+.art-mg{font-weight:700;color:#206A72;font-size:13px;font-variant-numeric:tabular-nums}.art-mg.neg{color:#a32d2d}
+.art-pg{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:12px;flex-wrap:wrap;font-size:12px;color:var(--text3)}
+.art-pn{display:flex;gap:4px}
+.art-pn .btn{min-width:34px;justify-content:center}
+.art-pn .art-cur{background:#206A72;border-color:#206A72;color:#fff;font-weight:700}
+#artFilterMenu{left:auto;right:0}
+@media (max-width:1100px){.art-row{grid-template-columns:1fr}.art-fields{grid-template-columns:repeat(5,minmax(0,1fr))}}
 .board-part-hint{flex:0 0 260px;align-self:flex-start;border:1.5px dashed var(--purple-dark);border-radius:var(--r-md);padding:16px;background:var(--purple-bg);font-size:13px;color:var(--purple-dark);display:flex;flex-direction:column;gap:10px;}
 .board-part-hint button{align-self:flex-start;}
 .nav-icon-badge{width:36px;height:36px;border-radius:9px;background:linear-gradient(180deg,#27808a 0%,#206A72 100%);box-shadow:0 6px 16px rgba(32,106,114,.3);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
@@ -1229,18 +1254,16 @@ label{font-size:12px;font-weight:500;color:var(--text2);display:block;margin-bot
       <div class="topbar-unified">
         <div class="omnibar-flex">
           <i class="ti ti-search omni-search-icon"></i>
-          <input type="text" class="omni-input" id="crrmaSearch" placeholder="SKU oder Titel suchen…" oninput="renderCrRma()">
+          <input type="text" class="omni-input" id="crrmaSearch" placeholder="Suche (SKU, Titel, NL-Nr., OEM-Nr.)" oninput="crrmaPage=0;renderCrRma()">
+          <div class="omni-addfilter-wrap" id="artFilterWrap">
+            <button class="omnibar-btn" onclick="toggleArtFilterMenu(event)"><i class="ti ti-plus" style="font-size:12px"></i> Filter</button>
+            <div class="filtermenu" id="artFilterMenu"></div>
+          </div>
+          <div id="artTokens" style="display:flex;gap:8px;align-items:center;flex-wrap:nowrap;overflow-x:auto;max-width:420px;flex-shrink:1;"></div>
           <div class="omni-spacer"></div>
           <input type="file" id="articleCsvImportInput" accept=".csv,text/csv" style="display:none" onchange="if(this.files[0]){importArticleCSVFile(this.files[0]);this.value='';}">
-          <button class="omnibar-btn" style="color:var(--red);border-color:var(--red)" onclick="deleteAllArticles()"><i class="ti ti-trash"></i> Alle löschen</button>
-          <button class="omnibar-btn primary" onclick="addArticle()"><i class="ti ti-plus"></i> Artikel hinzufügen</button>
-          <div class="infobtn-wrap crrma-menu-wrap">
-            <button class="omnibar-btn icon" onclick="toggleCrrmaMenu(event)" title="Import / Export"><i class="ti ti-dots-vertical"></i></button>
-            <div class="infopop" id="crrmaOverflowMenu">
-              <div class="filtermenu-item" onclick="triggerArticleCSVImport()"><i class="ti ti-upload"></i> Import CSV</div>
-              <div class="filtermenu-item" onclick="exportArticleCSV()"><i class="ti ti-download"></i> Export CSV</div>
-            </div>
-          </div>
+          <button class="omnibar-btn" onclick="exportArticleCSV()"><i class="ti ti-download"></i> Export</button>
+          <button class="omnibar-btn primary" onclick="triggerArticleCSVImport()" title="CSV mit SKU und den zu ändernden Spalten – vorhandene Artikel werden aktualisiert, neue angelegt"><i class="ti ti-upload"></i> CSV aktualisieren</button>
         </div>
       </div>
       <div class="view-scroll" id="crrmaContent"></div>
@@ -1478,7 +1501,7 @@ let localSettingsTrusted=false;
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-10-23T16:00:00.000Z';
+const BUILD_VERSION='2026-10-23T18:00:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -6387,65 +6410,81 @@ function setCrrmaSort(key){
   crrmaPage=0;
   renderCrRma();
 }
+// Artikel-Seite (Okt. 2026): Suche + Filter wie im Board, 25 je Seite, nur EK/VK/RMA/Verkauft aenderbar
+const ART_PAGE=25;
+let artSortKey='verkaufteStk',artSortDir=-1,artMiss='',artTyp='',artSecOpen='sort',artMenuOpen=false;
+const ART_SORTS=[['verkaufteStk','Verkauft 12 M.'],['margin','Marge'],['ek','EK'],['vk','VK netto'],['crRma','RMA-Quote'],['title','Titel'],['sku','SKU']];
+const artNum=v=>(v===''||v===null||v===undefined||isNaN(parseFloat(v)))?null:parseFloat(v);
+const artFmt=(v,d)=>v===null?'':v.toLocaleString('de-DE',{minimumFractionDigits:d,maximumFractionDigits:d,useGrouping:false});
+function artMargin(a){const e=artNum(a.ek),v=artNum(a.vk);return (e===null||v===null)?null:Math.round((v-e)*100)/100;}
+function artTypOf(a){return a.oemFlag==='Y'?'oem':(a.kompaFlag==='Y'?'kom':'');}
+function toggleArtFilterMenu(e){if(e)e.stopPropagation();artMenuOpen=!artMenuOpen;renderArticlesFilterMenu();}
+function artToggleSec(k,e){if(e)e.stopPropagation();artSecOpen=artSecOpen===k?'':k;renderArticlesFilterMenu();}
+function artSet(kind,val,e){if(e)e.stopPropagation();
+  if(kind==='sort'){artSortKey=val;artSortDir=(val==='title'||val==='sku')?1:-1;}
+  if(kind==='dir')artSortDir=+val;if(kind==='miss')artMiss=val;if(kind==='typ')artTyp=val;
+  crrmaPage=0;renderCrRma();}
+function artClear(kind){if(kind==='sort'){artSortKey='verkaufteStk';artSortDir=-1;}if(kind==='miss')artMiss='';if(kind==='typ')artTyp='';crrmaPage=0;renderCrRma();}
+function renderArticlesFilterMenu(){
+  const m=document.getElementById('artFilterMenu');if(!m)return;m.classList.toggle('show',artMenuOpen);
+  const sortName=(ART_SORTS.find(x=>x[0]===artSortKey)||[])[1];
+  const sec=(k,icon,label,sum,active,items)=>`<div class="fm-sec ${artSecOpen===k?'open':''} ${active?'active':''}" onclick="artToggleSec('${k}',event)"><i class="ti ti-${icon}"></i><span>${label}</span><span class="fm-sum">${sum}</span><i class="ti ti-chevron-right fm-chev"></i></div><div class="fm-body ${artSecOpen===k?'open':''}">${items}</div>`;
+  const it=(on,txt,kind,val)=>`<div class="filtermenu-item ${on?'active':''}" onclick="artSet('${kind}','${val}',event)"><span>${txt}</span>${on?'<i class="ti ti-check"></i>':''}</div>`;
+  m.innerHTML=sec('sort','arrows-sort','Sortieren nach',sortName,artSortKey!=='verkaufteStk',ART_SORTS.map(([k,l])=>it(artSortKey===k,l,'sort',k)).join(''))
+    +sec('dir','arrows-down-up','Richtung',artSortDir<0?'absteigend':'aufsteigend',artSortDir>0,it(artSortDir<0,'Absteigend','dir','-1')+it(artSortDir>0,'Aufsteigend','dir','1'))
+    +sec('miss','alert-circle','Fehlende Werte',artMiss==='vk'?'ohne VK':artMiss==='rma'?'ohne RMA':'Alle',!!artMiss,it(!artMiss,'Alle','miss','')+it(artMiss==='vk','ohne VK','miss','vk')+it(artMiss==='rma','ohne RMA-Quote','miss','rma'))
+    +sec('typ','stack-2','Typ',artTyp==='oem'?'OEM':artTyp==='kom'?'Kompatibel':'Alle',!!artTyp,it(!artTyp,'Alle','typ','')+it(artTyp==='oem','OEM','typ','oem')+it(artTyp==='kom','Kompatibel','typ','kom'));
+  const sortTok=(artSortKey!=='verkaufteStk'||artSortDir>0)?`<div class="omni-token">Sortiert: ${esc(sortName)} ${artSortDir<0?'↓':'↑'}<i class="ti ti-x" onclick="artClear('sort')"></i></div>`:'';
+  const t=document.getElementById('artTokens');if(t)t.innerHTML=sortTok
+    +(artMiss?`<div class="omni-token">Fehlend: ${artMiss==='vk'?'VK':'RMA-Quote'}<i class="ti ti-x" onclick="artClear('miss')"></i></div>`:'')
+    +(artTyp?`<div class="omni-token">Typ: ${artTyp==='oem'?'OEM':'Kompatibel'}<i class="ti ti-x" onclick="artClear('typ')"></i></div>`:'');
+}
+document.addEventListener('click',e=>{if(artMenuOpen&&!e.target.closest('#artFilterWrap')){artMenuOpen=false;renderArticlesFilterMenu();}});
+function artLive(el){const r=el.closest('.art-row');if(!r)return;const p=x=>{const v=parseLocaleNumber(x);return isNaN(v)?null:v;};
+  const e=p(r.querySelector('[data-f="ek"]').value),v=p(r.querySelector('[data-f="vk"]').value);const m=(e===null||v===null)?null:Math.round((v-e)*100)/100;
+  const o=r.querySelector('.art-mg');o.textContent=m===null?'–':m.toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2})+' €';o.classList.toggle('neg',m!==null&&m<0);
+  if(el.dataset.f==='crRma'){const rv=p(el.value);el.classList.remove('miss','rwarn','rbad');el.classList.add(rv===null?'miss':rv>=5?'rbad':rv>=2.5?'rwarn':'x');}
+  if(el.dataset.f==='vk')el.classList.toggle('miss',p(el.value)===null);}
+function artSave(id,field,el){const v=parseLocaleNumber(el.value);updateArticleField(id,field,isNaN(v)?'':String(field==='verkaufteStk'?Math.round(v):v));saveState();}
 function renderCrRma(){
-  const q=(document.getElementById('crrmaSearch').value||'').toLowerCase().trim();
-  if(q)crrmaPage=0;
-  let filtered=ARTICLES.filter(a=>!q||a.sku.toLowerCase().includes(q)||a.title.toLowerCase().includes(q));
-  filtered=[...filtered].sort((a,b)=>{
-    let va,vb;
-    if(crrmaSortKey==='margin'){va=(parseFloat(a.vk)||0)-(parseFloat(a.ek)||0);vb=(parseFloat(b.vk)||0)-(parseFloat(b.ek)||0);}
-    else if(['ek','vk','crRma','verkaufteStk'].includes(crrmaSortKey)){va=parseFloat(a[crrmaSortKey])||0;vb=parseFloat(b[crrmaSortKey])||0;}
-    else{va=(a[crrmaSortKey]||'').toLowerCase();vb=(b[crrmaSortKey]||'').toLowerCase();}
-    if(va<vb)return -1*crrmaSortDir;
-    if(va>vb)return 1*crrmaSortDir;
-    return 0;
-  });
-  const totalPages=Math.ceil(filtered.length/CRRMA_PAGE_SIZE)||1;
-  crrmaPage=Math.max(0,Math.min(crrmaPage,totalPages-1));
-  const pageItems=filtered.slice(crrmaPage*CRRMA_PAGE_SIZE,(crrmaPage+1)*CRRMA_PAGE_SIZE);
-  const sortArrow=key=>crrmaSortKey===key?(crrmaSortDir===1?' ▲':' ▼'):'';
-  const fmt2=v=>(v===''||v===null||v===undefined||isNaN(parseFloat(v)))?'':parseFloat(v).toFixed(2);
-  const rowsHtml=pageItems.map(a=>{
-    const margin=(parseFloat(a.vk)||0)-(parseFloat(a.ek)||0);
-    return `
-    <div class="crrma-row">
-      <input type="text" value="${esc(a.sku)}" placeholder="SKU" oninput="updateArticleField(${a.id},'sku',this.value);saveState()">
-      <input type="text" value="${esc(a.title)}" placeholder="Titel" oninput="updateArticleField(${a.id},'title',this.value);saveState()">
-      <input type="number" step="0.01" class="crrma-num-input" value="${fmt2(a.ek)}" placeholder="0.00" onchange="updateArticleField(${a.id},'ek',this.value);saveState();renderCrRma()">
-      <input type="number" step="0.01" class="crrma-num-input" value="${fmt2(a.vk)}" placeholder="0.00" onchange="updateArticleField(${a.id},'vk',this.value);saveState();renderCrRma()">
-      <input type="number" step="0.01" class="crrma-margin-input" style="color:${margin>=0?'var(--green-dark)':'var(--red)'}" value="${margin.toFixed(2)}" title="Marge ändern → VK wird automatisch neu berechnet (EK bleibt fix)" onchange="updateArticleMargin(${a.id},this.value)">
-      <input type="number" step="1" min="0" class="crrma-num-input" value="${a.verkaufteStk===''||a.verkaufteStk===null||a.verkaufteStk===undefined?'':a.verkaufteStk}" placeholder="0" oninput="updateArticleField(${a.id},'verkaufteStk',this.value);saveState()">
-      <input type="number" step="0.01" class="${crRmaCellClass(a.crRma)}" value="${fmt2(a.crRma)}" placeholder="0.00" oninput="updateArticleField(${a.id},'crRma',this.value);saveState();this.className=crRmaCellClass(parseFloat(this.value))">
-      <button class="check-item-del" onclick="deleteArticle(${a.id})" title="Löschen"><i class="ti ti-trash"></i></button>
-    </div>`;
-  }).join('');
-  const paginationHtml=totalPages>1?`<div style="display:flex;align-items:center;gap:10px;padding:12px 0 4px;font-size:12px;color:var(--text2)">
-    <button class="btn" ${crrmaPage===0?'disabled':''} onclick="crrmaPage--;renderCrRma()">← Zurück</button>
-    <span>Seite ${crrmaPage+1} von ${totalPages} · ${filtered.length} Artikel gesamt</span>
-    <button class="btn" ${crrmaPage>=totalPages-1?'disabled':''} onclick="crrmaPage++;renderCrRma()">Weiter →</button>
-  </div>`:'';
-  document.getElementById('crrmaContent').innerHTML=`
-    <div class="info-section">
+  const qEl=document.getElementById('crrmaSearch');const q=(qEl&&qEl.value||'').toLowerCase().trim();
+  let l=ARTICLES;
+  if(q)l=l.filter(a=>[a.sku,a.title,a.ink123,a.oem,a.herartnr].some(x=>String(x||'').toLowerCase().includes(q)));
+  if(artMiss==='vk')l=l.filter(a=>artNum(a.vk)===null);
+  if(artMiss==='rma')l=l.filter(a=>artNum(a.crRma)===null);
+  if(artTyp)l=l.filter(a=>artTypOf(a)===artTyp);
+  const val=a=>artSortKey==='margin'?artMargin(a):(artSortKey==='title'||artSortKey==='sku')?String(a[artSortKey]||''):artNum(a[artSortKey]);
+  l=l.slice().sort((x,y)=>{const a=val(x),b=val(y);const ea=a===null||a==='',eb=b===null||b==='';if(ea&&eb)return 0;if(ea)return 1;if(eb)return -1;
+    return typeof a==='string'?artSortDir*a.localeCompare(b,'de'):artSortDir*(a-b);});
+  const pages=Math.max(1,Math.ceil(l.length/ART_PAGE));crrmaPage=Math.max(0,Math.min(crrmaPage,pages-1));
+  const items=l.slice(crrmaPage*ART_PAGE,(crrmaPage+1)*ART_PAGE);
+  const rc=v=>v===null?'miss':v>=5?'rbad':v>=2.5?'rwarn':'';
+  const rows=items.map(a=>{const ek=artNum(a.ek),vk=artNum(a.vk),rm=artNum(a.crRma),st=artNum(a.verkaufteStk),mg=artMargin(a),ty=artTypOf(a);
+    return `<div class="art-row">
+      <div class="art-info"><div class="art-t"><span title="${esc(a.title)}">${esc(a.title)||'<span style="color:var(--text3)">ohne Titel</span>'}</span>${ty?`<span class="art-tag ${ty}">${ty==='oem'?'OEM':'Kompa'}</span>`:''}</div>
+        <div class="art-ids"><span>SKU <b>${esc(a.sku)||'–'}</b></span>${a.ink123?`<span>NL <b class="art-mono">${esc(a.ink123)}</b></span>`:''}${a.oem?`<span>OEM <b class="art-mono">${esc(a.oem)}</b></span>`:''}</div></div>
+      <div class="art-fields">
+        <label>EK (€)<input class="art-num" data-f="ek" inputmode="decimal" value="${artFmt(ek,2)}" oninput="artLive(this)" onchange="artSave(${a.id},'ek',this)"></label>
+        <label>VK netto (€)<input class="art-num ${vk===null?'miss':''}" data-f="vk" inputmode="decimal" placeholder="fehlt" value="${artFmt(vk,2)}" oninput="artLive(this)" onchange="artSave(${a.id},'vk',this)"></label>
+        <label>Marge (€)<span class="art-mgbox"><span class="art-mg ${mg!==null&&mg<0?'neg':''}" title="Berechnet: VK netto − EK">${mg===null?'–':mg.toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2})+' €'}</span></span></label>
+        <label>RMA (%)<input class="art-num ${rc(rm)}" data-f="crRma" inputmode="decimal" placeholder="fehlt" value="${artFmt(rm,2)}" oninput="artLive(this)" onchange="artSave(${a.id},'crRma',this)"></label>
+        <label>Verkauft 12 M.<input class="art-num" data-f="verkaufteStk" inputmode="numeric" value="${st===null?'':Math.round(st)}" onchange="artSave(${a.id},'verkaufteStk',this)"></label>
+      </div></div>`;}).join('');
+  const from=l.length?crrmaPage*ART_PAGE+1:0,to=Math.min(l.length,(crrmaPage+1)*ART_PAGE);
+  const nums=[];for(let i=Math.max(0,crrmaPage-2);i<Math.min(pages,crrmaPage+3);i++)nums.push(i);
+  const pager=l.length?`<div class="art-pg"><span>${from}–${to} von ${l.length.toLocaleString('de-DE')}${!q&&!artMiss&&!artTyp&&artSortKey==='verkaufteStk'&&artSortDir<0?' · meistverkaufte zuerst':''}</span>
+    <div class="art-pn"><button class="btn btn-sm" ${crrmaPage===0?'disabled':''} onclick="crrmaPage--;renderCrRma();document.getElementById('crrmaContent').scrollTop=0" aria-label="Vorherige Seite">‹</button>${nums.map(i=>`<button class="btn btn-sm ${i===crrmaPage?'art-cur':''}" onclick="crrmaPage=${i};renderCrRma();document.getElementById('crrmaContent').scrollTop=0">${i+1}</button>`).join('')}${pages>crrmaPage+3?`<span style="align-self:center;color:var(--text3)">… ${pages}</span>`:''}<button class="btn btn-sm" ${crrmaPage>=pages-1?'disabled':''} onclick="crrmaPage++;renderCrRma();document.getElementById('crrmaContent').scrollTop=0" aria-label="Nächste Seite">›</button></div></div>`:'';
+  document.getElementById('crrmaContent').innerHTML=`<div class="info-section">
       <div class="crrma-legend">
-        <span class="crrma-legend-item"><span class="crrma-dot crrma-good"></span> unter 2,5% – unbedenklich</span>
-        <span class="crrma-legend-item"><span class="crrma-dot crrma-warn"></span> 2,5–5% – beobachten</span>
-        <span class="crrma-legend-item"><span class="crrma-dot crrma-bad"></span> ab 5% – hohe Reklamationsquote, mit Vorsicht verschicken</span>
+        <span class="crrma-legend-item"><span class="crrma-dot crrma-good"></span> RMA unter 2,5 %</span>
+        <span class="crrma-legend-item"><span class="crrma-dot crrma-warn"></span> 2,5–5 % – beobachten</span>
+        <span class="crrma-legend-item"><span class="crrma-dot crrma-bad"></span> ab 5 % – mit Vorsicht verschicken</span>
+        <span class="crrma-legend-item" style="margin-left:auto;color:var(--text3)">SKU, Titel, NL- und OEM-Nr. sind nur zur Ansicht · orange = Wert fehlt</span>
       </div>
-      <div class="crrma-table crrma-table-margin">
-        <div class="crrma-row crrma-hdr">
-          <div class="crrma-sortable" onclick="setCrrmaSort('sku')">SKU${sortArrow('sku')}</div>
-          <div class="crrma-sortable" onclick="setCrrmaSort('title')">Titel${sortArrow('title')}</div>
-          <div class="crrma-sortable" onclick="setCrrmaSort('ek')">EK (€)${sortArrow('ek')}</div>
-          <div class="crrma-sortable" onclick="setCrrmaSort('vk')">VK netto (€)${sortArrow('vk')}</div>
-          <div class="crrma-sortable" onclick="setCrrmaSort('margin')">Marge${sortArrow('margin')}</div>
-          <div class="crrma-sortable" onclick="setCrrmaSort('verkaufteStk')" title="Verkaufte Stück der letzten 12 Monate">Verkauft 12 M.${sortArrow('verkaufteStk')}</div>
-          <div class="crrma-sortable" onclick="setCrrmaSort('crRma')">CR RMA (%)${sortArrow('crRma')}</div>
-          <div></div>
-        </div>
-        ${rowsHtml||'<p style="font-size:12px;color:var(--text3);padding:10px 0">Keine Artikel gefunden.</p>'}
-      </div>
-      ${paginationHtml}
+      <div class="art-list">${rows||'<p style="font-size:12px;color:var(--text3);padding:14px">Keine Artikel gefunden.</p>'}</div>
+      ${pager}
     </div>`;
+  renderArticlesFilterMenu();
 }
 // ── AKTIVITÄTEN: vollständiges, durchsuchbares Protokoll + Trend-Chart ──
 let activityPeriod='30'; // Tage als String, oder 'all'
@@ -10451,19 +10490,26 @@ function triggerCSVImport(){
 
 // ── CR RMA: ARTIKEL-STAMMDATEN CSV IMPORT/EXPORT ──
 const ARTICLE_CSV_FIELD_ALIASES={
-  sku:['sku','artikelnummer','art-nr'],
-  title:['titel','name','bezeichnung','artikelbezeichnung'],
-  ek:['ek','ek (eur)','einkaufspreis','einkauf'],
-  vk:['vk','vk (eur)','verkaufspreis','verkauf'],
-  crRma:['cr rma','cr rma (%)','cr-rma','rma','rma-quote'],
-  verkaufteStk:['verkaufte stk.','verkaufte stk','verkaufte stück','verkaufte stueck','stk.','stk','stückzahl','anzahl verkauft','verkaufsmenge'],
+  sku:['sku','artikelnummer','art-nr','artikelnr','artikelnr.'],
+  title:['titel','name','bezeichnung','artikelbezeichnung','itemname'],
+  ek:['ek','ek (eur)','ek (€)','einkaufspreis','einkauf'],
+  vk:['vk','vk (eur)','vk (€)','vk netto','vk netto (eur)','vk netto (€)','verkaufspreis','verkauf'],
+  crRma:['cr rma','cr rma (%)','cr-rma','rma','rma-quote','rma quote','rma (%)'],
+  verkaufteStk:['verkaufte stk.','verkaufte stk','verkaufte stück','verkaufte stueck','stk.','stk','stückzahl','anzahl verkauft','verkaufsmenge','verkauft 12 monate','verkauft 12 m.'],
+  ink123:['nl','nl-nr.','nl-nr','123ink_artnr','123ink-nr.'],
+  oem:['oem-nr.','oem-nr','oem-nummer','oem'],
+  herartnr:['herartnr','hersteller-nr.','hersteller-artikelnummer'],
+  hersteller:['herstell','hersteller'],
+  oemFlag:['oem-flag','oem flag'],
+  kompaFlag:['kompa flag','kompa-flag','kompa'],
 };
 function triggerArticleCSVImport(){
   document.getElementById('articleCsvImportInput').click();
 }
 function exportArticleCSV(){
-  const headers=['SKU','Titel','EK (EUR)','VK netto (EUR)','Verkauft 12 Monate','CR RMA (%)'];
-  const rows=ARTICLES.map(a=>[a.sku,a.title,a.ek,a.vk,a.verkaufteStk,a.crRma]);
+  const headers=['SKU','Titel','NL-Nr.','OEM-Nr.','EK (EUR)','VK netto (EUR)','Marge (EUR)','RMA-Quote','Verkauft 12 Monate'];
+  const de=v=>(v===''||v===null||v===undefined||isNaN(parseFloat(v)))?'':String(v).replace('.',',');
+  const rows=ARTICLES.map(a=>{const m=artMargin(a);return [a.sku,a.title,a.ink123||'',a.oem||'',de(a.ek),de(a.vk),m===null?'':String(m).replace('.',','),de(a.crRma),de(a.verkaufteStk)];});
   const csvEscape=v=>{
     v=(v===undefined||v===null)?'':String(v);
     return /[;,"\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;
@@ -10473,7 +10519,7 @@ function exportArticleCSV(){
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');
   a.href=url;
-  a.download=`crrma_artikel_${TODAY}.csv`;
+  a.download=`projectos_artikel_${TODAY}.csv`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
@@ -10481,7 +10527,7 @@ function exportArticleCSV(){
 }
 function importArticleCSVFile(file){
   const reader=new FileReader();
-  reader.onload=e=>{
+  reader.onload=async e=>{
     try{
       let text=e.target.result;
       text=text.replace(/^\uFEFF/,'').replace(/\uFEFF/g,'');
@@ -10490,51 +10536,40 @@ function importArticleCSVFile(file){
       const headers=rows[0].map(h=>h.replace(/\uFEFF/g,'').replace(/^["']|["']$/g,'').trim().toLowerCase());
       const colMap={};
       Object.entries(ARTICLE_CSV_FIELD_ALIASES).forEach(([field,aliases])=>{
-        const idx=headers.findIndex(h=>aliases.includes(h));
+        // bei doppelten Spalten (z. B. zwei Mal "OEM": Y/N und Nummer) die letzte nehmen
+        let idx=-1;headers.forEach((h,i)=>{if(aliases.includes(h))idx=(field==='oem'||idx<0)?i:idx;});
         if(idx>-1)colMap[field]=idx;
       });
-      if(colMap.sku===undefined){
-        alert('Keine Spalte "SKU" in der Kopfzeile gefunden. Bitte prüfe die CSV-Datei.\n\nGefundene Spalten: '+rows[0].join(', '));
-        return;
-      }
-      const norm=v=>(v||'').trim().toLowerCase();
-      let added=0,skippedDup=0,skippedEmpty=0;
-      const dupDetails=[];
-      const seenInFile=new Set();
-      rows.slice(1).forEach((r,rowIdx)=>{
-        const get=f=>colMap[f]!==undefined?(r[colMap[f]]||'').trim():'';
-        const sku=get('sku');
-        if(!sku){skippedEmpty++;return;}
-        const existingMatch=ARTICLES.find(a=>norm(a.sku)===norm(sku));
-        if(existingMatch||seenInFile.has(norm(sku))){
-          skippedDup++;
-          dupDetails.push(`Zeile ${rowIdx+2}: SKU "${sku}" – ${existingMatch?'existiert bereits':'doppelt in der hochgeladenen Datei'}`);
-          return;
-        }
-        seenInFile.add(norm(sku));
-        ARTICLES.push({
-          id:genId(),
-          sku,
-          title:get('title'),
-          ek:parseLocaleNumber(get('ek'))||0,
-          vk:parseLocaleNumber(get('vk'))||0,
-          crRma:parseLocaleNumber(get('crRma'))||0,
-          verkaufteStk:parseLocaleNumber(get('verkaufteStk'))||0,
-        });
-        articlesQueueSave(ARTICLES[ARTICLES.length-1]);
-        added++;
+      // zwei Spalten "OEM": erste = Kennzeichen (Y/N), letzte = OEM-Nummer
+      {const oi=headers.map((h,i)=>h==='oem'?i:-1).filter(i=>i>-1);if(oi.length>=2&&colMap.oemFlag===undefined){colMap.oemFlag=oi[0];colMap.oem=oi[oi.length-1];}}
+      if(colMap.oemFlag===colMap.oem)delete colMap.oemFlag;
+      if(colMap.sku===undefined){alert('Keine Spalte "SKU" in der Kopfzeile gefunden. Bitte prüfe die CSV-Datei.\n\nGefundene Spalten: '+rows[0].join(', '));return;}
+      const norm=v=>String(v||'').trim().toLowerCase();
+      const data=rows.slice(1).map(r=>{const get=f=>colMap[f]!==undefined?String(r[colMap[f]]||'').trim():'';return {sku:get('sku'),get};}).filter(x=>x.sku);
+      // RMA als Anteil (0,0062) oder Prozent (0,62)? Anteil, wenn alle Werte <= 1 und mind. einer < 0,1
+      let rmaFactor=1;
+      if(colMap.crRma!==undefined){const vs=data.map(d=>{const raw=d.get('crRma');return raw.includes('%')?null:parseLocaleNumber(raw);}).filter(v=>v!==null&&!isNaN(v));
+        if(vs.length&&vs.every(v=>v<=1)&&vs.some(v=>v>0&&v<0.1))rmaFactor=100;}
+      const bySku=new Map();ARTICLES.forEach(a=>{const k=norm(a.sku);if(k&&!bySku.has(k))bySku.set(k,a);});
+      const numF=['ek','vk','crRma','verkaufteStk'],txtF=['ink123','oem','herartnr','hersteller','oemFlag','kompaFlag'];
+      const val=(d,f)=>{const raw=d.get(f);if(raw===''||raw==='#N/A')return undefined;if(numF.includes(f)){let v=parseLocaleNumber(raw.replace('%',''));if(isNaN(v))return undefined;if(f==='crRma')v=Math.round(v*(raw.includes('%')?1:rmaFactor)*10000)/10000;if(f==='verkaufteStk')v=Math.round(v);return v;}return raw;};
+      let upd=0,neu=0,same=0;const seen=new Set();let dup=0;
+      const plan=[];
+      data.forEach(d=>{const k=norm(d.sku);if(seen.has(k)){dup++;return;}seen.add(k);const ex=bySku.get(k);
+        if(ex){const ch={};[...numF,...txtF].forEach(f=>{const v=val(d,f);if(v!==undefined&&String(ex[f]??'')!==String(v))ch[f]=v;});if(Object.keys(ch).length){plan.push({ex,ch});upd++;}else same++;}
+        else{plan.push({neu:true,d});neu++;}});
+      const cols=Object.keys(colMap).filter(f=>f!=='sku').map(f=>({title:'Titel (nur neue)',ek:'EK',vk:'VK netto',crRma:'RMA-Quote',verkaufteStk:'Verkauft 12 M.',ink123:'NL-Nr.',oem:'OEM-Nr.',herartnr:'Hersteller-Nr.',hersteller:'Hersteller',oemFlag:'OEM-Kennz.',kompaFlag:'Kompa-Kennz.'}[f])).filter(Boolean);
+      if(!plan.length){alert(`Keine Änderungen: ${same} Artikel sind bereits auf diesem Stand.`);return;}
+      if(!confirm(`CSV aktualisieren – Vorschau:\n\n✎ ${upd} vorhandene Artikel werden aktualisiert\n+ ${neu} neue Artikel werden angelegt\n= ${same} unverändert${dup?`\n↷ ${dup} doppelte Zeilen in der Datei übersprungen`:''}\n\nÜbernommene Spalten: ${cols.join(', ')}${rmaFactor===100?'\n\nHinweis: Die RMA-Quote steht in der Datei als Anteil (z. B. 0,0062) und wird in Prozent umgerechnet (0,62 %).':''}\n\nLeere Zellen ändern nichts. Fortfahren?`))return;
+      plan.forEach(pl=>{
+        if(pl.neu){const d=pl.d;const a={id:genId(),sku:d.sku,title:d.get('title')||'',ek:'',vk:'',crRma:'',verkaufteStk:''};[...numF,...txtF].forEach(f=>{const v=val(d,f);if(v!==undefined)a[f]=v;});ARTICLES.push(a);articlesQueueSave(a);}
+        else{Object.assign(pl.ex,pl.ch);articlesQueueSave(pl.ex);}
       });
       saveState();
+      if(articlesFromTable){clearTimeout(artTimer);await articlesFlush();}
       renderCrRma();
-      let msg=`CSV-Import abgeschlossen:\n\n✓ ${added} neue Artikel angelegt\n↷ ${skippedDup} übersprungen (SKU bereits vorhanden oder doppelt in der Datei)\n∅ ${skippedEmpty} übersprungen (keine SKU)`;
-      if(dupDetails.length){
-        msg+='\n\nÜbersprungene Zeilen im Detail:\n'+dupDetails.slice(0,25).join('\n');
-        if(dupDetails.length>25)msg+=`\n… und ${dupDetails.length-25} weitere`;
-      }
-      alert(msg);
-    }catch(err){
-      alert('Fehler beim Import: '+err.message);
-    }
+      alert(`CSV-Import abgeschlossen:\n\n✎ ${upd} aktualisiert\n+ ${neu} neu angelegt\n= ${same} unverändert`);
+    }catch(err){alert('Fehler beim Import: '+err.message);}
   };
   reader.readAsText(file,'utf-8');
 }
