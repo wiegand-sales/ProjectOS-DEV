@@ -622,6 +622,20 @@ button.ds1-rr{cursor:pointer}button.ds1-rr:hover{filter:brightness(.97)}
 .ds2-g21{grid-template-columns:minmax(0,2fr) minmax(0,1fr)}
 .ds2-g3{grid-template-columns:repeat(3,minmax(0,1fr))}
 .ds2-why{font-size:11.5px;color:var(--text3);margin-top:8px;border-top:1px solid #e1e8e8;padding-top:7px}.ds2-why b{color:var(--text2)}
+.ds2-chart{display:grid;grid-template-columns:34px minmax(0,1fr);gap:6px;align-items:stretch}
+.ds2-chart.two{grid-template-columns:34px minmax(0,1fr) 34px}
+.ds2-ax{display:flex;flex-direction:column;justify-content:space-between;height:180px;font-size:10px;color:var(--text3);padding:4px 0 0}
+.ds2-ax.l{text-align:right}.ds2-ax.r{text-align:left;color:#3a9aa4}
+.ds2-plot{min-width:0}
+.ds2-xl{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));font-size:10px;color:var(--text3);margin-top:4px}
+.ds2-xl span{text-align:center;white-space:nowrap}
+.ds2-xl span:first-child{text-align:left}.ds2-xl span:last-child{text-align:right}
+.ds2-bars{display:flex;align-items:flex-end;gap:6px;height:170px;border-bottom:1px solid #d5dfdf}
+.ds2-bars .c{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;min-width:0;position:relative}
+.ds2-bars .c i{display:block;width:70%;border-radius:4px 4px 0 0}
+.ds2-bars .v{font-size:9.5px;font-weight:700;color:var(--text2);margin-bottom:2px;white-space:nowrap}
+.ds2-bars .k{position:absolute;bottom:-17px;font-size:9.5px;color:var(--text3)}
+.ds2-bars{margin-bottom:20px}
 .ds2-legend{display:flex;gap:12px;flex-wrap:wrap;font-size:11.5px;color:var(--text2);margin-top:6px}.ds2-legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
 .ds2-big{font-size:26px;font-weight:700;line-height:1.15}
 .ds2-sub{font-size:11.5px;color:var(--text3)}
@@ -1664,7 +1678,7 @@ let localSettingsTrusted=false;
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-10-26T23:30:00.000Z';
+const BUILD_VERSION='2026-10-27T00:00:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -6120,16 +6134,24 @@ function dashStep2Html(want){
   const sPql=perWeek(handovers.map(dd));
   const sWon=perWeek(won.map(l=>dOf(l.statusSince||l.closedAt)));
   const kwl=weeks.map(w=>'KW '+kwOf(w));
-  const lineSvg=(series,right)=>{const w=640,h=180,pl=34,pr=right?34:10,pb=22,pt=8,W=w-pl-pr,H=h-pb-pt,n=weeks.length;
-    const mxL=Math.max(1,...series.filter(s=>!s.r).flatMap(s=>s.v))*1.1,mxR=Math.max(1,...series.filter(s=>s.r).flatMap(s=>s.v))*1.1;
-    const x=i=>pl+i*W/(n-1),y=(v,r)=>pt+H-(v/(r?mxR:mxL))*H;let g='';
-    for(let k=0;k<=4;k++){const yy=pt+H-H*k/4;g+=`<line x1="${pl}" x2="${w-pr}" y1="${yy}" y2="${yy}" stroke="currentColor" opacity=".08"/><text x="${pl-6}" y="${yy+3}" font-size="9" text-anchor="end" fill="currentColor" opacity=".55">${Math.round(mxL*k/4)}</text>${right?`<text x="${w-pr+6}" y="${yy+3}" font-size="9" fill="#7ED2DB">${Math.round(mxR*k/4)}</text>`:''}`;}
-    g+=kwl.map((l,i)=>i%2?'':`<text x="${x(i)}" y="${h-6}" font-size="9" text-anchor="middle" fill="currentColor" opacity=".55">${l}</text>`).join('');
-    g+=series.map(s=>`<polyline points="${s.v.map((v,i)=>x(i)+','+y(v,s.r)).join(' ')}" fill="none" stroke="${s.c}" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round" ${s.r?'stroke-dasharray="5 4"':''}/>${s.v.map((v,i)=>`<circle cx="${x(i)}" cy="${y(v,s.r)}" r="${i===n-1?3.5:2}" fill="${s.c}"><title>${s.n} ${kwl[i]}: ${v}</title></circle>`).join('')}`).join('');
-    return `<svg viewBox="0 0 ${w} ${h}" style="width:100%;height:auto;color:var(--text)" role="img" aria-label="Entwicklung über 12 Wochen">${g}</svg><div class="ds2-legend">${series.map(s=>`<span><i style="background:${s.c}"></i>${s.n}${s.r?' (rechte Achse)':''}</span>`).join('')}</div>`;};
-  const barSvg=(v,col,fmt)=>{const w=640,h=150,pl=44,pb=22,pt=8,W=w-pl-8,H=h-pb-pt,n=v.length,mx=Math.max(1,...v)*1.1,bw=W/n*.62;let g='';
-    for(let k=0;k<=4;k++){const yy=pt+H-H*k/4;g+=`<line x1="${pl}" x2="${w-8}" y1="${yy}" y2="${yy}" stroke="currentColor" opacity=".08"/><text x="${pl-6}" y="${yy+3}" font-size="9" text-anchor="end" fill="currentColor" opacity=".55">${fmt(mx*k/4)}</text>`;}
-    return `<svg viewBox="0 0 ${w} ${h}" style="width:100%;height:auto;color:var(--text)" role="img" aria-label="Marge je Woche">${g}${v.map((x,i)=>{const bh=x/mx*H,xx=pl+i*W/n+(W/n-bw)/2;return `<rect x="${xx}" y="${pt+H-bh}" width="${bw}" height="${Math.max(0,bh)}" rx="3" fill="${col}" opacity="${i===n-1?1:.75}"><title>${kwl[i]}: ${fmtEur(Math.round(x))||'0 €'}</title></rect>${i%2?'':`<text x="${xx+bw/2}" y="${h-6}" font-size="9" text-anchor="middle" fill="currentColor" opacity=".55">${kwl[i]}</text>`}`;}).join('')}</svg>`;};
+  // 12-Wochen-Linien wie das Aktivitaetsdiagramm: feste Hoehe, keine Schrift in der Grafik
+  const lineSvg=(series,right)=>{const W=1400,H=180,pt=10,pb=6,n=weeks.length;
+    const mxL=Math.max(1,...series.filter(s=>!s.r).flatMap(s=>s.v)),mxR=Math.max(1,...series.filter(s=>s.r).flatMap(s=>s.v));
+    const x=i=>i*W/(n-1),y=(v,r)=>pt+(H-pt-pb)*(1-v/(r?mxR:mxL));
+    const paths=series.map((s,k)=>{const pts=s.v.map((v,i)=>[x(i),y(v,s.r)]);const lp=smoothSvgPath(pts);
+      const area=k===0?`<path d="${lp} L${W},${H-pb} L0,${H-pb} Z" fill="url(#ds2TrendGrad)"/>`:'';
+      return `${area}<path d="${lp}" fill="none" stroke="${s.c}" stroke-width="2.2" ${s.r?'stroke-dasharray="6 5"':''} vector-effect="non-scaling-stroke"/>`;}).join('');
+    const grid=[0.25,0.5,0.75].map(f=>`<line x1="0" x2="${W}" y1="${pt+(H-pt-pb)*f}" y2="${pt+(H-pt-pb)*f}" stroke="#e1e8e8" stroke-width="1" vector-effect="non-scaling-stroke"/>`).join('')+`<line x1="0" x2="${W}" y1="${H-pb}" y2="${H-pb}" stroke="#d5dfdf" stroke-width="1" vector-effect="non-scaling-stroke"/>`;
+    const hits=weeks.map((w,i)=>`<rect x="${i===0?0:x(i)-W/(n-1)/2}" y="0" width="${W/(n-1)}" height="${H}" fill="transparent"><title>${kwl[i]}: ${series.map(s=>s.n+' '+s.v[i]).join(' · ')}</title></rect>`).join('');
+    const svg=`<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" style="width:100%;height:${H}px;display:block" role="img" aria-label="Entwicklung über 12 Wochen"><defs><linearGradient id="ds2TrendGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#206A72" stop-opacity="0.22"/><stop offset="100%" stop-color="#206A72" stop-opacity="0.02"/></linearGradient></defs>${grid}${paths}${hits}</svg>`;
+    const yl=v=>Math.round(v).toLocaleString('de-DE');
+    const axL=`<div class="ds2-ax l">${[1,0.5,0].map(f=>`<span>${yl(mxL*f)}</span>`).join('')}</div>`;
+    const axR=right?`<div class="ds2-ax r">${[1,0.5,0].map(f=>`<span>${yl(mxR*f)}</span>`).join('')}</div>`:'';
+    const xl=`<div class="ds2-xl">${kwl.map((l,i)=>`<span>${i%2?'':l}</span>`).join('')}</div>`;
+    return `<div class="ds2-chart ${right?'two':''}">${axL}<div class="ds2-plot">${svg}${xl}</div>${axR}</div><div class="ds2-legend">${series.map(s=>`<span><i style="background:${s.c}"></i>${s.n}${s.r?' (rechte Achse, gestrichelt)':''}</span>`).join('')}</div>`;};
+  // Balken je Woche als HTML (Schrift bleibt klein)
+  const barSvg=(v,col,fmt)=>{const mx=Math.max(1,...v);
+    return `<div class="ds2-bars">${v.map((x,i)=>`<div class="c" title="${kwl[i]}: ${fmtEur(Math.round(x))||'0 €'}"><span class="v">${x?fmt(x):''}</span><i style="height:${Math.max(x?3:0,x/mx*130)}px;background:${col};opacity:${i===v.length-1?1:.8}"></i><span class="k">${kwl[i].replace('KW ','')}</span></div>`).join('')}</div>`;};
   const mWeek=weeks.map(()=>0);wonOrders.forEach(o=>{const i=wIdx(o.d);if(i>=0)mWeek[i]+=o.m;});
   // Free-Toner-Wirkung (Versand in den letzten 90 Tagen)
   const sent=sc.filter(l=>l.tonerSentAt&&dOf(l.tonerSentAt)>=d90);
