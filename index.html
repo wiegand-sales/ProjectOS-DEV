@@ -674,6 +674,8 @@ div.pf2-dr{cursor:default}
 .pf-section .movements-strip{gap:8px}
 .pf-section .movements-item{background:#E9F0F1;border-radius:999px;padding:5px 12px}
 .dg{margin:0 0 6px}
+.ds5-goal{position:absolute;top:10px;right:12px;width:26px;height:26px;border-radius:7px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.06);color:#9fc9cd;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;padding:0}
+.ds5-goal:hover{background:rgba(255,255,255,.14);color:#fff}
 .ds4-foot{display:flex;align-items:stretch;margin-top:14px;padding-top:12px;border-top:1px solid #e1e8e8;flex-wrap:wrap;row-gap:10px}
 .ds4-it{flex:1;min-width:140px;display:flex;align-items:baseline;gap:8px;border:0;background:transparent;text-align:left;padding:2px 14px;border-left:1px solid #e1e8e8;font-family:inherit;color:var(--text2)}
 .ds4-foot>.ds4-it:first-child{border-left:0;padding-left:2px}
@@ -1700,7 +1702,7 @@ let localSettingsTrusted=false;
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-10-27T00:45:00.000Z';
+const BUILD_VERSION='2026-10-27T01:00:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -5842,19 +5844,7 @@ function renderDashboard(){
       </div>
     </div>
     `)}
-    ${dashGroup('project','Projekt &amp; Wirtschaftlichkeit','briefcase',`Lohnt sich die Free-Toner-Aktion? · ${projStatus.label}`,()=>`
-    ${isAdmin()?`<div class="ds3-goalbar"><span><i class="ti ti-target"></i> Monatsziel Marge: <b>${(PROJECT.dashGoals&&PROJECT.dashGoals.team)?fmtEur(PROJECT.dashGoals.team):'nicht festgelegt'}</b> <span style="color:var(--text3)">(erscheint im Banner bei „Marge gewonnen“)</span></span><button type="button" class="btn btn-sm" onclick="dashSetGoal('team')">${(PROJECT.dashGoals&&PROJECT.dashGoals.team)?'Ändern':'Festlegen'}</button></div>`:''}
-    <div class="info-section ${projStatus.glass?'project-status-glass':''}" style="border-color:${projStatus.boxBorder};background:${projStatus.boxBg}">
-      <div class="project-status-row">
-        <div class="project-status-badge" style="background:${projStatus.badgeBg};color:${projStatus.badgeColor}"><i class="ti ti-flag-3"></i> ${projStatus.label}</div>
-        <div class="project-status-item"><span>Zeitrahmen</span><strong>${fmtDate(PROJECT.startDate)} – ${fmtDate(PROJECT.endDate)}</strong><div class="funnel-track" style="height:8px;margin-top:4px"><div class="funnel-bar" style="width:${timeProgress}%;background:var(--purple);font-size:0"></div></div><span class="project-status-sub">${daysRemaining>=0?daysRemaining+' Tage verbleibend':Math.abs(daysRemaining)+' Tage überzogen'} (${timeProgress}%)</span></div>
-        <div class="project-status-item"><span>Budget</span><strong>${fmtEur(allInvestSum)} / ${fmtEur(PROJECT.budget)}</strong><div class="funnel-track" style="height:8px;margin-top:4px"><div class="funnel-bar" style="width:${Math.min(100,budgetProgress)}%;background:${budgetProgress>=100?'var(--red)':'var(--amber)'};font-size:0"></div></div><span class="project-status-sub">${budgetProgress}% verbraucht</span></div>
-        <div class="project-status-item"><span>Meilensteine</span><strong>${doneMilestones} / ${PROJECT.milestones.length}</strong><div class="funnel-track" style="height:8px;margin-top:4px"><div class="funnel-bar" style="width:${milestoneProgress||0}%;background:var(--green-dark);font-size:0"></div></div><span class="project-status-sub">${overdueMilestones.length?overdueMilestones.length+' überfällig':'im Plan'}</span></div>
-        <div class="project-status-item"><span>Offene Risiken</span><strong style="color:${openRisks.length?'var(--red)':(projStatus.glass?'#7ED2DB':'var(--green-dark)')}">${openRisks.length}</strong><span class="project-status-sub">${openRisks.length?openRisks[0].text.slice(0,40)+(openRisks[0].text.length>40?'…':''):'keine offenen Risiken'}</span></div>
-      </div>
-    </div>
-    <div class="ds1-grid ds1-g2">${dashStep2Html('toner')}<div class="ds1-box"><div class="ds1-bh"><h2>Wirtschaftlichkeit</h2><span class="r">gesamt · im gewählten Filter</span></div>${dashEconomicsHtml(dl,allInvestSum,dashMetrics.winRate,dashMetrics.avgCycle)}<div class="ds2-why"><b>Warum:</b> gewonnene Marge gegenüber Toner- und Versandkosten.</div></div></div>
-    `)}`;
+`;
   equalizeRowHeights();
 }
 // Gleicht Boxenhoehen pixelgenau per JS aus (CSS-Flex kann bei Bruch-Pixeln
@@ -6259,7 +6249,7 @@ function dashStep2Html(want){
 let dashGroupsOpen=null;
 function dashGroupState(){
   if(!dashGroupsOpen){try{dashGroupsOpen=JSON.parse(localStorage.getItem('projectos_dash_groups')||'null');}catch(e){dashGroupsOpen=null;}
-    if(!dashGroupsOpen||typeof dashGroupsOpen!=='object')dashGroupsOpen={pipeline:true,today:true,team:true,dev:false,cust:false,project:false};}
+    if(!dashGroupsOpen||typeof dashGroupsOpen!=='object')dashGroupsOpen={pipeline:true,today:true,team:true,dev:false,cust:false};}
   return dashGroupsOpen;
 }
 function dashToggleGroup(k){const st=dashGroupState();st[k]=!st[k];try{localStorage.setItem('projectos_dash_groups',JSON.stringify(st));}catch(e){}renderDashboard();}
@@ -6420,7 +6410,7 @@ function dashboardHeroHtml(){
       <div style="font-size:11px;color:${C.sub};margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${s1}</div>
       <div style="font-size:11px;color:${C.sub};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${s2}</div>
     </div><div style="grid-column:span 1;display:flex;align-items:center;height:100%;padding:4px 14px;min-width:0">${graph}</div>`;
-  let h=`<div class="dash-hero" style="background:linear-gradient(180deg,#0c3b40 0%,#164e54 55%,#1d6169 100%);box-shadow:0 12px 28px rgba(15,61,66,0.22);border-radius:16px;padding:22px 26px;color:#fff;margin-bottom:22px;width:100%;box-sizing:border-box">
+  let h=`<div class="dash-hero" style="background:linear-gradient(180deg,#0c3b40 0%,#164e54 55%,#1d6169 100%);box-shadow:0 12px 28px rgba(15,61,66,0.22);border-radius:16px;padding:22px 26px;color:#fff;margin-bottom:22px;width:100%;box-sizing:border-box;position:relative">${isAdmin()?`<button type="button" class="ds5-goal" onclick="dashSetGoal('team')" title="Monatsziel Marge ${(PROJECT.dashGoals&&PROJECT.dashGoals.team)?'ändern ('+(fmtEur(PROJECT.dashGoals.team)||'')+')':'festlegen'}" aria-label="Monatsziel Marge festlegen"><i class="ti ti-target"></i></button>`:''}
     <div style="display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px;padding-bottom:18px;margin-bottom:18px;border-bottom:1px solid rgba(255,255,255,0.14);min-height:118px;align-items:center">`;
   const goalT=(PROJECT.dashGoals&&PROJECT.dashGoals.team)||0;
   const dimT=new Date(+TODAY.slice(0,4),+TODAY.slice(5,7),0).getDate(),dayT=+TODAY.slice(8,10);
