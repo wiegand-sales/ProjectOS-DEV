@@ -1406,11 +1406,7 @@ label{font-size:12px;font-weight:500;color:var(--text2);display:block;margin-bot
     <div class="sidebar-nav-item" id="navActivities" onclick="switchView('activities')"><span class="nav-icon-badge faded"><i class="ti ti-history"></i></span> Aktivitäten</div>
     <div class="sidebar-nav-item" id="navSettings" onclick="toggleSettingsNav()"><span class="nav-icon-badge faded"><i class="ti ti-settings"></i></span> Einstellungen <i class="ti ti-chevron-down" id="settingsNavChevron" style="margin-left:auto;font-size:13px;color:var(--text3)"></i></div>
     <div id="settingsSubNav" class="settings-subnav hidden">
-      <div class="settings-subnav-item" id="settingsTabBtn_teamgrp" onclick="toggleSettingsTeamGroup()"><i class="ti ti-users"></i> Team <i class="ti ti-chevron-down" id="settingsTeamChevron" style="margin-left:auto;font-size:12px;color:var(--text3)"></i></div>
-      <div id="settingsTeamSub" class="settings-subnav-sub">
-        <div class="settings-subnav-item" id="settingsTabBtn_profile" onclick="goSettingsTab('profile')">Mein Profil</div>
-        <div class="settings-subnav-item" id="settingsTabBtn_team" onclick="goSettingsTab('team')">Mitarbeiter &amp; Ziele</div>
-      </div>
+      <div class="settings-subnav-item" id="settingsTabBtn_team" onclick="goSettingsTab('team')"><i class="ti ti-users"></i> Mitarbeiter &amp; Ziele</div>
       <div class="settings-subnav-item" id="settingsTabBtn_process" onclick="goSettingsTab('process')"><i class="ti ti-route"></i> Vertriebsprozess</div>
       <div class="settings-subnav-item" id="settingsTabBtn_toner" onclick="goSettingsTab('toner')"><i class="ti ti-printer"></i> Toner &amp; Artikel</div>
       <div class="settings-subnav-item" id="settingsTabBtn_data" onclick="goSettingsTab('data')"><i class="ti ti-database"></i> Daten</div>
@@ -1787,7 +1783,7 @@ let localSettingsTrusted=false;
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-10-27T03:30:00.000Z';
+const BUILD_VERSION='2026-10-27T03:45:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -4952,7 +4948,7 @@ function renderUserSelect(){
 function updateNavForRole(){
   const el=document.getElementById('navSettings');
   if(el)el.style.display='';
-  if(!isAdmin()&&settingsTab!=='profile'&&currentView!=='settings')settingsTab='profile';
+  if(!isAdmin()&&settingsTab!=='team'&&currentView!=='settings')settingsTab='team';
 }
 function toggleAgentFilter(id){
   if(id==='all'){activeAgentFilters=[];}
@@ -7563,10 +7559,9 @@ async function fetchAllActivitiesForView(q, matchingLeads){
 
 let settingsTab='team';
 let settingsNavOpen=false;
-let settingsTeamOpen=true;
-function toggleSettingsTeamGroup(){settingsTeamOpen=!settingsTeamOpen;if(settingsTeamOpen&&settingsTab!=='profile'&&settingsTab!=='team'){goSettingsTab(isAdmin()?'team':'profile');return;}renderSettings();}
+
 function toggleSettingsNav(){
-  if(!isAdmin()&&currentView!=='settings')settingsTab='profile';
+  if(!isAdmin()&&currentView!=='settings')settingsTab='team';
   settingsNavOpen=!settingsNavOpen;
   document.getElementById('settingsSubNav').classList.toggle('hidden',!settingsNavOpen);
   const chev=document.getElementById('settingsNavChevron');
@@ -7582,22 +7577,19 @@ function goSettingsTab(tab){
   switchView('settings');
 }
 // Einstellungen (Okt. 2026): 5 Bereiche. Alte Reiternamen werden auf die neuen umgeleitet.
-const SETTINGS_TAB_MAP={board:'process',system:'data',csv:'data',project:'team',notify:'team'};
-function normSettingsTab(t){t=SETTINGS_TAB_MAP[t]||t;return ['profile','team','process','toner','data'].includes(t)?t:'team';}
+const SETTINGS_TAB_MAP={board:'process',system:'data',csv:'data',project:'team',notify:'team',profile:'team'};
+function normSettingsTab(t){t=SETTINGS_TAB_MAP[t]||t;return ['team','process','toner','data'].includes(t)?t:'team';}
 function setSettingsTab(tab){
   settingsTab=normSettingsTab(tab);
   renderSettings();
 }
 function renderSettings(){
   settingsTab=normSettingsTab(settingsTab);
-  ['profile','team','process','toner','data'].forEach(t=>{
+  ['team','process','toner','data'].forEach(t=>{
     const btn=document.getElementById('settingsTabBtn_'+t);
     if(btn)btn.classList.toggle('active',settingsTab===t);
   });
-  {const inTeam=settingsTab==='profile'||settingsTab==='team';if(inTeam)settingsTeamOpen=true;
-   const sub=document.getElementById('settingsTeamSub');if(sub)sub.classList.toggle('hidden',!settingsTeamOpen);
-   const ch=document.getElementById('settingsTeamChevron');if(ch)ch.className='ti ti-chevron-'+(settingsTeamOpen?'up':'down');
-   const g=document.getElementById('settingsTabBtn_teamgrp');if(g)g.classList.toggle('group-active',inTeam);}
+
   const usedAgentColors=AGENTS.map(a=>a.color);
   const allColorKeys=Object.keys(COLOR_HEX);
   const freeAgentColor=allColorKeys.find(c=>!usedAgentColors.includes(c))||allColorKeys[0];
@@ -7915,8 +7907,7 @@ function renderSettings(){
   const lead=t=>`<p class="st-lead">${t}</p>`;
   // ── Mein Profil ──
   const START_VIEWS=[['','Board (wie bisher)'],['tasks','Meine Aufgaben'],['board-akquise','Board: SQL'],['board-vertrieb','Board: PQL'],['calendar','Mein Kalender'],['dashboard','Dashboard']];
-  const profileHtml=me?lead('Deine persönlichen Angaben. Gilt nur für dich – jeder Mitarbeiter sieht hier sein eigenes Profil.')
-    +`<div class="st-row2">`+card('Über mich','',`<div class="set-kv"><span>Name</span><b>${esc(me.name)}</b>
+  const profileHtml=me?`<div class="st-row2">`+card('Über mich','',`<div class="set-kv"><span>Name</span><b>${esc(me.name)}</b>
         <span>Funktion<small>steht im Gruß der Termineinladung</small></span><input type="text" id="profJob" value="${esc(me.jobTitle||'')}" placeholder="${defJob(me.name)}">
         <span>Telefon-Durchwahl<small>optional – sonst die zentrale Nummer in der Einladung</small></span><input type="text" id="profPhone" value="${esc(me.phone||'')}" placeholder="${esc(cfg('invite').phone)}">
         <span>Login-E-Mail</span><span style="color:var(--text3)">${esc(me.email||'–')}</span></div>`)
@@ -7929,8 +7920,7 @@ function renderSettings(){
     :card('Mein Profil','Kein Profil zur Anmeldung gefunden.','');
   // ── Team & Ziele ──
   const goalT=(PROJECT.dashGoals&&PROJECT.dashGoals.team)||'';
-  const teamHtml=lead('Wer mit dem Board arbeitet – und welche Ziele gelten. Dein eigenes Profil findest du unter „Team › Mein Profil“.')+jump([['st-t1','Mitarbeiter'],['st-t2','Ziele']])
-    +secT('st-t1','Mitarbeiter')
+  const teamHtml=secT('st-t1','Mitarbeiter')
     +card('Mitarbeiter','Bearbeiten über den Stift. Inaktive Mitarbeiter können sich nicht anmelden, ihre Leads und Kommentare bleiben erhalten.',
       `<div style="overflow-x:auto"><table class="agent-table"><thead><tr><th>Name</th><th>Rolle</th><th>Funktion (E-Mail-Gruß)</th><th>Leads</th><th>Status</th><th></th></tr></thead><tbody>${agentRowsHtml}</tbody></table></div>`,
       `<button class="btn btn-primary btn-sm" onclick="openNewAgentModal()"><i class="ti ti-user-plus"></i> Mitarbeiter anlegen</button>`)
@@ -7991,11 +7981,15 @@ function renderSettings(){
     +`<div class="st-tiles">${tile('circle-check','Datenintegrität prüfen','sucht doppelte oder fehlerhafte Leads',`<button class="btn btn-sm" onclick="runDataIntegrityCheck()">Prüfen</button>`)}${tile('paperclip','Alte Anhänge übertragen','in den Dateispeicher – nur nötig, solange alte vorhanden sind',`<button class="btn btn-sm" onclick="migrateLegacyAttachmentsToStorage()">Übertragen</button>`)}${tile('git-compare','Dev/Live-Abgleich','vor Deploys: Code und Datenbank vergleichen',`<button class="btn btn-sm" onclick="checkDevLiveParity()">Prüfen</button>`)}</div>
      <div id="devLiveParityResult" style="margin:8px 0 14px;font-size:12px;line-height:1.6"></div>`
     +card('<span style="color:var(--red)"><i class="ti ti-alert-triangle"></i> Gefahrenzone</span>','Löscht <strong>alle Leads</strong> unwiderruflich. Listen, Labels, Mitarbeiter und Einstellungen bleiben erhalten. Nur für Admins.',`<button class="btn" style="background:var(--red-bg);color:var(--red-dark);border-color:var(--red)" onclick="deleteAllLeads()"><i class="ti ti-trash"></i> Alle Leads löschen</button>`,'',' style="border-color:var(--red)"');
-  const NEWC={profile:profileHtml,team:teamHtml,process:processHtml,toner:tonerHtml,data:dataHtml};
-  const ro=!admin&&settingsTab!=='profile';
-  const TITLES={profile:['Team','Mein Profil'],team:['Team','Mitarbeiter &amp; Ziele'],process:['','Vertriebsprozess'],toner:['','Toner &amp; Artikel'],data:['','Daten']};
+  const RO_BAR=`<div class="set-robar"><i class="ti ti-lock"></i> Nur ansehen – Änderungen an den Board-Einstellungen nimmt ein Admin vor.</div>`;
+  const teamPage=lead('Dein eigenes Profil, das Team und die Ziele.')+jump([['st-t0','Mein Profil'],['st-t1','Mitarbeiter'],['st-t2','Ziele']])
+    +secT('st-t0','Mein Profil')+`<p class="st-desc" style="margin-top:-4px">Gilt nur für dich – jeder Mitarbeiter sieht hier sein eigenes Profil.</p>`+profileHtml
+    +(admin?teamHtml:RO_BAR+`<div class="set-ro">${teamHtml}</div>`);
+  const NEWC={team:teamPage,process:processHtml,toner:tonerHtml,data:dataHtml};
+  const ro=!admin&&settingsTab!=='team';
+  const TITLES={team:['','Mitarbeiter &amp; Ziele'],process:['','Vertriebsprozess'],toner:['','Toner &amp; Artikel'],data:['','Daten']};
   const tt=TITLES[settingsTab]||TITLES.team;
-  document.getElementById('settingsContent').innerHTML=`<div class="st-wrap"><div class="st-head"><span class="crumb">Einstellungen${tt[0]?' › '+tt[0]:''}</span><h1>${tt[1]}</h1></div>`+(ro?`<div class="set-robar"><i class="ti ti-lock"></i> Nur ansehen – Änderungen an den Board-Einstellungen nimmt ein Admin vor. Dein eigenes Profil kannst du unter „Mein Profil“ jederzeit ändern.</div><div class="set-ro">`:'')+(NEWC[settingsTab]||NEWC.team)+(ro?'</div>':'')+`</div>`;
+  document.getElementById('settingsContent').innerHTML=`<div class="st-wrap"><div class="st-head"><span class="crumb">Einstellungen${tt[0]?' › '+tt[0]:''}</span><h1>${tt[1]}</h1></div>`+(ro?`<div class="set-robar"><i class="ti ti-lock"></i> Nur ansehen – Änderungen an den Board-Einstellungen nimmt ein Admin vor. Dein eigenes Profil änderst du unter „Mitarbeiter &amp; Ziele“.</div><div class="set-ro">`:'')+(NEWC[settingsTab]||NEWC.team)+(ro?'</div>':'')+`</div>`;
   equalizeRowHeights();
 }
 
