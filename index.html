@@ -674,6 +674,15 @@ div.pf2-dr{cursor:default}
 .pf-section .movements-strip{gap:8px}
 .pf-section .movements-item{background:#E9F0F1;border-radius:999px;padding:5px 12px}
 .dg{margin:0 0 6px}
+.set-kv{display:grid;grid-template-columns:230px minmax(0,1fr);gap:10px 18px;align-items:center}
+.set-kv>span{font-size:12.5px;color:var(--text2)}
+.set-kv>span small{display:block;font-size:11px;color:var(--text3)}
+.set-unit{display:flex;align-items:center;gap:8px}
+.set-dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px;vertical-align:0}
+.set-robar{display:flex;align-items:center;gap:10px;background:#E9F0F1;border-radius:10px;padding:9px 14px;font-size:12.5px;color:#174C52;margin-bottom:14px}
+.set-ro input,.set-ro select,.set-ro textarea,.set-ro button,.set-ro .agent-color-swatch,.set-ro .icon-btn,.set-ro [onclick],.set-ro [draggable]{pointer-events:none!important}
+.set-ro input,.set-ro select,.set-ro textarea,.set-ro button,.set-ro .icon-btn{opacity:.5}
+@media (max-width:760px){.set-kv{grid-template-columns:1fr}}
 .ds5-goal{position:absolute;top:10px;right:12px;width:26px;height:26px;border-radius:7px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.06);color:#9fc9cd;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;padding:0}
 .ds5-goal:hover{background:rgba(255,255,255,.14);color:#fff}
 .ds4-foot{display:flex;align-items:stretch;margin-top:14px;padding-top:12px;border-top:1px solid #e1e8e8;flex-wrap:wrap;row-gap:10px}
@@ -1346,12 +1355,11 @@ label{font-size:12px;font-weight:500;color:var(--text2);display:block;margin-bot
     <div class="sidebar-nav-item" id="navActivities" onclick="switchView('activities')"><span class="nav-icon-badge faded"><i class="ti ti-history"></i></span> Aktivitäten</div>
     <div class="sidebar-nav-item" id="navSettings" onclick="toggleSettingsNav()"><span class="nav-icon-badge faded"><i class="ti ti-settings"></i></span> Einstellungen <i class="ti ti-chevron-down" id="settingsNavChevron" style="margin-left:auto;font-size:13px;color:var(--text3)"></i></div>
     <div id="settingsSubNav" class="settings-subnav hidden">
-      <div class="settings-subnav-item" id="settingsTabBtn_team" onclick="goSettingsTab('team')"><i class="ti ti-users"></i> Team</div>
-      <div class="settings-subnav-item" id="settingsTabBtn_board" onclick="goSettingsTab('board')"><i class="ti ti-layout-kanban"></i> Board</div>
-      <div class="settings-subnav-item" id="settingsTabBtn_project" onclick="goSettingsTab('project')"><i class="ti ti-target-arrow"></i> Projekt</div>
-      <div class="settings-subnav-item" id="settingsTabBtn_system" onclick="goSettingsTab('system')"><i class="ti ti-database"></i> System</div>
-      <div class="settings-subnav-item" id="settingsTabBtn_csv" onclick="goSettingsTab('csv')"><i class="ti ti-table"></i> Import/Export</div>
-      <div class="settings-subnav-item" id="settingsTabBtn_notify" onclick="goSettingsTab('notify')"><i class="ti ti-mail"></i> Auto. Benachrichtigungen</div>
+      <div class="settings-subnav-item" id="settingsTabBtn_profile" onclick="goSettingsTab('profile')"><i class="ti ti-user-circle"></i> Mein Profil</div>
+      <div class="settings-subnav-item" id="settingsTabBtn_team" onclick="goSettingsTab('team')"><i class="ti ti-users"></i> Team &amp; Ziele</div>
+      <div class="settings-subnav-item" id="settingsTabBtn_process" onclick="goSettingsTab('process')"><i class="ti ti-route"></i> Vertriebsprozess</div>
+      <div class="settings-subnav-item" id="settingsTabBtn_toner" onclick="goSettingsTab('toner')"><i class="ti ti-printer"></i> Toner &amp; Artikel</div>
+      <div class="settings-subnav-item" id="settingsTabBtn_data" onclick="goSettingsTab('data')"><i class="ti ti-database"></i> Daten</div>
     </div>
     <div class="sidebar-footer">Weitere Projekte folgen hier bald.<div id="buildVersionDisplay" style="margin-top:8px;font-size:10px;color:var(--text3);opacity:.7;user-select:all"></div></div>
   </div>
@@ -1702,7 +1710,7 @@ let localSettingsTrusted=false;
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-10-27T01:00:00.000Z';
+const BUILD_VERSION='2026-10-27T02:00:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -4859,12 +4867,12 @@ function renderUserSelect(){
 // Blendet den Menüpunkt "Einstellungen" nur für Admins ein; ist gerade jemand ohne
 // Admin-Rechte auf der Einstellungen-Seite (z.B. weil der Nutzer gewechselt wurde),
 // wird automatisch aufs Board zurueckgesprungen.
+// Einstellungen (Okt. 2026): fuer alle sichtbar – Nicht-Admins aendern nur "Mein Profil",
+// alle anderen Bereiche sind fuer sie nur lesbar.
 function updateNavForRole(){
   const el=document.getElementById('navSettings');
-  if(el)el.style.display=isAdmin()?'':'none';
-  const sub=document.getElementById('settingsSubNav');
-  if(sub&&!isAdmin())sub.classList.add('hidden');
-  if(currentView==='settings'&&!isAdmin())switchView('board');
+  if(el)el.style.display='';
+  if(!isAdmin()&&settingsTab!=='profile'&&currentView!=='settings')settingsTab='profile';
 }
 function toggleAgentFilter(id){
   if(id==='all'){activeAgentFilters=[];}
@@ -4878,10 +4886,6 @@ function toggleAgentFilter(id){
 // ── RENDER: BOARD ──
 // ── NAVIGATION ──
 function switchView(view){
-  if(view==='settings'&&!isAdmin()){
-    alert('Die Einstellungen sind nur für Admins zugänglich.');
-    view='board';
-  }
   currentView=view;
   ['dashboard','board','crrma','tasks','calendar','activities','settings'].forEach(v=>{
     document.getElementById('view'+v.charAt(0).toUpperCase()+v.slice(1)).classList.toggle('active',v===view);
@@ -7480,6 +7484,7 @@ async function fetchAllActivitiesForView(q, matchingLeads){
 let settingsTab='team';
 let settingsNavOpen=false;
 function toggleSettingsNav(){
+  if(!isAdmin()&&currentView!=='settings')settingsTab='profile';
   settingsNavOpen=!settingsNavOpen;
   document.getElementById('settingsSubNav').classList.toggle('hidden',!settingsNavOpen);
   const chev=document.getElementById('settingsNavChevron');
@@ -7494,12 +7499,16 @@ function goSettingsTab(tab){
   setSettingsTab(tab);
   switchView('settings');
 }
+// Einstellungen (Okt. 2026): 5 Bereiche. Alte Reiternamen werden auf die neuen umgeleitet.
+const SETTINGS_TAB_MAP={board:'process',system:'data',csv:'data',project:'team',notify:'team'};
+function normSettingsTab(t){t=SETTINGS_TAB_MAP[t]||t;return ['profile','team','process','toner','data'].includes(t)?t:'team';}
 function setSettingsTab(tab){
-  settingsTab=tab;
+  settingsTab=normSettingsTab(tab);
   renderSettings();
 }
 function renderSettings(){
-  ['team','board','project','system','csv','notify'].forEach(t=>{
+  settingsTab=normSettingsTab(settingsTab);
+  ['profile','team','process','toner','data'].forEach(t=>{
     const btn=document.getElementById('settingsTabBtn_'+t);
     if(btn)btn.classList.toggle('active',settingsTab===t);
   });
@@ -7522,12 +7531,9 @@ function renderSettings(){
         </div>
       </td>
       <td><span class="role-badge role-${a.role}">${ROLE_LABELS[a.role]||a.role}</span></td>
+      <td>${esc(a.jobTitle||(a.name==='Peter Rode'?'Head of Sales':'Account Manager'))}</td>
       <td>${leadCount}</td>
-      <td>${fmtEur(a.quota||0)}</td>
       <td>${inactive?'<span class="status-badge status-inactive">Inaktiv</span>':'<span class="status-badge status-active">Aktiv</span>'}</td>
-      <td style="text-align:center">
-        <input type="checkbox" ${a.localBackupResponsible?'checked':''} onchange="setAgentLocalBackup('${a.id}',this.checked)" title="Bei dieser Person laeuft die automatische lokale Sicherung (Backup-Download), wenn sie im Board eingeloggt ist">
-      </td>
       <td>
         <div class="agent-table-actions">
           <button class="icon-btn" onclick="openAgentModal('${a.id}')" title="Bearbeiten"><i class="ti ti-pencil"></i></button>
@@ -7649,8 +7655,7 @@ function renderSettings(){
           <div><label>Name</label><input type="text" id="newAgentName" placeholder="Vor- und Nachname" style="width:100%"></div>
           <div><label>Rolle</label>
             <select id="newAgentRole" style="width:100%">
-              <option value="sales">Sales Agent</option>
-              <option value="am">Account Manager</option>
+              <option value="am" selected>Account Manager</option>
               <option value="admin">Admin</option>
             </select>
           </div>
@@ -7663,11 +7668,11 @@ function renderSettings(){
       </div>
       <div class="info-section">
         <div class="section-hdr" style="margin-top:0">Mitarbeiter-Übersicht</div>
-        <p style="font-size:11px;color:var(--text3);margin:-4px 0 8px">Häkchen bei "Lokale Sicherung" = bei dieser Person läuft der automatische Backup-Download (siehe Einstellungen → System). Nur die hier markierten Personen laden die Datei herunter, nicht das ganze Team.</p>
+        <p style="font-size:11px;color:var(--text3);margin:-4px 0 8px">Bearbeiten über den Stift. Inaktive Mitarbeiter können sich nicht anmelden, ihre Leads und Kommentare bleiben erhalten.</p>
         <div style="overflow-x:auto">
           <table class="agent-table">
             <thead><tr>
-              <th>Name</th><th>Rolle</th><th>Leads</th><th>Ziel/Monat</th><th>Status</th><th>Lokale Sicherung</th><th></th>
+              <th>Name</th><th>Rolle</th><th>Funktion (E-Mail-Gruß)</th><th>Leads</th><th>Status</th><th></th>
             </tr></thead>
             <tbody>${agentRowsHtml}</tbody>
           </table>
@@ -7812,10 +7817,75 @@ function renderSettings(){
         </div>
       </div>`,
   };
-  document.getElementById('settingsContent').innerHTML=tabContent[settingsTab]||tabContent.team;
+  // Aenderungsprotokoll wird nicht mehr gepflegt -> aus "Daten" herausnehmen
+  const sysHtml=tabContent.system.replace(/<div class="info-section">\s*<div class="section-hdr" style="margin-top:0">Änderungsprotokoll<\/div>[\s\S]*?(?=<div class="info-section" style="border-color:var\(--red\)">)/,'').replace(/Läuft nur bei den Mitarbeitern, die in der Mitarbeiter-Übersicht \(Team-Tab\) unter "Lokale Sicherung" markiert sind/,'Läuft nur bei den Mitarbeitern, die unten unter „Lokale Sicherung – bei wem“ markiert sind');
+  const me=currentAgent();const admin=isAdmin();
+  const COLOR_KEYS=Object.keys(COLOR_HEX);
+  const defJob=n=>n==='Peter Rode'?'Head of Sales':'Account Manager';
+  const profileHtml=me?`<div class="info-section">
+      <div class="section-hdr" style="margin-top:0">Über mich</div>
+      <div class="set-kv"><span>Name</span><b>${esc(me.name)}</b>
+        <span>Funktion<small>steht im Gruß der Termineinladung</small></span><input type="text" id="profJob" value="${esc(me.jobTitle||'')}" placeholder="${defJob(me.name)}" style="max-width:320px">
+        <span>Login-E-Mail</span><span style="color:var(--text3)">${esc(me.email||'–')}</span>
+        <span>Avatar-Farbe</span><div class="agent-color-swatches" id="profColorSwatches">${COLOR_KEYS.map(c=>`<div class="agent-color-swatch ${me.color===c?'selected':''}" data-color="${c}" style="background:${COLOR_HEX[c]}" onclick="profSelectColor('${c}')" title="${c}"></div>`).join('')}</div>
+        <span></span><span><button class="btn btn-primary btn-sm" onclick="saveMyProfile()"><i class="ti ti-check"></i> Speichern</button></span></div>
+    </div>
+    <div class="info-section">
+      <div class="section-hdr" style="margin-top:0">Passwort ändern</div>
+      <div class="set-kv"><span>Neues Passwort<small>mind. 6 Zeichen</small></span><input type="password" id="profPw1" autocomplete="new-password" style="max-width:320px">
+        <span>Wiederholen</span><input type="password" id="profPw2" autocomplete="new-password" style="max-width:320px">
+        <span></span><span><button class="btn btn-sm" onclick="changeMyPassword()"><i class="ti ti-key"></i> Passwort ändern</button></span></div>
+    </div>`:'<div class="info-section">Kein Profil zur Anmeldung gefunden.</div>';
+  const goalT=(PROJECT.dashGoals&&PROJECT.dashGoals.team)||'';
+  const goalsHtml=`<div class="info-section">
+      <div class="section-hdr" style="margin-top:0">Ziele</div>
+      <p style="font-size:11px;color:var(--text3);margin:-4px 0 10px">Das Monatsziel erscheint im Dashboard-Banner bei „Marge gewonnen“ mit Fortschritt und Hochrechnung.</p>
+      <div class="set-kv"><span>Monatsziel Marge (Team)</span><span class="set-unit"><input type="text" id="setGoalTeam" value="${goalT?String(goalT).replace('.',','):''}" placeholder="z. B. 25000" style="max-width:140px"><span>€</span><button class="btn btn-sm" onclick="saveTeamGoal()"><i class="ti ti-check"></i> Speichern</button></span></div>
+    </div>`;
+  const ship=typeof SHIPPING_COST_PER_SEND==='number'?SHIPPING_COST_PER_SEND:4.95;
+  const tonerHtml=`<div class="info-section">
+      <div class="section-hdr" style="margin-top:0">Kosten &amp; Warnschwellen</div>
+      <p style="font-size:11px;color:var(--text3);margin:-4px 0 10px">So rechnet und markiert das Board heute. Diese Werte werden im nächsten Schritt hier einstellbar.</p>
+      <div class="set-kv"><span>Versandkosten je Toner</span><b>${String(ship).replace('.',',')} €</b>
+        <span>RMA-Quote</span><span><span class="set-dot" style="background:#d38e2c"></span>gelb ab 2,5 % &nbsp; <span class="set-dot" style="background:#c0392b"></span>rot ab 5 %</span>
+        <span>Toner ohne Rückmeldung</span><span><span class="set-dot" style="background:#d38e2c"></span>gelb ab 40 Tagen &nbsp; <span class="set-dot" style="background:#c0392b"></span>rot ab 60 Tagen</span></div>
+    </div>
+    <div class="info-section">
+      <div class="section-hdr" style="margin-top:0">Artikelstamm</div>
+      <p style="font-size:12px;color:var(--text2);margin:0 0 10px">${ARTICLES.length.toLocaleString('de-DE')} Artikel. Preise, RMA-Quoten und „CSV aktualisieren“ findest du im Menü „Artikel“.</p>
+      <button class="btn btn-sm" onclick="switchView('crrma')"><i class="ti ti-arrow-right"></i> Zu den Artikeln</button>
+    </div>`;
+  const localBackupHtml=`<div class="info-section">
+      <div class="section-hdr" style="margin-top:0">Lokale Sicherung – bei wem</div>
+      <p style="font-size:11px;color:var(--text3);margin:-4px 0 10px">Nur bei den markierten Personen lädt das Board die Sicherungsdatei automatisch herunter, solange sie angemeldet sind.</p>
+      <div style="display:flex;gap:16px;flex-wrap:wrap">${AGENTS.filter(a=>a.active!==false).map(a=>`<label style="display:inline-flex;align-items:center;gap:6px;font-size:12.5px;margin:0"><input type="checkbox" ${a.localBackupResponsible?'checked':''} onchange="setAgentLocalBackup('${a.id}',this.checked)"> ${esc(a.name)}</label>`).join('')}</div>
+    </div>`;
+  // Lokale-Sicherung-Auswahl direkt hinter die Intervall-Einstellung setzen
+  const sysWithLocal=sysHtml.replace(/(<div class="section-hdr" style="margin-top:0">Automatische lokale Sicherung<\/div>[\s\S]*?<\/div>\s*)(?=<div class="info-section">)/,'$1'+localBackupHtml);
+  const NEWC={
+    profile:profileHtml,
+    team:tabContent.team+goalsHtml,
+    process:tabContent.board,
+    toner:tonerHtml,
+    data:sysWithLocal.replace(/(<div class="info-section" style="border-color:var\(--red\)">)/,tabContent.csv+'$1')
+  };
+  const ro=!admin&&settingsTab!=='profile';
+  document.getElementById('settingsContent').innerHTML=(ro?`<div class="set-robar"><i class="ti ti-lock"></i> Nur ansehen – Änderungen an den Board-Einstellungen nimmt ein Admin vor. Dein eigenes Profil kannst du unter „Mein Profil“ jederzeit ändern.</div><div class="set-ro">`:'')+(NEWC[settingsTab]||NEWC.team)+(ro?'</div>':'');
   equalizeRowHeights();
 }
 
+// Mein Profil / Ziele (Okt. 2026)
+function profSelectColor(c){const el=document.getElementById('profColorSwatches');if(!el)return;el.dataset.sel=c;el.querySelectorAll('.agent-color-swatch').forEach(x=>x.classList.toggle('selected',x.dataset.color===c));}
+function saveMyProfile(){const me=currentAgent();if(!me)return;const j=document.getElementById('profJob');const v=j?j.value.trim():'';if(v)me.jobTitle=v;else delete me.jobTitle;
+  const c=document.getElementById('profColorSwatches');if(c&&c.dataset.sel)me.color=c.dataset.sel;saveState();renderSettings();if(typeof renderUserSelect==='function')renderUserSelect();if(typeof renderAgentChips==='function')renderAgentChips();}
+async function changeMyPassword(){const a=document.getElementById('profPw1').value,b=document.getElementById('profPw2').value;
+  if(a.length<6){alert('Das Passwort muss mindestens 6 Zeichen haben.');return;}if(a!==b){alert('Die beiden Passwörter stimmen nicht überein.');return;}
+  try{const r=await fetch(`${SUPABASE_URL}/auth/v1/user`,{method:'PUT',headers:Object.assign({},getSbHeaders(),{'Content-Type':'application/json'}),body:JSON.stringify({password:a})});
+    if(!r.ok){const t=await r.text();throw new Error(t.slice(0,160));}
+    document.getElementById('profPw1').value='';document.getElementById('profPw2').value='';alert('Dein Passwort wurde geändert. Beim nächsten Anmelden gilt das neue Passwort.');}
+  catch(e){alert('Passwort konnte nicht geändert werden: '+e.message);}}
+function saveTeamGoal(){if(!requireAdmin('Monatsziel ändern'))return;const raw=String(document.getElementById('setGoalTeam').value||'').replace(/[€\s]/g,'').replace(/\.(?=\d{3}(\D|$))/g,'');const v=parseFloat(raw.replace(',','.'));
+  PROJECT.dashGoals=PROJECT.dashGoals||{team:0,agents:{}};PROJECT.dashGoals.team=isNaN(v)?0:Math.max(0,v);saveState();renderSettings();}
 // Agents CRUD
 function openAgentModal(id){
   editingAgentId=id;
@@ -7831,12 +7901,12 @@ function openAgentModal(id){
     <div class="field-row-2">
       <div><label>Rolle</label>
         <select id="agentModalRole" style="width:100%">
-          <option value="sales" ${a.role==='sales'?'selected':''}>Sales Agent</option>
+          ${a.role==='sales'?`<option value="sales" selected>Sales Agent (alt)</option>`:''}
           <option value="am" ${a.role==='am'?'selected':''}>Account Manager</option>
           <option value="admin" ${a.role==='admin'?'selected':''}>Admin</option>
         </select>
       </div>
-      <div><label>Ziel/Monat (EUR)</label><input type="number" id="agentModalQuota" min="0" step="100" value="${a.quota||0}" style="width:100%"></div>
+      <div><label>Funktion (E-Mail-Gruß)</label><input type="text" id="agentModalJob" value="${esc(a.jobTitle||'')}" placeholder="${a.name==='Peter Rode'?'Head of Sales':'Account Manager'}" style="width:100%"></div>
     </div>
     <div class="field"><label>Login-E-Mail</label><input type="email" id="agentModalEmail" name="agent-modal-email-no-autofill" autocomplete="off" value="${esc(a.email||'')}" placeholder="login@wiegand-gmbh.de" style="width:100%"></div>
     <div class="field">
@@ -7870,7 +7940,7 @@ function saveAgentModal(id){
   if(!name){alert('Bitte einen Namen eingeben.');return;}
   a.name=name;
   a.role=document.getElementById('agentModalRole').value;
-  a.quota=parseFloat(document.getElementById('agentModalQuota').value)||0;
+  {const j=document.getElementById('agentModalJob');if(j){const v=j.value.trim();if(v)a.jobTitle=v;else delete a.jobTitle;}}
   a.email=document.getElementById('agentModalEmail').value.trim();
   a.color=document.getElementById('agentModalInner').dataset.selectedColor||a.color;
   saveState();
