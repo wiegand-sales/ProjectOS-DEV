@@ -718,11 +718,17 @@ div.pf2-dr{cursor:default}
 .st-thr:last-child{border-bottom:0}
 .st-thr .lv{display:flex;align-items:center;gap:6px}
 .st-thr input{width:70px;height:32px;box-sizing:border-box}
-.st-tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px;margin-bottom:14px}
-.st-tile{display:flex;align-items:center;gap:12px;background:#fff;border:1px solid #e1e8e8;border-radius:12px;padding:12px 14px}
-.st-tile>i{width:34px;height:34px;border-radius:9px;background:#E9F0F1;color:#206A72;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
-.st-tile b{display:block;font-size:13px}.st-tile small{color:var(--text3);font-size:11.5px}
-.st-tile>.btn{margin-left:auto;flex-shrink:0}
+.st-tiles{display:grid;gap:12px;margin-bottom:14px}
+.st-tiles-2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.st-tiles-3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.st-tile{display:flex;align-items:center;gap:14px;background:#fbfbfa;border:1px solid #e1e8e8;border-radius:14px;padding:14px 18px;box-shadow:0 10px 26px rgba(15,61,66,.06);min-width:0}
+.st-tile>i{width:38px;height:38px;border-radius:10px;background:#E9F0F1;color:#206A72;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.st-tile>div{flex:1;min-width:0}
+.st-tile b{display:block;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.st-tile small{display:block;color:var(--text3);font-size:12px;line-height:1.4;margin-top:2px}
+.st-tile>.btn{margin-left:auto;flex-shrink:0;white-space:nowrap}
+@media (max-width:1200px){.st-tiles-3{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:800px){.st-tiles-2,.st-tiles-3{grid-template-columns:1fr}}
 .st-csv>.info-section{background:#fbfbfa;border:1px solid #e1e8e8;border-radius:14px;box-shadow:0 10px 26px rgba(15,61,66,.06)}
 @media (max-width:900px){.st-row2{grid-template-columns:1fr}.st-mean{grid-template-columns:1fr}.st-thr{grid-template-columns:1fr}}
 .set-kv{display:grid;grid-template-columns:230px minmax(0,1fr);gap:10px 18px;align-items:center}
@@ -1783,7 +1789,7 @@ let localSettingsTrusted=false;
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-10-27T03:45:00.000Z';
+const BUILD_VERSION='2026-10-27T04:00:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -7971,14 +7977,14 @@ function renderSettings(){
   const csvInner=tabContent.csv;
   const dataHtml=lead('Import, Export, Sicherung und Wartung. Alle Daten liegen in der gemeinsamen Cloud-Datenbank, die stündlich automatisch gesichert wird.')+jump([['st-d1','Sicherung'],['st-d2','Import & Export'],['st-d3','Wartung']])
     +secT('st-d1','Sicherung')
-    +`<div class="st-tiles">${tile('cloud','Cloud-Sicherungen','stündlich, 12 Stunden + 14 Tage',`<button class="btn btn-sm" onclick="listAvailableBackups()">Anzeigen / wiederherstellen</button>`)}${tile('download','Jetzt sichern (JSON)','vollständige Datei auf diesen Rechner',`<button class="btn btn-primary btn-sm" onclick="exportFullBackup()">Herunterladen</button>`)}</div>`
+    +`<div class="st-tiles st-tiles-2">${tile('cloud','Cloud-Sicherungen','stündlich automatisch · 12 Stunden und 14 Tage zurück · wiederherstellen möglich',`<button class="btn btn-sm" onclick="listAvailableBackups()">Anzeigen</button>`)}${tile('download','Jetzt sichern','vollständige Sicherung als JSON-Datei auf diesen Rechner',`<button class="btn btn-primary btn-sm" onclick="exportFullBackup()">Herunterladen</button>`)}</div>`
     +card('Automatische lokale Sicherung','Lädt zusätzlich regelmäßig eine Sicherungsdatei auf den Rechner, solange das Board offen ist – nur bei den markierten Personen.',
       `<div class="set-kv"><span>Intervall</span><select onchange="setProjectField('autoBackupIntervalMinutes',parseInt(this.value)||0)">${[[0,'Aus'],[15,'Alle 15 Minuten'],[30,'Alle 30 Minuten'],[60,'Jede Stunde'],[120,'Alle 2 Stunden']].map(([v,l])=>`<option value="${v}" ${(PROJECT.autoBackupIntervalMinutes||0)===v?'selected':''}>${l}</option>`).join('')}</select>
        <span>Bei wem</span><span style="display:flex;gap:14px;flex-wrap:wrap">${AGENTS.filter(a=>a.active!==false).map(a=>`<label style="display:inline-flex;align-items:center;gap:6px;font-size:12.5px;margin:0"><input type="checkbox" ${a.localBackupResponsible?'checked':''} onchange="setAgentLocalBackup('${a.id}',this.checked)"> ${esc(a.name)}</label>`).join('')}</span></div>`)
     +secT('st-d2','Import &amp; Export')
     +`<div class="st-csv">${csvInner}</div>`
     +secT('st-d3','Wartung')
-    +`<div class="st-tiles">${tile('circle-check','Datenintegrität prüfen','sucht doppelte oder fehlerhafte Leads',`<button class="btn btn-sm" onclick="runDataIntegrityCheck()">Prüfen</button>`)}${tile('paperclip','Alte Anhänge übertragen','in den Dateispeicher – nur nötig, solange alte vorhanden sind',`<button class="btn btn-sm" onclick="migrateLegacyAttachmentsToStorage()">Übertragen</button>`)}${tile('git-compare','Dev/Live-Abgleich','vor Deploys: Code und Datenbank vergleichen',`<button class="btn btn-sm" onclick="checkDevLiveParity()">Prüfen</button>`)}</div>
+    +`<div class="st-tiles st-tiles-3">${tile('circle-check','Datenintegrität prüfen','sucht doppelte oder fehlerhafte Leads',`<button class="btn btn-sm" onclick="runDataIntegrityCheck()">Prüfen</button>`)}${tile('paperclip','Alte Anhänge übertragen','nur nötig, solange alte Anhänge vorhanden sind',`<button class="btn btn-sm" onclick="migrateLegacyAttachmentsToStorage()">Übertragen</button>`)}${tile('git-compare','Dev/Live-Abgleich','vor Deploys: Code und Datenbank vergleichen',`<button class="btn btn-sm" onclick="checkDevLiveParity()">Prüfen</button>`)}</div>
      <div id="devLiveParityResult" style="margin:8px 0 14px;font-size:12px;line-height:1.6"></div>`
     +card('<span style="color:var(--red)"><i class="ti ti-alert-triangle"></i> Gefahrenzone</span>','Löscht <strong>alle Leads</strong> unwiderruflich. Listen, Labels, Mitarbeiter und Einstellungen bleiben erhalten. Nur für Admins.',`<button class="btn" style="background:var(--red-bg);color:var(--red-dark);border-color:var(--red)" onclick="deleteAllLeads()"><i class="ti ti-trash"></i> Alle Leads löschen</button>`,'',' style="border-color:var(--red)"');
   const RO_BAR=`<div class="set-robar"><i class="ti ti-lock"></i> Nur ansehen – Änderungen an den Board-Einstellungen nimmt ein Admin vor.</div>`;
