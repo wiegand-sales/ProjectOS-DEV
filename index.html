@@ -351,6 +351,23 @@ body{font-family:'Inter',sans-serif;background:linear-gradient(155deg,#f2f3f0 0%
 .rc-att button{border:0;background:transparent;color:var(--text3);cursor:pointer;font-weight:700;padding:0 3px}
 .feed-tag{font-size:10px;font-weight:700;border-radius:5px;padding:1px 6px;margin-left:6px;text-transform:uppercase;letter-spacing:.03em;vertical-align:1px}
 .feed-tag.t{background:#EEEDFE;color:#3C3489}.feed-tag.f{background:#FAEEDA;color:#633806}
+/* Verlauf: Eintraege mit farbigem Kopfband (Petrol-Toene je Art) */
+.fc{border-radius:var(--r-md);overflow:hidden;border:1px solid #C9DCDE;background:var(--bg);margin-bottom:8px}
+.fc-band{display:flex;align-items:center;gap:6px;padding:4px 6px 4px 11px;font-size:11.5px;font-weight:700;min-height:30px;box-sizing:border-box}
+.fc-band>.ti{font-size:14px}
+.fc-band .r{margin-left:auto;display:flex;align-items:center;gap:6px;font-weight:500;font-size:10.5px}
+.fc-band .icon-btn{width:22px;height:22px;color:inherit;opacity:.85}
+.fc-c{border-color:#C9DCDE}.fc-c .fc-band{background:#E9F0F1;color:#174C52}
+.fc-t{border-color:#206A72}.fc-t .fc-band{background:#206A72;color:#fff}
+.fc-f{border-color:#9CC4C9}.fc-f .fc-band{background:#B9D6DA;color:#123E43}
+.fc-done{border-color:rgba(0,0,0,.12)}.fc-done .fc-band{background:#f0efec;color:#5f5f5b}
+.fc-loss{border-color:#F1948A}.fc-loss .fc-band{background:#FADBD8;color:#88201E}
+.fc-body{padding:8px 11px 10px}
+.fc-who{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--text2);flex-wrap:wrap}
+.fc-who b{color:var(--text);font-weight:600}
+.fc-av{width:18px;height:18px;border-radius:50%;font-size:8.5px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0}
+.fc .feed-file{background:#F4F9F9;border-color:#B9D6DA}
+.fc .backdated-tag{margin-left:0}
 .feed-file{display:flex;align-items:center;gap:8px;border:1px solid var(--border2);border-radius:7px;padding:5px 9px;background:var(--bg);margin-top:5px}
 .feed-filter{position:relative;text-transform:none;letter-spacing:0}
 .feed-filter>button.feed-filter-btn{height:36px;display:inline-flex;align-items:center;gap:6px;padding:0 14px;font-size:13px;font-weight:500;border-radius:var(--r-md);text-transform:none;letter-spacing:0;color:var(--text)}
@@ -1789,7 +1806,7 @@ let localSettingsTrusted=false;
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-10-27T04:00:00.000Z';
+const BUILD_VERSION='2026-10-27T11:30:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -3299,10 +3316,11 @@ function setActivityFeedFilter(f){
 }
 // Verlaufsfilter mit Mehrfachauswahl: 'all' oder z. B. 'comments,tasks'
 const FEED_KINDS=['comments','activity','tasks','files'];
+const FEED_DEFAULT='comments,tasks,files'; // Standard: alles ausser Aktivitaeten
 function feedKinds(){if(activityFeedFilter==='all')return FEED_KINDS.slice();const k=String(activityFeedFilter||'').split(',').filter(x=>FEED_KINDS.includes(x));return k.length?k:FEED_KINDS.slice();}
 function toggleFeedKind(k){
   let cur=feedKinds();
-  if(k==='all'){activityFeedFilter=cur.length===FEED_KINDS.length?'comments':'all';renderLeadModal();return;}
+  if(k==='all'){activityFeedFilter=cur.length===FEED_KINDS.length?FEED_DEFAULT:'all';renderLeadModal();return;}
   cur=cur.includes(k)?cur.filter(x=>x!==k):[...cur,k];
   if(!cur.length)return; // mindestens eine Art bleibt gewaehlt
   activityFeedFilter=cur.length===FEED_KINDS.length?'all':FEED_KINDS.filter(x=>cur.includes(x)).join(',');
@@ -8798,7 +8816,7 @@ function releaseLeadLock(leadId){
 function openLeadModal(id){
   editingLeadId=id;
   draftLead=id?JSON.parse(JSON.stringify(leads.find(x=>x.id===id))):blankLead();
-  labelPopoverOpen=false;memberPopoverOpen=false;activityFeedFilter='comments';feedFilterOpen=false;composePending=[];draftFileNote='';fcQ={demand:'',actual:''};fcQtyOpen=null;fcVkEdit=null;histEdit=null;lwAddOpen=false;ordOpen=null;ordQ={};taskMentionPopoverOpen=false;pendingTaskAssigneeId=null;draftTaskText='';draftCommentText='';editingCommentId=null;rightTab='comments';openTimePickerField=null;
+  labelPopoverOpen=false;memberPopoverOpen=false;activityFeedFilter=FEED_DEFAULT;feedFilterOpen=false;composePending=[];draftFileNote='';fcQ={demand:'',actual:''};fcQtyOpen=null;fcVkEdit=null;histEdit=null;lwAddOpen=false;ordOpen=null;ordQ={};taskMentionPopoverOpen=false;pendingTaskAssigneeId=null;draftTaskText='';draftCommentText='';editingCommentId=null;rightTab='comments';openTimePickerField=null;
   clearTimeout(lockHeartbeatTimer);
   const existingLock=id?getLeadLock(id):null;
   if(existingLock&&existingLock.agentId!==currentUser){
@@ -8923,12 +8941,13 @@ function renderLeadModal(){
         </div>`;
       }
       const isLossComment=/^Verlust-Grund \(/.test(item.text||'');
-      return `<div class="comment-item">
-        <div class="comment-av" style="background:${COLOR_BG[a?a.color:'gray']};color:${COLOR_TEXT[a?a.color:'gray']}">${a?ini(a.name):'?'}</div>
-        <div class="comment-bubble" ${isLossComment?'style="background:#FADBD8;border:1px solid #F1948A"':''}>
-          <span class="comment-author">${a?a.name:'Unbekannt'}</span><span class="comment-date">${fmtDateTime(item.date)}</span>${item.backdated?'<span class="backdated-tag" title="Nachträglich mit vergangenem Datum erfasst"><i class="ti ti-history" style="font-size:10px"></i> nacherfasst</span>':''}${item.edited?'<span class="backdated-tag" title="Von einem Admin bearbeitet"><i class="ti ti-pencil" style="font-size:10px"></i> bearbeitet</span>':''}
-          ${isAdmin()?`<span style="float:right;display:flex;gap:4px"><button class="icon-btn" style="width:22px;height:22px" onclick="startEditComment(${item.id})" title="Kommentar bearbeiten"><i class="ti ti-pencil" style="font-size:13px"></i></button><button class="icon-btn icon-btn-danger" style="width:22px;height:22px" onclick="deleteComment(${item.id})" title="Kommentar löschen"><i class="ti ti-trash" style="font-size:13px"></i></button></span>`:''}
-          <div class="comment-text">${esc(item.text)}</div>
+      const cTags=`${item.backdated?'<span class="backdated-tag" title="Nachträglich mit vergangenem Datum erfasst"><i class="ti ti-history" style="font-size:10px"></i> nacherfasst</span>':''}${item.edited?'<span class="backdated-tag" title="Von einem Admin bearbeitet"><i class="ti ti-pencil" style="font-size:10px"></i> bearbeitet</span>':''}`;
+      const cBtns=isAdmin()?`<button class="icon-btn" onclick="startEditComment(${item.id})" title="Kommentar bearbeiten"><i class="ti ti-pencil" style="font-size:13px"></i></button><button class="icon-btn icon-btn-danger" onclick="deleteComment(${item.id})" title="Kommentar löschen"><i class="ti ti-trash" style="font-size:13px"></i></button>`:'';
+      return `<div class="fc ${isLossComment?'fc-loss':'fc-c'}">
+        <div class="fc-band"><i class="ti ti-message"></i>${isLossComment?'Kommentar · Verlust-Grund':'Kommentar'}<span class="r">${cTags}${fmtDateTime(item.date)}${cBtns}</span></div>
+        <div class="fc-body">
+          <div class="fc-who"><span class="fc-av" style="background:${COLOR_BG[a?a.color:'gray']};color:${COLOR_TEXT[a?a.color:'gray']}">${a?ini(a.name):'?'}</span><b>${a?esc(a.name):'Unbekannt'}</b></div>
+          <div class="comment-text" style="margin-top:4px">${esc(item.text)}</div>
         </div>
       </div>`;
     }
@@ -8951,13 +8970,12 @@ function renderLeadModal(){
     const linkHtml=f.dataUrl
       ?`<a href="${f.dataUrl}" download="${esc(f.name)}" style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;font-weight:600;color:var(--text)"><i class="ti ti-file" style="margin-right:4px"></i>${esc(f.name)}</a>`
       :`<a href="#" onclick="downloadAttachment('${f.storagePath}','${esc(f.name).replace(/'/g,"\\'")}');return false;" style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;font-weight:600;color:var(--text)"><i class="ti ti-file" style="margin-right:4px"></i>${esc(f.name)}</a>`;
-    return `<div class="comment-item">
-      <div class="comment-av" style="background:${COLOR_BG[uploader?uploader.color:'gray']};color:${COLOR_TEXT[uploader?uploader.color:'gray']}">${uploader?ini(uploader.name):'?'}</div>
-      <div class="comment-bubble">
-        <span class="comment-author">${uploader?esc(uploader.name):'Unbekannt'}</span><span class="comment-date">${f.uploadedAt?fmtDateTime(f.uploadedAt):''}</span><span class="feed-tag f">Anhang</span>
-        ${modalReadOnly?'':`<span style="float:right;display:flex;gap:4px"><button class="icon-btn icon-btn-danger" style="width:22px;height:22px" onclick="removeFile(${f.id})" title="Anhang entfernen"><i class="ti ti-trash" style="font-size:13px"></i></button></span>`}
-        ${f.note?`<div class="comment-text" style="margin-top:3px">${esc(f.note)}</div>`:''}
-        <div class="feed-file">${linkHtml}<span style="font-size:11px;color:var(--text3);flex-shrink:0">${formatBytes(f.size)}</span></div>
+    return `<div class="fc fc-f">
+      <div class="fc-band"><i class="ti ti-paperclip"></i>Anhang<span class="r">${f.uploadedAt?fmtDateTime(f.uploadedAt):''}${modalReadOnly?'':`<button class="icon-btn icon-btn-danger" onclick="removeFile(${f.id})" title="Anhang entfernen"><i class="ti ti-trash" style="font-size:13px"></i></button>`}</span></div>
+      <div class="fc-body">
+        <div class="fc-who"><span class="fc-av" style="background:${COLOR_BG[uploader?uploader.color:'gray']};color:${COLOR_TEXT[uploader?uploader.color:'gray']}">${uploader?ini(uploader.name):'?'}</span><b>${uploader?esc(uploader.name):'Unbekannt'}</b></div>
+        ${f.note?`<div class="comment-text" style="margin-top:4px">${esc(f.note)}</div>`:''}
+        <div class="feed-file">${linkHtml}<span style="font-size:11px;color:var(--text2);flex-shrink:0">${formatBytes(f.size)}</span></div>
       </div>
     </div>`;
   });
@@ -8978,16 +8996,16 @@ function renderLeadModal(){
     const assignee=t.assigneeId?agentById(t.assigneeId):null;
     const assigneeBadge=assignee?`<span class="due-badge due-ok" style="background:${COLOR_BG[assignee.color]};color:${COLOR_TEXT[assignee.color]}"><i class="ti ti-user" style="font-size:11px"></i>${esc(assignee.name)}</span>`:'';
     const cr=agentById(t.createdBy);
-    return `<div class="comment-item">
-      <div class="comment-av" style="background:${COLOR_BG[cr?cr.color:'gray']};color:${COLOR_TEXT[cr?cr.color:'gray']}">${cr?ini(cr.name):'?'}</div>
-      <div class="comment-bubble">
-        <span class="comment-author">${cr?esc(cr.name):'Unbekannt'}</span><span class="comment-date">${t.createdAt?fmtDateTime(t.createdAt):''}</span><span class="feed-tag t">Aufgabe</span>
-        ${modalReadOnly?'':`<span style="float:right;display:flex;gap:4px"><button class="icon-btn icon-btn-danger" style="width:22px;height:22px" onclick="deleteTask(${t.id})" title="Aufgabe löschen"><i class="ti ti-trash" style="font-size:13px"></i></button></span>`}
-        <div style="display:flex;align-items:flex-start;gap:8px;margin-top:4px">
-          <input type="checkbox" ${t.done?'checked':''} onchange="toggleTask(${t.id})" style="margin-top:3px;flex-shrink:0" title="${t.done?'Wieder öffnen':'Als erledigt markieren'}">
+    const assigneeTag=assignee?`<span>an</span><span class="due-badge due-ok" style="background:${COLOR_BG[assignee.color]};color:${COLOR_TEXT[assignee.color]}"><i class="ti ti-user" style="font-size:11px"></i>${esc(assignee.name)}</span>`:'';
+    return `<div class="fc ${t.done?'fc-done':'fc-t'}">
+      <div class="fc-band"><i class="ti ti-square-check"></i>Aufgabe · ${t.done?'erledigt':'offen'}<span class="r">${(!t.calDate&&dueBadge)?dueBadge:''}${t.createdAt?fmtDateTime(t.createdAt):''}${modalReadOnly?'':`<button class="icon-btn icon-btn-danger" onclick="deleteTask(${t.id})" title="Aufgabe löschen"><i class="ti ti-trash" style="font-size:13px"></i></button>`}</span></div>
+      <div class="fc-body">
+        <div class="fc-who"><span class="fc-av" style="background:${COLOR_BG[cr?cr.color:'gray']};color:${COLOR_TEXT[cr?cr.color:'gray']}">${cr?ini(cr.name):'?'}</span><b>${cr?esc(cr.name):'Unbekannt'}</b>${assigneeTag}</div>
+        <div style="display:flex;align-items:flex-start;gap:8px;margin-top:5px">
+          <input type="checkbox" ${t.done?'checked':''} onchange="toggleTask(${t.id})" style="margin-top:3px;flex-shrink:0;accent-color:#206A72" title="${t.done?'Wieder öffnen':'Als erledigt markieren'}">
           <div style="flex:1;min-width:0">
             <span class="check-item-text ${t.done?'done':''}" style="font-size:13px">${esc(t.text)}</span>
-            ${(dueBadge||assigneeBadge||t.calDate)?`<div style="margin-top:4px;display:flex;gap:6px;flex-wrap:wrap">${assigneeBadge}${t.calDate?taskCalChipHtml(t):dueBadge}</div>`:''}
+            ${t.calDate?`<div style="margin-top:4px;display:flex;gap:6px;flex-wrap:wrap">${taskCalChipHtml(t)}</div>`:''}
           </div>
         </div>
       </div>
@@ -10030,7 +10048,7 @@ const FEED_LABELS={all:'Einträge',comments:'Kommentare',activity:'Aktivitäten'
 function feedFilterBtnHtml(k,cnt){
   const L={comments:'Kommentare',activity:'Aktivitäten',tasks:'Aufgaben',files:'Anhänge'};
   const sel=feedKinds();const all=sel.length===FEED_KINDS.length;
-  const label=all?'Alles':(sel.length===1?L[sel[0]]:(sel.length===2?`${L[sel[0]]} + ${L[sel[1]]}`:`${sel.length} Arten`));
+  const label=all?'Alles':(sel.join(',')===FEED_DEFAULT?'Ohne Aktivitäten':(sel.length===1?L[sel[0]]:(sel.length===2?`${L[sel[0]]} + ${L[sel[1]]}`:`${sel.length} Arten`)));
   const ck=on=>`<span class="ff-ck ${on?'on':''}" aria-hidden="true">${on?'<i class="ti ti-check"></i>':''}</span>`;
   return `<span class="feed-filter"><button type="button" class="btn feed-filter-btn ${!all?'act':''}" onclick="event.stopPropagation();feedFilterOpen=!feedFilterOpen;renderLeadModal()" aria-haspopup="menu" aria-expanded="${feedFilterOpen}" title="Verlauf filtern"><i class="ti ti-filter"></i> ${label} <i class="ti ti-chevron-down"></i></button>${feedFilterOpen?`<div class="feed-filter-menu" role="menu" onclick="event.stopPropagation()">
     <button type="button" role="menuitemcheckbox" aria-checked="${all}" class="${all?'on':''}" onclick="toggleFeedKind('all')">${ck(all)}Alles<b>${cnt.all||0}</b></button>
