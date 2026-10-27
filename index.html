@@ -1851,7 +1851,7 @@ let localSettingsTrusted=false;
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-10-27T15:00:00.000Z';
+const BUILD_VERSION='2026-10-27T16:00:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -4400,7 +4400,7 @@ function renderLeadStageBar(lead,opts){
 // ── Lead-Status (Okt. 2026): Symbol-Felder, Verlaeufe als Tabellen, Schnellknoepfe ──
 let leadStatusOpen={fu:false,lw:false};
 // Linke Seite: jeder Bereich zuklappbar, Zustand je Benutzer gemerkt
-let leftOpen=(()=>{const d={status:true,actual:false,forecast:false,toner:true,top:true,kunde:false};try{return Object.assign(d,JSON.parse(localStorage.getItem('projectos_left_open')||'{}'));}catch(e){return d;}})();
+let leftOpen=(()=>{const d={status:true,actual:false,offer:false,forecast:false,toner:true,top:true,kunde:false};try{return Object.assign(d,JSON.parse(localStorage.getItem('projectos_left_open')||'{}'));}catch(e){return d;}})();
 function toggleLeftColl(k){leftOpen[k]=!leftOpen[k];try{localStorage.setItem('projectos_left_open',JSON.stringify(leftOpen));}catch(e){}renderLeadModal();}
 function leftCollHdr(k,title,sum){
   return `<button type="button" class="kd-coll-hdr section-hdr ${leftOpen[k]?'open':''}" onclick="toggleLeftColl('${k}')" aria-expanded="${leftOpen[k]}" style="${leftOpen[k]?'':'margin-bottom:0'}"><span class="ttl">${title}</span><span class="sum">${esc(sum||'')}</span><i class="ti ti-chevron-down" style="margin-left:8px"></i></button>`;
@@ -4586,7 +4586,7 @@ function setTonerSent(obj,v){
   if(v==='Ja'){if(obj.tonerSent!=='Ja')obj.tonerSentAt=TODAY;obj.tonerSent='Ja';}
   else{obj.tonerSent=v;obj.tonerSentAt='';}
 }
-function blankLead(){return{id:null,company:'',customerNumber:'',art:'B2B',address:'',orderCount:'',revenue:'',shipPrinter:{model:'',skus:[{sku:'',priceEk:'',priceVk:''},{sku:'',priceEk:'',priceVk:''},{sku:'',priceEk:'',priceVk:''},{sku:'',priceEk:'',priceVk:''}]},demandPrinters:[],actualPrinters:[],contact:'',phone:'',email:'',competitor:'',status:newLeadColId(),tonerSent:'Nein',members:[],labelIds:[],firstContact:'',followup:'',followupHistory:[],forecast:'',actual:'',lossReason:'',lossComment:'',notes:'',checklist:[],activity:[],files:[],tasks:[],topArticles:[{skuOem:'',skuKompa:'',title:''},{skuOem:'',skuKompa:'',title:''},{skuOem:'',skuKompa:'',title:''}],order:Date.now()};}
+function blankLead(){return{id:null,company:'',customerNumber:'',art:'B2B',address:'',orderCount:'',revenue:'',shipPrinter:{model:'',skus:[{sku:'',priceEk:'',priceVk:''},{sku:'',priceEk:'',priceVk:''},{sku:'',priceEk:'',priceVk:''},{sku:'',priceEk:'',priceVk:''}]},demandPrinters:[],offerPrinters:[],actualPrinters:[],contact:'',phone:'',email:'',competitor:'',status:newLeadColId(),tonerSent:'Nein',members:[],labelIds:[],firstContact:'',followup:'',followupHistory:[],forecast:'',actual:'',lossReason:'',lossComment:'',notes:'',checklist:[],activity:[],files:[],tasks:[],topArticles:[{skuOem:'',skuKompa:'',title:''},{skuOem:'',skuKompa:'',title:''},{skuOem:'',skuKompa:'',title:''}],order:Date.now()};}
 // ── OUTLOOK-TERMINEINLADUNG (ICS-Datei) ──
 // Erzeugt eine echte Kalendereinladung, die der Kunde annehmen/ablehnen kann - ein reiner
 // "mailto"-Link kann das technisch nicht (nur Text, kein Termin). Die .ics-Datei wird
@@ -8861,7 +8861,7 @@ function releaseLeadLock(leadId){
 function openLeadModal(id){
   editingLeadId=id;
   draftLead=id?JSON.parse(JSON.stringify(leads.find(x=>x.id===id))):blankLead();
-  labelPopoverOpen=false;memberPopoverOpen=false;activityFeedFilter=FEED_DEFAULT;feedFilterOpen=false;composePending=[];draftFileNote='';fcQ={demand:'',actual:''};fcQtyOpen=null;fcVkEdit=null;histEdit=null;lwAddOpen=false;ordOpen=null;ordQ={};taskMentionPopoverOpen=false;pendingTaskAssigneeId=null;draftTaskText='';draftCommentText='';editingCommentId=null;rightTab='comments';openTimePickerField=null;
+  labelPopoverOpen=false;memberPopoverOpen=false;activityFeedFilter=FEED_DEFAULT;feedFilterOpen=false;composePending=[];draftFileNote='';fcQ={demand:'',actual:'',offer:''};fcQtyOpen=null;fcVkEdit=null;histEdit=null;lwAddOpen=false;ordOpen=null;ordQ={};taskMentionPopoverOpen=false;pendingTaskAssigneeId=null;draftTaskText='';draftCommentText='';editingCommentId=null;rightTab='comments';openTimePickerField=null;
   clearTimeout(lockHeartbeatTimer);
   const existingLock=id?getLeadLock(id):null;
   if(existingLock&&existingLock.agentId!==currentUser){
@@ -9125,7 +9125,7 @@ function renderLeadModal(){
     </div>`;
   }
   return rightContentHtml;};
-  const forecastPanel=panelFor('forecast'),actualPanel=panelFor('actual');
+  const forecastPanel=panelFor('forecast'),actualPanel=panelFor('actual'),offerPanel=fcPanelHtml('offer');const offerTotNow=offerTotals(draftLead);
   // ── Gemeinsamer Verlauf: Kommentare, Aktivitaeten, Aufgaben, Anhaenge ──
   const fileNames=new Set((draftLead.files||[]).map(f=>f.name));
   const uni=[];
@@ -9217,6 +9217,11 @@ function renderLeadModal(){
         <div class="info-section left-fc">
           ${leftCollHdr('actual','Aufträge',`${(draftLead.actualPrinters||[]).filter(p=>(p.skus||[]).some(ordFilled)).length} · ${fmtEur(actualComputedNow)||'0 €'} · Marge ${fmtEur(actualMarginNow)||'0 €'}`)}
           <div ${leftOpen.actual?'':'hidden'} class="left-coll-body">${actualPanel}</div>
+        </div>
+
+        <div class="info-section left-fc">
+          ${leftCollHdr('offer','Angebot',`${fcRows('offer').length} Artikel · ${fmtEur(offerTotNow.u)||'0 €'} · Marge ${fmtEur(offerTotNow.m)||'0 €'}`)}
+          <div ${leftOpen.offer?'':'hidden'} class="left-coll-body">${offerPanel}</div>
         </div>
 
         <div class="info-section left-fc">
@@ -9610,8 +9615,8 @@ function updateDemandPrinterSku(id,idx,field,val){
 // ── Forecast & Auftrag (Okt. 2026): wie "Toner zusenden" - Suche, max. 12 Artikel, VK aenderbar ──
 // Gespeichert weiter in demandPrinters/actualPrinters[].skus (sku, qty, priceEk, priceVk) + articleId/title.
 const FC_MAX=12;
-let fcQ={demand:'',actual:''},fcQtyOpen=null,fcVkEdit=null;
-function fcList(kind){return kind==='demand'?draftLead.demandPrinters:draftLead.actualPrinters;}
+let fcQ={demand:'',actual:'',offer:''},fcQtyOpen=null,fcVkEdit=null;
+function fcList(kind){return kind==='demand'?draftLead.demandPrinters:(kind==='offer'?(draftLead.offerPrinters||[]):draftLead.actualPrinters);}
 function fcRows(kind){const out=[];(fcList(kind)||[]).forEach(p=>(p.skus||[]).forEach((x,si)=>{if(x&&['sku','qty','priceEk','priceVk'].some(k=>String(x[k]===undefined||x[k]===null?'':x[k]).trim()))out.push({p,si,x});}));return out;}
 // ── Mehrere Auftraege je Lead (Okt. 2026): jede Gruppe in actualPrinters = ein Auftrag {id,date,beleg,skus} ──
 let ordOpen=null,ordQ={};
@@ -9661,7 +9666,7 @@ function ordersPanelHtml(){
   const last=os.length?fmtDate(String(os[0].date||'').slice(0,10)):'–';
   const ro=modalReadOnly;
   const tiles=`<div class="ts-tiles fcx"><div class="ts-tile">Umsatz<b>${fmtEurCent(tot.u)}</b></div><div class="ts-tile">EK gesamt<b>${fmtEurCent(tot.e)}</b></div><div class="ts-tile main">Marge<b>${fmtEurCent(tot.u-tot.e)}</b></div><div class="ts-tile">Aufträge<b>${os.length}</b><small>${os.length?'letzter '+last:'noch keiner'}</small></div></div>`;
-  const addRow=ro?'':`<div class="ord-add"><span class="ord-add-l"><i class="ti ti-plus"></i> Neuer Auftrag</span><span style="flex:1"></span><button type="button" class="btn btn-sm ord-add-pet" onclick="ordNew()" title="Leeren Auftrag mit heutigem Datum anlegen">Leer</button><button type="button" class="btn btn-sm" onclick="copyForecastToActual()" title="Neuen Auftrag mit den Artikeln aus dem Forecast anlegen"><i class="ti ti-copy"></i> Aus Forecast</button></div>`;
+  const addRow=ro?'':`<div class="ord-add"><span class="ord-add-l"><i class="ti ti-plus"></i> Neuer Auftrag</span><span style="flex:1"></span><button type="button" class="btn btn-sm ord-add-pet" onclick="ordNew()" title="Leeren Auftrag mit heutigem Datum anlegen">Leer</button><button type="button" class="btn btn-sm" onclick="copyOfferToActual()" title="Neuen Auftrag mit den Artikeln aus dem Angebot anlegen" ${fcRows('offer').length?'':'disabled'}><i class="ti ti-file-invoice"></i> Aus Angebot</button><button type="button" class="btn btn-sm" onclick="copyForecastToActual()" title="Neuen Auftrag mit den Artikeln aus dem Forecast anlegen"><i class="ti ti-copy"></i> Aus Forecast</button></div>`;
   const cards=os.map(o=>{const t=ordTotals(o);const no=ordNo(o);const op=String(ordOpen)===String(o.id);
     const rows=(o.skus||[]).map((x,si)=>({p:o,si,x})).filter(r=>ordFilled(r.x));
     return `<div class="ord-card ${op?'open':''}"><button type="button" class="ord-h" onclick="ordToggle('${o.id}')" aria-expanded="${op}"><span class="ord-nr">${no}</span><span class="ord-ti"><b>Auftrag ${no} · ${fmtDate(String(o.date||'').slice(0,10))}</b><small>${t.k} Artikel${o.beleg?' · '+esc(o.beleg):''} · ${fmtEurCent(t.u)}</small></span><span class="ord-mg">${fmtEurCent(t.u-t.e)}</span><i class="ti ti-chevron-right ord-ch"></i></button>
@@ -9673,7 +9678,25 @@ function ordersPanelHtml(){
       </div>`:''}</div>`;}).join('');
   return tiles+cards+addRow;
 }
-function fcRecompute(kind){if(kind==='demand')recomputeForecast();else recomputeActual();}
+function fcRecompute(kind){if(kind==='demand')recomputeForecast();else if(kind==='offer')recomputeOffer();else recomputeActual();}
+// ── Angebot (Okt. 2026): ein Angebot je Lead, aufgebaut wie der Forecast (offerPrinters[].skus) ──
+function offerTotals(l){let u=0,e=0;((l&&l.offerPrinters)||[]).forEach(p=>(p.skus||[]).forEach(x=>{const q=parseFloat(x.qty)||0;u+=(parseFloat(x.priceVk)||0)*q;e+=(parseFloat(x.priceEk)||0)*q;}));return {u,e,m:u-e};}
+function recomputeOffer(){draftLead.offer=offerTotals(draftLead).u;}
+function offSet(field,val){if(modalReadOnly)return;draftLead[field]=val;autoPersistIfEditing();}
+function copyForecastToOffer(){
+  if(modalReadOnly)return;
+  const rows=(draftLead.demandPrinters||[]).flatMap(p=>(p.skus||[]).filter(ordFilled)).map(x=>Object.assign({},x));
+  if(!rows.length){alert('Im Forecast sind noch keine Artikel.');return;}
+  if(fcRows('offer').length&&!confirm('Im Angebot stehen schon Artikel. Durch die Artikel aus dem Forecast ersetzen?'))return;
+  draftLead.offerPrinters=[{id:genId(),model:'',skus:rows}];
+  if(!draftLead.offerDate)draftLead.offerDate=TODAY;
+  recomputeOffer();autoPersistIfEditing();renderLeadModal();
+}
+function copyOfferToActual(){
+  const rows=(draftLead.offerPrinters||[]).flatMap(p=>(p.skus||[]).filter(ordFilled)).map(x=>Object.assign({},x));
+  if(!rows.length){alert('Im Angebot sind noch keine Artikel.');return;}
+  ordNew(rows);
+}
 function fcTotals(kind){let u=0,e=0,n=0;fcRows(kind).forEach(({x})=>{const q=parseFloat(x.qty)||0;u+=(parseFloat(x.priceVk)||0)*q;e+=(parseFloat(x.priceEk)||0)*q;n+=q;});return {u,e,m:u-e,n};}
 function fcCardHtml(kind,r,k,hit){
   const x=hit?null:r.x;const a=hit?r:shipArticleFor(x);
@@ -9685,7 +9708,7 @@ function fcCardHtml(kind,r,k,hit){
   const key=hit?'':`${kind}|${r.p.id}|${r.si}`;
   if(hit){
     const dis=fcRows(kind).some(y=>String(y.x.sku).toLowerCase()===String(a.sku).toLowerCase());
-    return `<div class="ts-card ts-hit ${cls} ${dis?'dis':''}" ${dis?'title="Bereits im '+(kind==='demand'?'Forecast':'Auftrag')+'"':`onmousedown="event.preventDefault();fcPick('${kind}','${esc(String(a.id))}')" title="Artikel übernehmen"`}><span class="ts-qty ${cls}">${dis?'<i class="ti ti-check"></i>':'<i class="ti ti-plus"></i>'}</span><span class="t">${esc(title||sku)}</span><span class="bin add">${dis?'<i class="ti ti-check"></i>':'<i class="ti ti-circle-plus"></i>'}</span><span class="sku">${esc(sku)}${dis?' · bereits drin':''}</span><span class="vals"><span class="ts-pill">EK ${ek!==null?fmtEurCent(ek):'–'}</span><span class="ts-pill">VK ${vk!==null?fmtEurCent(vk):'–'}</span><span class="ts-pill ${cls}">RMA ${rma!==null?String(rma).replace('.',',')+' %':'–'}</span></span></div>`;
+    return `<div class="ts-card ts-hit ${cls} ${dis?'dis':''}" ${dis?'title="Bereits im '+(kind==='demand'?'Forecast':(kind==='offer'?'Angebot':'Auftrag'))+'"':`onmousedown="event.preventDefault();fcPick('${kind}','${esc(String(a.id))}')" title="Artikel übernehmen"`}><span class="ts-qty ${cls}">${dis?'<i class="ti ti-check"></i>':'<i class="ti ti-plus"></i>'}</span><span class="t">${esc(title||sku)}</span><span class="bin add">${dis?'<i class="ti ti-check"></i>':'<i class="ti ti-circle-plus"></i>'}</span><span class="sku">${esc(sku)}${dis?' · bereits drin':''}</span><span class="vals"><span class="ts-pill">EK ${ek!==null?fmtEurCent(ek):'–'}</span><span class="ts-pill">VK ${vk!==null?fmtEurCent(vk):'–'}</span><span class="ts-pill ${cls}">RMA ${rma!==null?String(rma).replace('.',',')+' %':'–'}</span></span></div>`;
   }
   const mod=a&&vk!==null&&shipNum(a.vk)!==null&&Math.abs(vk-shipNum(a.vk))>0.004;
   const qtyOpen=fcQtyOpen===key,vkOpen=fcVkEdit===key;
@@ -9707,7 +9730,9 @@ function fcPanelHtml(kind){
     <div class="ts-tile">Stück<b>${t.n.toLocaleString('de-DE')}</b></div></div>`;
   const search=rows.length<FC_MAX&&!modalReadOnly?`<div class="ts-search"><input type="text" id="fcSearch_${kind}" placeholder="Artikel suchen (Titel oder SKU) …" value="${esc(fcQ[kind])}" oninput="fcQ['${kind}']=this.value;fcRenderResults('${kind}')" onblur="setTimeout(()=>{const r=document.getElementById('fcRes_${kind}');if(r)r.innerHTML='';},180)" autocomplete="off" style="width:100%"><div id="fcRes_${kind}" class="ts-res-inline"></div></div>`
     :(rows.length>=FC_MAX?`<div style="font-size:11px;color:var(--text3);margin-bottom:2px">Maximal ${FC_MAX} Artikel – zum Tauschen zuerst einen entfernen.</div>`:'');
-  const head=`<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><span style="font-size:11px;color:var(--text3)">${rows.length} von ${FC_MAX} Artikeln</span>${isA&&!modalReadOnly?`<button class="btn btn-sm" style="margin-left:auto" onclick="copyForecastToActual()" title="Übernimmt die Artikel aus dem Forecast als Ausgangspunkt"><i class="ti ti-copy"></i> Forecast übernehmen</button>`:''}</div>`;
+  const isO=kind==='offer',ro=modalReadOnly;
+  const offerHead=isO?`<div class="ord-f" style="margin-bottom:8px"><label>Angebotsdatum<input type="date" value="${esc(String(draftLead.offerDate||'').slice(0,10))}" ${ro?'disabled':''} onchange="offSet('offerDate',this.value)"></label><label>Angebotsnummer (optional)<input type="text" value="${esc(draftLead.offerNo||'')}" placeholder="z. B. AN-104512" ${ro?'disabled':''} oninput="offSet('offerNo',this.value)"></label></div>`:'';
+  const head=offerHead+`<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><span style="font-size:11px;color:var(--text3)">${rows.length} von ${FC_MAX} Artikeln</span>${isO&&!ro?`<button class="btn btn-sm" style="margin-left:auto" onclick="copyForecastToOffer()" title="Übernimmt die Artikel aus dem Forecast ins Angebot"><i class="ti ti-copy"></i> Aus Forecast</button>`:''}${isA&&!modalReadOnly?`<button class="btn btn-sm" style="margin-left:auto" onclick="copyForecastToActual()" title="Übernimmt die Artikel aus dem Forecast als Ausgangspunkt"><i class="ti ti-copy"></i> Forecast übernehmen</button>`:''}</div>`;
   const cards=rows.map((r,k)=>fcCardHtml(kind,r,k,false)).join('');
   return head+tiles+search+(cards||`<div style="font-size:12px;color:var(--text3);margin-top:6px">Noch keine Artikel – über die Suche hinzufügen.</div>`);
 }
@@ -9726,6 +9751,7 @@ function fcPick(kind,articleId){
   const a=ARTICLES.find(x=>String(x.id)===String(articleId));if(!a)return;
   if(fcRows(kind).length>=FC_MAX)return;
   if(fcRows(kind).some(y=>String(y.x.sku).toLowerCase()===String(a.sku).toLowerCase()))return;
+  if(kind==='offer'&&!Array.isArray(draftLead.offerPrinters))draftLead.offerPrinters=[];
   const list=fcList(kind);
   if(!list.length)list.push({id:genId(),model:'',skus:[]});
   const p=list[0];
@@ -10779,6 +10805,9 @@ function logFieldChanges(original,draft){
   if(JSON.stringify(original.demandPrinters||[])!==JSON.stringify(draft.demandPrinters||[])){
     entries.push('Kundenbedarf (Forecast) aktualisiert');
   }
+  if(JSON.stringify(original.offerPrinters||[])!==JSON.stringify(draft.offerPrinters||[])||String(original.offerDate||'')!==String(draft.offerDate||'')||String(original.offerNo||'')!==String(draft.offerNo||'')){
+    entries.push('Angebot aktualisiert');
+  }
   if(JSON.stringify(original.actualPrinters||[])!==JSON.stringify(draft.actualPrinters||[])){
     entries.push('Tatsächlicher Bedarf aktualisiert');
   }
@@ -11277,6 +11306,9 @@ const FIELD_REGISTRY={
   topSkuKompa3:{label:'SKU Kompa 3',group:'Gekaufte Artikel',importable:true,aliases:['sku kompa 3','top artikel 3 sku kompa','artikel 3 sku kompa'],example:'',get:l=>l.topArticles[2]?.skuKompa||'',set:(l,v)=>l.topArticles[2].skuKompa=v},
   topTitle3:{label:'Titel 3',group:'Gekaufte Artikel',importable:true,aliases:['titel 3','top artikel 3 titel','artikel 3 titel'],example:'',get:l=>l.topArticles[2]?.title||'',set:(l,v)=>l.topArticles[2].title=v},
   forecast:{label:'Forecast (EUR)',group:'Forecast',importable:true,aliases:['forecast (eur)','forecast'],example:'2000',get:l=>csvEur(l.forecast),set:(l,v)=>l.forecast=parseGermanNumber(v)},
+  offerTotal:{label:'Angebot (EUR)',group:'Angebot',importable:false,get:l=>{const t=offerTotals(l).u;return t?csvEur(t):'';}},
+  offerDate:{label:'Angebotsdatum',group:'Angebot',importable:false,get:l=>l.offerDate?fmtDate(l.offerDate):''},
+  offerDetails:{label:'Angebot: Artikel-Details (Menge, EK, VK, Marge)',group:'Angebot',importable:false,get:l=>formatPrinterDetails(l.offerPrinters||[])},
   demandDetails:{label:'Drucker & SKU-Details (Menge, EK, VK, Marge)',group:'Forecast',importable:false,get:l=>formatPrinterDetails(l.demandPrinters)},
   actual:{label:'Tatsächliches Ergebnis (EUR)',group:'Auftrag',importable:true,aliases:['tatsächliches ergebnis (eur)'],example:'1800',get:l=>csvEur(l.actual),set:(l,v)=>l.actual=parseGermanNumber(v)},
   actualDetails:{label:'Drucker & SKU-Details (Menge, EK, VK, Marge)',group:'Auftrag',importable:false,get:l=>formatPrinterDetails(l.actualPrinters)},
