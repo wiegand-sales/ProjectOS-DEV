@@ -1839,7 +1839,7 @@ let localSettingsTrusted=false;
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-10-27T13:30:00.000Z';
+const BUILD_VERSION='2026-10-27T14:00:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -10186,6 +10186,9 @@ function apRender(){
   const leadNo=String(l.customerNumber||'').trim();
   const noBad=!!(o.custNo&&leadNo&&o.custNo.replace(/^0+/,'')!==leadNo.replace(/^0+/,''));
   const dup=o.beleg?ordList().find(x=>String(x.beleg||'').trim()===o.beleg):null;
+  // Belegnummer auch in allen anderen Leads pruefen
+  const dupElse=o.beleg?leads.filter(x=>String(x.id)!==String(l.id)).map(x=>({lead:x,ord:(x.actualPrinters||[]).find(p=>String(p.beleg||'').trim()===o.beleg)})).filter(x=>x.ord):[];
+  const belegBad=!!dup||dupElse.length>0;
   const sumVk=rows.reduce((s,r)=>s+r.vk*r.qty,0),sumEk=rows.reduce((s,r)=>s+(r.ek||0)*r.qty,0);
   const sumOff=o.net!==null&&Math.abs(o.net-sumVk)>0.02;
   const miss=rows.filter(r=>r.missing||r.noEk);
@@ -10196,12 +10199,13 @@ function apRender(){
     <div class="ap-hdr"><i class="ti ti-file-check"></i><div><b>Auftragsbestätigung erkannt</b><small>${esc(f.name)} · als Auftrag übernehmen?</small></div><button type="button" class="ap-x" onclick="apAttachOnly()" title="Schließen (Datei bleibt als Anhang vorgemerkt)"><i class="ti ti-x"></i></button></div>
     <div class="ap-body">
       <div class="ap-g3">
-        <div class="ap-tile"><small>Belegnummer</small><b>${esc(o.beleg||'–')}</b></div>
+        <div class="ap-tile ${belegBad?'bad':''}"><small>Belegnummer</small><b>${esc(o.beleg||'–')}</b></div>
         <div class="ap-tile"><small>Auftragsdatum</small><b>${o.date?fmtDate(o.date):'–'}</b></div>
         <div class="ap-tile ${noBad?'bad':''}"><small>Kundennummer</small><b>${esc(o.custNo||'–')}</b></div>
       </div>
       ${noBad?warn(`<b>Kundennummer passt nicht zum Lead.</b> Im PDF steht ${esc(o.custNo)}, der Lead „${esc(l.company||'')}“ hat ${esc(leadNo)}. Bitte prüfen, ob du den richtigen Lead offen hast.`):''}
-      ${dup?warn(`<b>Beleg ${esc(o.beleg)} gibt es schon</b> als Auftrag ${ordNo(dup)} vom ${fmtDate(String(dup.date||'').slice(0,10))}. Beim Übernehmen entsteht ein zweiter Auftrag.`):''}
+      ${dup?warn(`<b>Belegnummer ist bereits vorhanden.</b> Beleg ${esc(o.beleg)} steht in diesem Lead schon als Auftrag ${ordNo(dup)} vom ${fmtDate(String(dup.date||'').slice(0,10))}. Beim Übernehmen entsteht ein zweiter Auftrag.`):''}
+      ${dupElse.length?warn(`<b>Belegnummer ist bereits vorhanden.</b> Beleg ${esc(o.beleg)} steht schon bei ${dupElse.slice(0,3).map(x=>`„${esc(x.lead.company||'Lead')}“${x.lead.customerNumber?' (Kd-Nr. '+esc(x.lead.customerNumber)+')':''}`).join(', ')}${dupElse.length>3?' und '+(dupElse.length-3)+' weiteren':''}. Bitte prüfen, ob der Auftrag doppelt angelegt wird.`):''}
       ${miss.length?warn(`${miss.length===1?'Ein Artikel ist':miss.length+' Artikel sind'} nicht im Artikelkatalog oder ohne EK. Die Marge dafür wird mit EK 0 € gerechnet, bitte im Auftrag nachtragen.`,true):''}
       ${sumOff?warn(`Die Positionen ergeben ${fmtEurCent(sumVk)}, im PDF steht netto ${fmtEurCent(o.net)}. Bitte die Positionen prüfen.`,true):''}
       <table class="ap-tbl"><thead><tr><th>Artikel</th><th class="n">Menge</th><th class="n">VK</th><th class="n">EK</th><th class="n">Marge</th></tr></thead><tbody>${rowsHtml}</tbody></table>
