@@ -1851,7 +1851,7 @@ let localSettingsTrusted=false;
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-10-27T16:00:00.000Z';
+const BUILD_VERSION='2026-10-27T17:30:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -5950,7 +5950,7 @@ function renderDashboard(){
   document.getElementById('dashboardContent').innerHTML=`
     ${dashboardHeroHtml()}
     ${excludedNoDate>0?`<div class="no-date-warning"><i class="ti ti-alert-triangle"></i> ${excludedNoDate} Lead${excludedNoDate===1?'':'s'} ohne Erstkontakt-Datum ${excludedNoDate===1?'wird':'werden'} bei "${activeDashboardPeriod==='week'?'Diese Woche':activeDashboardPeriod==='month'?'Dieser Monat':'Dieses Quartal'}" nicht mitgezählt, da der Zeitraum-Filter sich auf dieses Datum bezieht. <a onclick="switchView('board')">→ Im Board nachtragen</a></div>`:''}
-    ${dashGroup('pipeline','Pipeline','filter',`${dl.filter(l=>!isClosedLead(l)).length} offene Leads · ${dl.filter(l=>isWon(l)).length} gewonnen · ${lostLeads.length} verloren`,()=>`
+    ${dashGroup('pipeline','Pipeline','filter',`${dl.filter(l=>!isClosedLead(l)).length} offene Leads · ${dl.filter(l=>isWon(l)).length} gewonnen · ${lostLeads.length} verloren · ${overdueLeads.length} FollowUps überfällig`,()=>`
     <div class="info-section pf-section">
       <div class="section-hdr" style="margin-top:0">Pipeline-Trichter <span style="font-weight:400;color:var(--text3);font-size:11px">(Anzahl · Anteil an allen Leads)</span></div>
       <div>${pipelineFlowHtml(dl)}</div>
@@ -5967,31 +5967,32 @@ function renderDashboard(){
     </div>
     <div class="ds1-grid ds1-g2">${dashStep1Html('fSql')}${dashStep1Html('fPql')}</div>
     <div class="ds1-agelg">Balkenfarbe in SQL/PQL = Ø Tage in der Liste: <i style="background:rgb(79,163,171)"></i>frisch <i style="background:rgb(48,112,118)"></i>ca. ${Math.round(cfg('dwellDays')*2/3)} Tage <i style="background:rgb(18,61,66)"></i>${Math.round(cfg('dwellDays')*4/3)} Tage und länger</div>
-    `)}
-    ${dashGroup('today','Heute zu tun','checklist',`${overdueLeads.length} FollowUps überfällig${riskLeads.length?' · '+riskLeads.length+' RMA-Risiko':''}`,()=>`
+
     <div class="info-section ds4-today" style="margin-bottom:14px">
       ${followupDayChartHtml(dl)}
       ${dashTodayFootHtml(dl)}
     </div>
+    `)}
+    ${dashGroup('leads','Leads &amp; Kunden','address-book','Wer sind unsere Kunden – und warum verlieren wir?',()=>`
+    <div class="ds1-grid ds1-g2">${dashStep2Html('art')}<div class="ds1-box"><div class="ds1-bh"><h2>Folgeaufträge</h2><span class="r">gewonnene Kunden</span></div>${dashRepeatHtml(dl)}<div class="ds2-why"><b>Warum:</b> zeigt, ob Kunden nach dem ersten Auftrag wiederkommen.</div></div>
+    ${dashStep2Html('loss')}
+    <div class="info-section" style="margin:0">
+        <div class="section-hdr" style="margin-top:0"><span style="display:flex;align-items:center;gap:6px"><i class="ti ti-map-pin" style="color:var(--purple)"></i> Kundenherkunft</span> <span style="font-weight:400;color:var(--text3);font-size:11px">(stilisiert, aus Adressfeld)</span></div>
+        ${customerOriginMapHtml(dl)}
+      </div>
+    `)}
+    ${dashGroup('team','Team','users','Wer bewegt was – und wann erreichen wir Kunden?',()=>`
+    ${dashStep1Html('team')}
+    <div class="ds1-grid ds1-g2" style="margin-top:14px"><div class="ds1-box"><div class="ds1-bh"><h2>Erfolgreiche Gespräche</h2><span class="r">Leads je Tag nach „AM: Auftrag“ · letzte 30 Tage</span></div>${dashAmPerDayHtml(dl)}<div class="ds2-why"><b>Warum:</b> jeder Lead, der nach „AM: Auftrag“ wandert, ist ein erfolgreiches Gespräch im SQL.</div></div>${dashStep2Html('heat')}</div>
+    `)}
+    ${dashGroup('dev','Entwicklung','chart-line','Werden wir besser? Verlauf · Durchlaufzeiten',()=>`<div class="ds1-grid">${dashStep2Html('trend')}</div><div class="ds1-grid">${dashStep2Html('dur')}</div>`)}
+    ${dashGroup('fin','Finanzen','coin-euro',`Marge je Woche · Top-Artikel${riskLeads.length?' · '+riskLeads.length+' RMA-Risiko':' · RMA-Risiko'}`,()=>`
+    <div class="ds1-grid ds1-g2">${dashStep2Html('marge')}${dashStep2Html('top')}</div>
       <div class="info-section" style="margin-bottom:14px">
         <div class="section-hdr" style="margin-top:0"><span style="display:flex;align-items:center;gap:6px"><i class="ti ti-shield-exclamation" style="color:${riskLeads.length?'var(--red)':'var(--text2)'}"></i> RMA-Risiko-Check</span> <span style="font-weight:400;color:var(--text3);font-size:11px">(aktive Leads mit SKU ≥5% Reklamationsquote)</span></div>
         ${riskSkuChartHtml}
         ${riskHtml}
       </div>
-      `)}
-    ${dashGroup('team','Team','users','Wer bewegt was – und wann erreichen wir Kunden?',()=>`
-    ${dashStep1Html('team')}
-    <div class="ds1-grid ds1-g2" style="margin-top:14px"><div class="ds1-box"><div class="ds1-bh"><h2>Erfolgreiche Gespräche</h2><span class="r">Leads je Tag nach „AM: Auftrag“ · letzte 30 Tage</span></div>${dashAmPerDayHtml(dl)}<div class="ds2-why"><b>Warum:</b> jeder Lead, der nach „AM: Auftrag“ wandert, ist ein erfolgreiches Gespräch im SQL.</div></div>${dashStep2Html('heat')}</div>
-    `)}
-    ${dashGroup('dev','Entwicklung','chart-line','Werden wir besser? Verlauf · Marge je Woche · Durchlaufzeiten',()=>dashStep2Html('dev'))}
-    ${dashGroup('cust','Kunden &amp; Produkte','building-store','Wo liegt Potenzial – und wo verlieren wir?',()=>`
-    ${dashStep2Html('cust')}
-    <div class="ds1-grid ds1-g2"><div class="ds1-box"><div class="ds1-bh"><h2>Folgeaufträge</h2><span class="r">gewonnene Kunden</span></div>${dashRepeatHtml(dl)}<div class="ds2-why"><b>Warum:</b> zeigt, ob Kunden nach dem ersten Auftrag wiederkommen.</div></div>
-<div class="info-section" style="margin:0">
-        <div class="section-hdr" style="margin-top:0"><span style="display:flex;align-items:center;gap:6px"><i class="ti ti-map-pin" style="color:var(--purple)"></i> Kundenherkunft</span> <span style="font-weight:400;color:var(--text3);font-size:11px">(stilisiert, aus Adressfeld)</span></div>
-        ${customerOriginMapHtml(dl)}
-      </div>
-    </div>
     `)}
 `;
   equalizeRowHeights();
@@ -6351,8 +6352,11 @@ function dashStep2Html(want){
       return `<tr><td title="${esc(e.sku)}">${esc((a&&a.title)||e.title||e.sku)}</td><td class="r">${nf(e.q)}</td><td class="r"><b>${eur(e.m)}</b></td><td class="r">${isNaN(r)?'–':`<span class="ds2-tag ${cls}">${String(r).replace('.',',')} %</span>`}</td></tr>`;}).join('')}</tbody></table>`:'<div style="font-size:12px;color:var(--text3)">Noch keine Aufträge in den letzten 90 Tagen.</div>';
   const lossBy=part=>{const m=new Map();sc.filter(l=>isLost(l)&&leadBoardPart(l)===part&&dOf(l.statusSince||l.closedAt)>=d90).forEach(l=>{const k=l.lossReason||'Ohne Angabe';m.set(k,(m.get(k)||0)+1);});return [...m.entries()].sort((a,b)=>b[1]-a[1]).slice(0,6);};
   const lS=lossBy('akquise'),lP=lossBy('vertrieb');
-  const g2=`   <div class="ds1-grid ds1-g2">${box('Kundenart','letzte 90 Tage',artTab,'zeigt, welche Kundenart wie oft gewinnt und wie viel Marge bringt.')}${box('Top-Artikel in Aufträgen','letzte 90 Tage · nach Marge',topTab,'zeigt, welche Artikel das Geld bringen – und ob darunter Artikel mit erhöhter RMA-Quote sind.')}</div>
-   <div class="ds1-grid ds1-g2">${box('Verlustgründe · SQL','letzte 90 Tage',lS.length?hb(lS.map(([n,c])=>[n,c,'#206A72']),lS[0][1]):'<div style="font-size:12px;color:var(--text3)">Keine Verluste.</div>','zeigt, woran die Akquise scheitert.')}${box('Verlustgründe · PQL','letzte 90 Tage',lP.length?hb(lP.map(([n,c])=>[n,c,'#ba7517']),lP[0][1]):'<div style="font-size:12px;color:var(--text3)">Keine Verluste.</div>','zeigt, warum ein Test nicht zum Auftrag wird.')}</div>`;
+  const bArt=`${box('Kundenart','letzte 90 Tage',artTab,'zeigt, welche Kundenart wie oft gewinnt und wie viel Marge bringt.')}`;
+  const bTop=`${box('Top-Artikel in Aufträgen','letzte 90 Tage · nach Marge',topTab,'zeigt, welche Artikel das Geld bringen – und ob darunter Artikel mit erhöhter RMA-Quote sind.')}`;
+  const bLoss=`   <div class="ds1-grid ds1-g2">${box('Verlustgründe · SQL','letzte 90 Tage',lS.length?hb(lS.map(([n,c])=>[n,c,'#206A72']),lS[0][1]):'<div style="font-size:12px;color:var(--text3)">Keine Verluste.</div>','zeigt, woran die Akquise scheitert.')}${box('Verlustgründe · PQL','letzte 90 Tage',lP.length?hb(lP.map(([n,c])=>[n,c,'#ba7517']),lP[0][1]):'<div style="font-size:12px;color:var(--text3)">Keine Verluste.</div>','zeigt, warum ein Test nicht zum Auftrag wird.')}</div>`;
+  const g2=`   <div class="ds1-grid ds1-g2">${bArt}${bTop}</div>
+${bLoss}`;
   // ── 3 · Ziele & Prognose ──
   const goals=PROJECT.dashGoals||{team:0,agents:{}};
   const ym=TODAY.slice(0,7);const dim=new Date(+ym.slice(0,4),+ym.slice(5,7),0).getDate();const dayN=+TODAY.slice(8,10);
@@ -6390,18 +6394,18 @@ function dashStep2Html(want){
     ${box('FollowUp-Disziplin','fällig in den letzten 30 Tagen',`<div class="ds2-big" style="color:${disc===null?'inherit':disc>=80?'#1d7a5a':disc>=60?'#7a4e07':'#a32d2d'}">${disc===null?'–':disc+' %'}</div><div class="ds2-sub">der FollowUps spätestens am Fälligkeitstag erledigt</div><div class="ds2-kp" style="grid-template-columns:1fr 1fr"><div class="g">Pünktlich<b>${onTime}</b></div><div class="w">Verspätet<b>${late}</b><small>${avgLate===null?'':'Ø '+avgLate.toFixed(1).replace('.',',')+' Tage'}</small></div></div>`,'erledigt = nächstes FollowUp gesetzt oder Lead abgeschlossen.')}</div>`;
   const gHeat=`${box('Erreichbarkeit nach Tag und Uhrzeit','Anteil erreicht · letzte 90 Tage',loading?ld:heat+(best?`<div class="ds2-sub" style="margin-top:8px">Am besten: <b>${days[best.di]} ${slots[best.si][0]}–${slots[best.si][1]} Uhr</b> (${Math.round(best.q*100)} % erreicht)</div>`:''),'Grundlage sind die Uhrzeiten der Kommentare.')}`;
   const gGoalTeam=`${box('Ziele je Mitarbeiter','laufender Monat',goalTab,'Ziele legt ein Admin über das Ziel-Symbol fest.')}`;
-  const parts={dev:g1,cust:g2,goals:g3,heat:gHeat,goalsTeam:gGoalTeam,toner:bToner,trend:bTrend};
+  const parts={dev:g1,cust:g2,goals:g3,heat:gHeat,goalsTeam:gGoalTeam,toner:bToner,trend:bTrend,marge:bMarge,dur:bDur,art:bArt,top:bTop,loss:bLoss};
   if(want)return parts[want]||'';
   return g1+g2+g3+`<div class="ds1-grid ds1-g2">${gHeat}${gGoalTeam}</div>`;
 }
 // ── Dashboard-Gruppen (Okt. 2026): aufklappbar, Zustand gemerkt, zugeklappt = nicht berechnet ──
 let dashGroupsOpen=null;
 function dashGroupState(){
-  if(!dashGroupsOpen){try{dashGroupsOpen=JSON.parse(localStorage.getItem('projectos_dash_groups')||'null');}catch(e){dashGroupsOpen=null;}
-    if(!dashGroupsOpen||typeof dashGroupsOpen!=='object')dashGroupsOpen={pipeline:true,today:true,team:true,dev:false,cust:false};}
+  if(!dashGroupsOpen){try{dashGroupsOpen=JSON.parse(localStorage.getItem('projectos_dash_groups_v2')||'null');}catch(e){dashGroupsOpen=null;}
+    if(!dashGroupsOpen||typeof dashGroupsOpen!=='object')dashGroupsOpen={pipeline:true,leads:true,team:true,dev:false,fin:true};}
   return dashGroupsOpen;
 }
-function dashToggleGroup(k){const st=dashGroupState();st[k]=!st[k];try{localStorage.setItem('projectos_dash_groups',JSON.stringify(st));}catch(e){}renderDashboard();}
+function dashToggleGroup(k){const st=dashGroupState();st[k]=!st[k];try{localStorage.setItem('projectos_dash_groups_v2',JSON.stringify(st));}catch(e){}renderDashboard();}
 function dashGroup(k,title,icon,summary,fn){
   const open=!!dashGroupState()[k];let body='';
   if(open){try{body=fn();}catch(e){console.warn('Dashboard-Gruppe',k,e);body=`<div class="ds1-box" style="color:var(--red)">Dieser Bereich konnte nicht berechnet werden: ${esc(e.message)}</div>`;}}
