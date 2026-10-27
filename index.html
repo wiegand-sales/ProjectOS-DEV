@@ -374,6 +374,18 @@ body{font-family:'Inter',sans-serif;background:linear-gradient(155deg,#f2f3f0 0%
 .ap-k b{font-size:18px;color:#174C52}
 .ap-k.dark{background:#206A72}.ap-k.dark small{color:#D6E6E8}.ap-k.dark b{color:#fff}
 .ap-ft{display:flex;gap:8px;align-items:center;padding:12px 18px;border-top:1px solid rgba(0,0,0,.08);background:#fff}
+
+.ap-q{border:2px solid #206A72;border-radius:10px;padding:10px 12px;display:flex;align-items:center;gap:12px;background:#fff}
+.ap-q b{font-size:14px;color:#174C52}.ap-q small{display:block;font-size:12px;color:#4f5d60}
+.ap-seg{display:flex;gap:6px;margin-left:auto}
+.ap-seg button{height:34px;min-width:64px;border:1px solid #206A72;border-radius:8px;background:#fff;color:#206A72;font:600 13px Inter,sans-serif;cursor:pointer}
+.ap-seg button.on{background:#206A72;color:#fff}
+.ap-ft-list{background:#E9F0F1;border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:6px;font-size:12.5px;color:#123E43}
+.ap-ft-list .ti{color:#206A72;font-size:15px;vertical-align:-2px;margin-right:4px}
+.ap-ft-list label{display:flex;align-items:center;gap:8px;cursor:pointer}
+.ap-ft-list input{accent-color:#206A72;width:16px;height:16px;margin:0}
+.ap-tag.ft{background:#206A72;color:#fff}
+.ap-note{font-size:12.5px;color:#4f5d60;background:#f4f6f5;border-radius:10px;padding:10px 12px}
 .ap-busy{display:flex;align-items:center;gap:10px;padding:24px 18px;font-size:13px;color:#4f5d60}
 
 /* Dateien per Drag & Drop aufs Lead-Fenster */
@@ -1839,7 +1851,7 @@ let localSettingsTrusted=false;
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-10-27T14:00:00.000Z';
+const BUILD_VERSION='2026-10-27T15:00:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -10176,6 +10188,15 @@ async function apNext(){
   }catch(e){console.warn('PDF-Auftrag:',e);apClose(false);}
 }
 function apClose(next=true){const el=document.getElementById('apOverlay');if(el)el.remove();apCur=null;if(next!==false||apQueue.length)apNext();}
+function apFreeIdx(rows){return rows.map((r,i)=>(r.kind==='art'&&Math.abs(r.vk)<0.005)?i:-1).filter(i=>i>=0);}
+function apSetFree(v){if(!apCur)return;apCur.free=v;if(v&&apCur.move===undefined){const c=colById(draftLead.status);apCur.move=draftLead.status==='am_order';apCur.moveCol=c;}apRender();}
+function apSetMove(v){if(apCur){apCur.move=!!v;}}
+function apPlan(){ // was beim Uebernehmen passiert
+  const o=apCur.order,rows=apCur.rows,fi=apFreeIdx(rows),free=apCur.free===true&&fi.length>0;
+  const orderRows=free?rows.filter((r,i)=>!fi.includes(i)&&!(r.kind==='vp'&&Math.abs(r.vk)<0.005)):rows;
+  const freeRows=free?fi.map(i=>rows[i]):[];
+  return {free,orderRows,freeRows,hasFree:fi.length>0};
+}
 function apRender(){
   let el=document.getElementById('apOverlay');
   if(!apCur){if(el)el.remove();return;}
@@ -10183,58 +10204,125 @@ function apRender(){
   const f=apCur.file;
   if(apCur.busy){el.innerHTML=`<div class="ap-dlg"><div class="ap-busy"><i class="ti ti-loader-2"></i> ${esc(f.name)} wird geprüft …</div></div>`;return;}
   const o=apCur.order,rows=apCur.rows,l=draftLead;
+  const P=apPlan();
   const leadNo=String(l.customerNumber||'').trim();
   const noBad=!!(o.custNo&&leadNo&&o.custNo.replace(/^0+/,'')!==leadNo.replace(/^0+/,''));
   const dup=o.beleg?ordList().find(x=>String(x.beleg||'').trim()===o.beleg):null;
-  // Belegnummer auch in allen anderen Leads pruefen
-  const dupElse=o.beleg?leads.filter(x=>String(x.id)!==String(l.id)).map(x=>({lead:x,ord:(x.actualPrinters||[]).find(p=>String(p.beleg||'').trim()===o.beleg)})).filter(x=>x.ord):[];
-  const belegBad=!!dup||dupElse.length>0;
-  const sumVk=rows.reduce((s,r)=>s+r.vk*r.qty,0),sumEk=rows.reduce((s,r)=>s+(r.ek||0)*r.qty,0);
-  const sumOff=o.net!==null&&Math.abs(o.net-sumVk)>0.02;
+  const dupFt=o.beleg&&String(l.tonerSentBeleg||'').trim()===o.beleg;
+  // Belegnummer auch in allen anderen Leads pruefen (Auftraege und Free-Toner-Versand)
+  const dupElse=o.beleg?leads.filter(x=>String(x.id)!==String(l.id)).map(x=>({lead:x,ord:(x.actualPrinters||[]).find(p=>String(p.beleg||'').trim()===o.beleg)||(String(x.tonerSentBeleg||'').trim()===o.beleg?{}:null)})).filter(x=>x.ord):[];
+  const belegBad=!!dup||dupFt||dupElse.length>0;
+  const oRows=P.orderRows;
+  const sumVk=oRows.reduce((s,r)=>s+r.vk*r.qty,0),sumEk=oRows.reduce((s,r)=>s+(r.ek||0)*r.qty,0);
+  const allVk=rows.reduce((s,r)=>s+r.vk*r.qty,0);
+  const sumOff=o.net!==null&&Math.abs(o.net-allVk)>0.02;
   const miss=rows.filter(r=>r.missing||r.noEk);
   const warn=(t,soft)=>`<div class="ap-warn ${soft?'soft':''}"><i class="ti ti-alert-triangle"></i><div>${t}</div></div>`;
-  const tag=r=>r.kind==='vp'?'<span class="ap-tag">Versandpauschale</span>':(r.kind==='uwp'?'<span class="ap-tag">Umweltpauschale</span>':(r.missing?'<span class="ap-tag miss">nicht im Katalog</span>':(r.noEk?'<span class="ap-tag miss">ohne EK</span>':'')));
-  const rowsHtml=rows.map(r=>{const m=r.ek===null?null:(r.vk-r.ek)*r.qty;return `<tr><td><b style="font-weight:600">${esc(r.sku||'–')}</b>${tag(r)}<div class="d">${esc(r.title)}</div></td><td class="n">${String(r.qty).replace('.',',')}</td><td class="n">${fmtEurCent(r.vk)}</td><td class="n">${r.ek===null?'–':fmtEurCent(r.ek)}</td><td class="n" ${r.kind==='vp'?'style="color:#4f5d60"':''}>${m===null?'–':(r.kind==='vp'?'±0,00 €':`<b>${fmtEurCent(m)}</b>`)}</td></tr>`;}).join('');
-  el.innerHTML=`<div class="ap-dlg" role="dialog" aria-modal="true" aria-label="Auftragsbestätigung übernehmen">
-    <div class="ap-hdr"><i class="ti ti-file-check"></i><div><b>Auftragsbestätigung erkannt</b><small>${esc(f.name)} · als Auftrag übernehmen?</small></div><button type="button" class="ap-x" onclick="apAttachOnly()" title="Schließen (Datei bleibt als Anhang vorgemerkt)"><i class="ti ti-x"></i></button></div>
+  const freeSet=new Set(P.freeRows);
+  const tag=r=>freeSet.has(r)?'<span class="ap-tag ft">Free Toner</span>':(r.kind==='vp'?'<span class="ap-tag">Versandpauschale</span>':(r.kind==='uwp'?'<span class="ap-tag">Umweltpauschale</span>':(r.missing?'<span class="ap-tag miss">nicht im Katalog</span>':(r.noEk?'<span class="ap-tag miss">ohne EK</span>':''))));
+  const rowsHtml=rows.map(r=>{
+    const skip=P.free&&!freeSet.has(r)&&!oRows.includes(r);
+    const m=r.ek===null?null:(r.vk-r.ek)*r.qty;
+    const mHtml=freeSet.has(r)?'<span style="color:#4f5d60">Toner zusenden</span>':(skip?'<span style="color:#4f5d60">entfällt</span>':(m===null?'–':(r.kind==='vp'?'<span style="color:#4f5d60">±0,00 €</span>':`<b>${fmtEurCent(m)}</b>`)));
+    return `<tr ${skip?'style="opacity:.5"':''}><td><b style="font-weight:600">${esc(r.sku||'–')}</b>${tag(r)}<div class="d">${esc(r.title)}</div></td><td class="n">${String(r.qty).replace('.',',')}</td><td class="n">${fmtEurCent(r.vk)}</td><td class="n">${r.ek===null?'–':fmtEurCent(r.ek)}</td><td class="n">${mHtml}</td></tr>`;}).join('');
+  // Free-Toner-Frage
+  let freeHtml='';
+  if(P.hasFree){
+    const cur=colById(l.status),pql=colById('fu_feedback');
+    const inPql=cur&&colBoard(cur)==='vertrieb';
+    const fq=`<div class="ap-q"><i class="ti ti-gift" style="font-size:22px;color:#206A72"></i><div><b>Handelt es sich um den Free Toner?</b><small>${apFreeIdx(rows).length===1?'Eine Position steht':apFreeIdx(rows).length+' Positionen stehen'} mit 0,00 € im Auftrag.</small></div><div class="ap-seg"><button type="button" class="${apCur.free===true?'on':''}" onclick="apSetFree(true)">Ja</button><button type="button" class="${apCur.free===false?'on':''}" onclick="apSetFree(false)">Nein</button></div></div>`;
+    let fl='';
+    if(apCur.free===true){
+      const shipFilled=((l.shipPrinter&&l.shipPrinter.skus)||[]).filter(x=>x.sku).length;
+      fl=`<div class="ap-ft-list">
+        <div><i class="ti ti-check"></i><b>Free Toner verschickt: Ja</b>, Versanddatum ${o.date?fmtDate(o.date):'heute'}</div>
+        <div><i class="ti ti-check"></i>${P.freeRows.length===1?'1 Toner':P.freeRows.length+' Toner'} unter „Toner zusenden“ eintragen</div>
+        ${inPql?`<div><i class="ti ti-info-circle"></i>Lead steht schon im PQL-Board (${esc(cur.name)}) und bleibt dort</div>`
+          :(pql?`<label><input type="checkbox" ${apCur.move?'checked':''} onchange="apSetMove(this.checked)"> Lead von „${esc(cur?cur.name:'–')}“ nach „${esc(pql.name)}“ (Board: PQL) verschieben</label>`:'')}
+        ${(!inPql&&l.status!=='am_order')?`<div style="color:#6b4206"><i class="ti ti-alert-triangle" style="color:#6b4206"></i>Der Lead steht nicht in „${esc((colById('am_order')||{}).name||'AM: Auftrag')}“. Bitte bewusst entscheiden, ob er trotzdem nach PQL soll.</div>`:''}
+      </div>`;
+      if(l.tonerSent==='Ja')fl+=warn(`Bei diesem Lead steht schon <b>„Free Toner verschickt: Ja“</b>${l.tonerSentAt?' seit '+fmtDate(l.tonerSentAt):''}. Das Versanddatum wird nicht geändert.`,true);
+      if(shipFilled)fl+=warn(`Unter „Toner zusenden“ ${shipFilled===1?'steht schon 1 Artikel':'stehen schon '+shipFilled+' Artikel'}. Die neuen werden ergänzt, soweit Platz ist (max. ${SHIP_ART_MAX}).`,true);
+    }
+    freeHtml=fq+fl;
+  }
+  const needAnswer=P.hasFree&&apCur.free!==true&&apCur.free!==false;
+  const sumHtml=(P.free&&!oRows.length)
+    ?`<div class="ap-note">Kein Auftrag: Der Beleg enthält nur den Free Toner${rows.some(r=>r.kind==='vp')?' und die Versandpauschale (die Versandkosten rechnet das Board über die feste Pauschale)':''}.</div>`
+    :`${P.free?'<div class="ap-note" style="padding:6px 12px">Die übrigen Positionen werden als Auftrag angelegt:</div>':''}<div class="ap-g3"><div class="ap-k"><small>Umsatz</small><b>${fmtEurCent(sumVk)}</b></div><div class="ap-k"><small>EK gesamt</small><b>${fmtEurCent(sumEk)}</b></div><div class="ap-k dark"><small>Marge</small><b>${fmtEurCent(sumVk-sumEk)}</b></div></div>`;
+  const title=P.free?'Free-Toner-Versand erkannt':'Auftragsbestätigung erkannt';
+  const btnLbl=P.free?(oRows.length?'Free Toner + Auftrag übernehmen':'Free Toner übernehmen'):'Als Auftrag übernehmen';
+  el.innerHTML=`<div class="ap-dlg" role="dialog" aria-modal="true" aria-label="${title}">
+    <div class="ap-hdr"><i class="ti ${P.free?'ti-gift':'ti-file-check'}"></i><div><b>${title}</b><small>${esc(f.name)} · ${P.free?'Free Toner eintragen?':'als Auftrag übernehmen?'}</small></div><button type="button" class="ap-x" onclick="apAttachOnly()" title="Schließen (Datei bleibt als Anhang vorgemerkt)"><i class="ti ti-x"></i></button></div>
     <div class="ap-body">
+      ${freeHtml}
       <div class="ap-g3">
         <div class="ap-tile ${belegBad?'bad':''}"><small>Belegnummer</small><b>${esc(o.beleg||'–')}</b></div>
-        <div class="ap-tile"><small>Auftragsdatum</small><b>${o.date?fmtDate(o.date):'–'}</b></div>
+        <div class="ap-tile"><small>${P.free?'Belegdatum':'Auftragsdatum'}</small><b>${o.date?fmtDate(o.date):'–'}</b></div>
         <div class="ap-tile ${noBad?'bad':''}"><small>Kundennummer</small><b>${esc(o.custNo||'–')}</b></div>
       </div>
       ${noBad?warn(`<b>Kundennummer passt nicht zum Lead.</b> Im PDF steht ${esc(o.custNo)}, der Lead „${esc(l.company||'')}“ hat ${esc(leadNo)}. Bitte prüfen, ob du den richtigen Lead offen hast.`):''}
       ${dup?warn(`<b>Belegnummer ist bereits vorhanden.</b> Beleg ${esc(o.beleg)} steht in diesem Lead schon als Auftrag ${ordNo(dup)} vom ${fmtDate(String(dup.date||'').slice(0,10))}. Beim Übernehmen entsteht ein zweiter Auftrag.`):''}
+      ${dupFt?warn(`<b>Belegnummer ist bereits vorhanden.</b> Beleg ${esc(o.beleg)} wurde bei diesem Lead schon als Free-Toner-Versand übernommen.`):''}
       ${dupElse.length?warn(`<b>Belegnummer ist bereits vorhanden.</b> Beleg ${esc(o.beleg)} steht schon bei ${dupElse.slice(0,3).map(x=>`„${esc(x.lead.company||'Lead')}“${x.lead.customerNumber?' (Kd-Nr. '+esc(x.lead.customerNumber)+')':''}`).join(', ')}${dupElse.length>3?' und '+(dupElse.length-3)+' weiteren':''}. Bitte prüfen, ob der Auftrag doppelt angelegt wird.`):''}
       ${miss.length?warn(`${miss.length===1?'Ein Artikel ist':miss.length+' Artikel sind'} nicht im Artikelkatalog oder ohne EK. Die Marge dafür wird mit EK 0 € gerechnet, bitte im Auftrag nachtragen.`,true):''}
-      ${sumOff?warn(`Die Positionen ergeben ${fmtEurCent(sumVk)}, im PDF steht netto ${fmtEurCent(o.net)}. Bitte die Positionen prüfen.`,true):''}
+      ${sumOff?warn(`Die Positionen ergeben ${fmtEurCent(allVk)}, im PDF steht netto ${fmtEurCent(o.net)}. Bitte die Positionen prüfen.`,true):''}
       <table class="ap-tbl"><thead><tr><th>Artikel</th><th class="n">Menge</th><th class="n">VK</th><th class="n">EK</th><th class="n">Marge</th></tr></thead><tbody>${rowsHtml}</tbody></table>
-      <div class="ap-g3"><div class="ap-k"><small>Umsatz</small><b>${fmtEurCent(sumVk)}</b></div><div class="ap-k"><small>EK gesamt</small><b>${fmtEurCent(sumEk)}</b></div><div class="ap-k dark"><small>Marge</small><b>${fmtEurCent(sumVk-sumEk)}</b></div></div>
+      ${sumHtml}
     </div>
-    <div class="ap-ft"><button type="button" class="btn" onclick="apAttachOnly()">Nur als Anhang</button><span style="flex:1"></span><button type="button" class="btn" onclick="apCancel()">Abbrechen</button><button type="button" class="btn btn-primary" id="apTakeBtn" onclick="apTake()"><i class="ti ti-check"></i> Als Auftrag übernehmen</button></div>
+    <div class="ap-ft"><button type="button" class="btn" onclick="apAttachOnly()">Nur als Anhang</button><span style="flex:1"></span><button type="button" class="btn" onclick="apCancel()">Abbrechen</button><button type="button" class="btn btn-primary" id="apTakeBtn" onclick="apTake()" ${needAnswer?'disabled title="Bitte zuerst die Free-Toner-Frage beantworten"':''}><i class="ti ti-check"></i> ${btnLbl}</button></div>
   </div>`;
 }
 function apAttachOnly(){apClose();}
 function apCancel(){if(apCur&&apCur.file){composePending=composePending.filter(x=>x!==apCur.file);renderLeadModal();}apClose();}
 async function apTake(){
   if(!apCur||!apCur.order||modalReadOnly)return;
+  const P=apPlan();
+  if(P.hasFree&&apCur.free!==true&&apCur.free!==false)return;
   const btn=document.getElementById('apTakeBtn');if(btn){btn.disabled=true;btn.innerHTML='<i class="ti ti-loader-2"></i> Wird übernommen …';}
-  const {file,order:o,rows}=apCur;
-  const skus=rows.map(r=>({sku:r.sku,qty:r.qty,priceEk:r.ek===null?'':r.ek,priceVk:r.vk,title:r.title,...(r.articleId!=null?{articleId:r.articleId}:{}),...(r.kind!=='art'?{flat:r.kind}:{})}));
-  const ord={id:genId(),model:'',date:o.date||TODAY,beleg:o.beleg||'',skus,source:'pdf'};
-  draftLead.actualPrinters.push(ord);ordOpen=ord.id;recomputeActual();
-  const t=ordTotals(ord);
-  const act={id:Date.now()+Math.random(),type:'activity',author:currentUser,text:`Auftrag aus PDF übernommen: Beleg ${o.beleg||'–'} vom ${o.date?fmtDate(o.date):'–'} (${skus.length} Positionen, ${fmtEurCent(t.u)})`,date:nowISO()};
-  draftLead.activity.unshift(act);pushActivityToDb(editingLeadId||draftLead.id,act);
-  // PDF zusaetzlich als Anhang speichern
+  const {file,order:o}=apCur;const moveToPql=P.free&&!!apCur.move;
+  const log=t=>{const a={id:Date.now()+Math.random(),type:'activity',author:currentUser,text:t,date:nowISO()};draftLead.activity.unshift(a);pushActivityToDb(editingLeadId||draftLead.id,a);};
+  // 1) Auftrag (bezahlte Positionen bzw. alles, wenn kein Free Toner)
+  if(P.orderRows.length){
+    const skus=P.orderRows.map(r=>({sku:r.sku,qty:r.qty,priceEk:r.ek===null?'':r.ek,priceVk:r.vk,title:r.title,...(r.articleId!=null?{articleId:r.articleId}:{}),...(r.kind!=='art'?{flat:r.kind}:{})}));
+    const ord={id:genId(),model:'',date:o.date||TODAY,beleg:o.beleg||'',skus,source:'pdf'};
+    draftLead.actualPrinters.push(ord);ordOpen=ord.id;recomputeActual();
+    const t=ordTotals(ord);
+    log(`Auftrag aus PDF übernommen: Beleg ${o.beleg||'–'} vom ${o.date?fmtDate(o.date):'–'} (${skus.length} Positionen, ${fmtEurCent(t.u)})`);
+  }
+  // 2) Free Toner: "Toner zusenden" + "Free Toner verschickt: Ja"
+  if(P.free){
+    if(!draftLead.shipPrinter)draftLead.shipPrinter={model:'',skus:[]};
+    const sk=draftLead.shipPrinter.skus=(draftLead.shipPrinter.skus||[]).filter(x=>x.sku);
+    let added=0,skipped=0;
+    P.freeRows.forEach(r=>{
+      if(sk.some(x=>String(x.sku).toLowerCase()===String(r.sku).toLowerCase())){return;}
+      if(sk.length>=SHIP_ART_MAX){skipped++;return;}
+      const a=r.articleId!=null?ARTICLES.find(x=>String(x.id)===String(r.articleId)):null;
+      const vk=a?shipNum(a.vk):null;
+      sk.push({sku:r.sku,priceEk:r.ek!==null?String(r.ek):'',priceVk:vk!==null?String(vk):'',title:r.title||'',...(r.articleId!=null?{articleId:r.articleId}:{}),qty:Math.max(1,Math.min(10,Math.round(r.qty)||1))});added++;
+    });
+    while(sk.length<SHIP_ART_MAX)sk.push({sku:'',priceEk:'',priceVk:''});
+    const wasSent=draftLead.tonerSent==='Ja';
+    setTonerSent(draftLead,'Ja');
+    if(!wasSent&&o.date)draftLead.tonerSentAt=o.date;
+    if(o.beleg)draftLead.tonerSentBeleg=o.beleg;
+    log(`Free Toner aus PDF übernommen: Beleg ${o.beleg||'–'} vom ${o.date?fmtDate(o.date):'–'} (${P.freeRows.map(r=>r.sku).join(', ')})${wasSent?'':' · Free Toner verschickt: Ja'}`);
+    if(skipped)alert(`${skipped} Toner passten nicht mehr unter „Toner zusenden“ (max. ${SHIP_ART_MAX} Artikel) und wurden nicht eingetragen.`);
+  }
+  // 3) PDF als Anhang
   composePending=composePending.filter(x=>x!==file);
   try{
     const fileId=Date.now()+Math.random();
     const storagePath=await uploadAttachmentToStorage(draftLead.id,fileId,file);
     draftLead.files.push({id:fileId,name:file.name,size:file.size,storagePath,uploadedBy:currentUser,uploadedAt:nowISO(),note:`Auftragsbestätigung ${o.beleg||''}`.trim()});
-    const fa={id:Date.now()+Math.random(),type:'activity',author:currentUser,text:`Datei hochgeladen: ${file.name}`,date:nowISO()};draftLead.activity.unshift(fa);pushActivityToDb(editingLeadId||draftLead.id,fa);
-  }catch(err){alert(`Der Auftrag wurde angelegt, aber das PDF "${file.name}" konnte nicht als Anhang hochgeladen werden: ${err.message}`);}
-  autoPersistIfEditing();renderLeadModal();apClose();
+    log(`Datei hochgeladen: ${file.name}`);
+  }catch(err){alert(`Die Daten wurden übernommen, aber das PDF "${file.name}" konnte nicht als Anhang hochgeladen werden: ${err.message}`);}
+  // 4) Nach PQL verschieben (gleicher Weg wie Speichern mit Listenwechsel: Verlauf, Verweildauer, Erstkontakt)
+  apClose(false);
+  if(moveToPql&&colById('fu_feedback')){autoPersistIfEditing();draftLead.status='fu_feedback';saveLead(true);}
+  else{autoPersistIfEditing();renderLeadModal();}
+  if(apQueue.length)apNext();
 }
 
 // Dateien per Drag & Drop aufs offene Lead-Fenster: springt auf "Anhang" und merkt sie vor.
