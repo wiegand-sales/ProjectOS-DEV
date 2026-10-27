@@ -346,6 +346,36 @@ body{font-family:'Inter',sans-serif;background:linear-gradient(155deg,#f2f3f0 0%
 .rc-seg button{padding:0 12px}
 .rc-pick{width:100%;height:36px;display:flex;align-items:center;gap:8px;border:1px dashed var(--text3);border-radius:8px;background:transparent;color:var(--text2);font-size:12.5px;cursor:pointer;padding:0 10px;font-family:inherit;text-align:left}
 .rc-pick:hover{border-color:#206A72;color:#206A72}
+/* Kundenauftrag aus PDF: Bestaetigungsfenster (Entwurf A) */
+.ap-ov{position:fixed;inset:0;background:rgba(26,42,45,.55);z-index:10050;display:flex;align-items:center;justify-content:center;padding:20px}
+.ap-dlg{background:#fbfbfa;border-radius:14px;box-shadow:0 20px 50px rgba(0,0,0,.28);overflow:hidden;display:flex;flex-direction:column;width:640px;max-width:100%;max-height:92vh}
+.ap-hdr{background:#206A72;color:#fff;padding:14px 18px;display:flex;align-items:center;gap:10px}
+.ap-hdr .ti{font-size:22px}
+.ap-hdr b{font-size:15px;display:block}.ap-hdr small{font-size:12px;color:#D6E6E8}
+.ap-x{width:32px;height:32px;border:0;border-radius:8px;background:rgba(255,255,255,.14);color:#fff;display:inline-flex;align-items:center;justify-content:center;margin-left:auto;cursor:pointer;font-size:16px}
+.ap-body{padding:16px 18px;display:flex;flex-direction:column;gap:12px;overflow-y:auto}
+.ap-g3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.ap-tile{background:#E9F0F1;border-radius:10px;padding:8px 12px}
+.ap-tile small{display:block;font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#4f5d60}
+.ap-tile b{font-size:15px;color:#174C52}
+.ap-tile.bad{background:#F8EAEA}.ap-tile.bad small,.ap-tile.bad b{color:#88201E}
+.ap-warn{background:#F8EAEA;border:1px solid #E7B9B7;border-radius:10px;padding:9px 12px;display:flex;gap:10px;align-items:flex-start;color:#88201E;font-size:12.5px}
+.ap-warn.soft{background:#FBF3E4;border-color:#EBD3A8;color:#6b4206}
+.ap-warn .ti{font-size:17px;flex-shrink:0;margin-top:1px}
+.ap-tbl{width:100%;border-collapse:collapse;font-size:12.5px}
+.ap-tbl th{font-size:10.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:#4f5d60;text-align:left;padding:6px 8px;border-bottom:1px solid #C9DCDE}
+.ap-tbl td{padding:8px;border-bottom:1px solid #E9F0F1;vertical-align:top}
+.ap-tbl .n{text-align:right;white-space:nowrap}
+.ap-tbl .d{font-size:11.5px;color:#4f5d60}
+.ap-tag{font-size:10px;font-weight:700;padding:1px 7px;border-radius:20px;background:#B9D6DA;color:#123E43;margin-left:6px;white-space:nowrap}
+.ap-tag.miss{background:#F8EAEA;color:#88201E}
+.ap-k{border-radius:10px;padding:9px 12px;background:#E9F0F1}
+.ap-k small{display:block;font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#4f5d60}
+.ap-k b{font-size:18px;color:#174C52}
+.ap-k.dark{background:#206A72}.ap-k.dark small{color:#D6E6E8}.ap-k.dark b{color:#fff}
+.ap-ft{display:flex;gap:8px;align-items:center;padding:12px 18px;border-top:1px solid rgba(0,0,0,.08);background:#fff}
+.ap-busy{display:flex;align-items:center;gap:10px;padding:24px 18px;font-size:13px;color:#4f5d60}
+
 /* Dateien per Drag & Drop aufs Lead-Fenster */
 #leadModal.lm-dropping::before{content:'';position:fixed;inset:10px;border:3px dashed #206A72;border-radius:16px;background:rgba(32,106,114,.14);pointer-events:none;z-index:9998}
 #leadModal.lm-dropping::after{content:'Dateien hier ablegen – sie werden als Anhang vorgemerkt';position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#206A72;color:#fff;font:600 15px Inter,sans-serif;padding:14px 22px;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.2);pointer-events:none;z-index:9999;white-space:nowrap}
@@ -1809,7 +1839,7 @@ let localSettingsTrusted=false;
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-10-27T12:15:00.000Z';
+const BUILD_VERSION='2026-10-27T13:30:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -10064,11 +10094,145 @@ function composeQueueFiles(list){
   fs.forEach(f=>{if(f.size>MAX_ATTACHMENT_SIZE){alert(`Datei "${f.name}" ist zu groß (${formatBytes(f.size)}). Maximal erlaubt sind ${formatBytes(MAX_ATTACHMENT_SIZE)} pro Datei.`);return;}composePending.push(f);});
   const t=document.getElementById('fileNoteInput');if(t)draftFileNote=t.value;
   renderLeadModal();
+  apCheckFiles(fs.filter(f=>composePending.includes(f)));
 }
 function composeAddFiles(e){
   const list=Array.from(e.target.files||[]);
   e.target.value='';composeQueueFiles(list);
 }
+
+// ── Kundenauftrag aus PDF (Okt. 2026) ──
+// Erkennt "Auftragsbestaetigung"-PDFs aus der Warenwirtschaft (Text-PDF, kein Scan), liest Beleg,
+// Datum, Kundennummer und Positionen aus und legt nach Bestaetigung einen Auftrag im Lead an.
+// Das Auslesen passiert komplett im Browser (pdf.js von cdnjs), die Daten verlassen das Board nicht.
+// Pauschalen: VP... (Versand) = Position, zaehlt zum Umsatz, Marge 0 (EK=VK);
+//             UWP... (Umwelt) = Position, zaehlt voll zur Marge (EK=0).
+// Gemeinsamer Kern: identisch im Board (aus Textzeilen eines PDFs einen Auftrag lesen)
+function apNum(s){const n=parseFloat(String(s||'').replace(/\./g,'').replace(',','.'));return isNaN(n)?null:n;}
+function apLinesFromItems(pages){ // pages: [[{str,x,y}]] -> Zeilen (nach y gruppiert, nach x sortiert)
+  const out=[];
+  pages.forEach(items=>{
+    const rows=[];
+    items.filter(i=>String(i.str).trim()!=='').forEach(i=>{let r=rows.find(r=>Math.abs(r.y-i.y)<2.5);if(!r){r={y:i.y,it:[]};rows.push(r);}r.it.push(i);});
+    rows.sort((a,b)=>b.y-a.y).forEach(r=>out.push(r.it.sort((a,b)=>a.x-b.x).map(i=>String(i.str).trim()).join(' ').replace(/\s+/g,' ').trim()));
+  });
+  return out;
+}
+function apParseOrder(lines){
+  const txt=lines.join('\n');
+  if(!/Auftragsbest(ä|ae)tigung/i.test(txt))return null;
+  const r={beleg:'',date:'',custNo:'',items:[],net:null};
+  for(let i=0;i<lines.length;i++){
+    const L=lines[i];
+    if(!r.beleg&&/^Belegnummer\b/i.test(L)){for(let j=i+1;j<Math.min(i+4,lines.length);j++){const m=lines[j].match(/(\d{5,})\s+(\d{2})\.(\d{2})\.(\d{4})/);if(m){r.beleg=m[1];r.date=`${m[4]}-${m[3]}-${m[2]}`;break;}}}
+    if(!r.custNo&&/^Kundennummer$/i.test(L)&&lines[i+1]){const m=lines[i+1].match(/^(\d{3,})\b/);if(m)r.custNo=m[1];}
+    const nm=L.match(/(Nettobetrag|Zwischensumme)\s+([\d.]+,\d{2})$/i);if(nm&&r.net===null)r.net=apNum(nm[2]);
+    const pm=L.match(/^(\d{1,3})\s+(.+?)\s+([\d.]+,\d{2,3})(?:\s+[\d.]+,\d{2,3})?\s+(-?[\d.]+,\d{2,4})\s+(-?[\d.]+,\d{2})$/);
+    if(pm&&!/^(Zwischensumme|Nettobetrag|Gesamtbetrag|Mehrwertsteuer)/i.test(pm[2])){r.items.push({pos:+pm[1],title:pm[2],qty:apNum(pm[3]),price:apNum(pm[4]),total:apNum(pm[5]),sku:''});continue;}
+    const am=L.match(/^Artikelnr\.?:?\s*(\S+)/i);if(am&&r.items.length&&!r.items[r.items.length-1].sku)r.items[r.items.length-1].sku=am[1];
+  }
+  return r;
+}
+
+const AP_PDFJS='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/';
+let apLib=null,apQueue=[],apCur=null;
+function apLoadLib(){
+  if(apLib)return apLib;
+  apLib=new Promise((res,rej)=>{const s=document.createElement('script');s.src=AP_PDFJS+'pdf.min.js';
+    s.onload=()=>{try{window.pdfjsLib.GlobalWorkerOptions.workerSrc=AP_PDFJS+'pdf.worker.min.js';res(window.pdfjsLib);}catch(e){rej(e);}};
+    s.onerror=()=>{apLib=null;rej(new Error('PDF-Leser konnte nicht geladen werden'));};document.head.appendChild(s);});
+  return apLib;
+}
+function apIsPdf(f){return f&&(/pdf/i.test(f.type||'')||/\.pdf$/i.test(f.name||''));}
+async function apReadOrder(file){
+  const lib=await apLoadLib();
+  const doc=await lib.getDocument({data:new Uint8Array(await file.arrayBuffer())}).promise;
+  const pages=[];
+  for(let p=1;p<=Math.min(doc.numPages,10);p++){const c=await (await doc.getPage(p)).getTextContent();pages.push(c.items.map(i=>({str:i.str,x:i.transform[4],y:i.transform[5]})));}
+  const o=apParseOrder(apLinesFromItems(pages));
+  return (o&&o.items.length)?o:null;
+}
+function apKind(sku){const k=String(sku||'').toUpperCase();return k.startsWith('UWP')?'uwp':(k.startsWith('VP')?'vp':'art');}
+function apRows(o){
+  return o.items.map(it=>{
+    const kind=apKind(it.sku);
+    const a=kind==='art'?ARTICLES.find(x=>String(x.sku||'').trim().toLowerCase()===String(it.sku).trim().toLowerCase()):null;
+    const ek=kind==='vp'?it.price:(kind==='uwp'?0:(a&&shipNum(a.ek)!==null?shipNum(a.ek):null));
+    return {sku:it.sku||'',title:(a&&a.title)||it.title||'',qty:it.qty||0,vk:it.price||0,ek,kind,missing:kind==='art'&&!a,noEk:kind==='art'&&ek===null,articleId:a?a.id:null};
+  });
+}
+function apCheckFiles(list){
+  if(!editingLeadId||!draftLead||modalReadOnly)return;
+  Array.from(list||[]).filter(apIsPdf).forEach(f=>{apQueue.push(f);});
+  if(!apCur)apNext();
+}
+async function apNext(){
+  const f=apQueue.shift();if(!f){apCur=null;return;}
+  apCur={file:f,busy:true};apRender();
+  try{
+    const o=await apReadOrder(f);
+    if(!o||!apCur||apCur.file!==f){apClose(false);return;}
+    apCur={file:f,order:o,rows:apRows(o)};apRender();
+  }catch(e){console.warn('PDF-Auftrag:',e);apClose(false);}
+}
+function apClose(next=true){const el=document.getElementById('apOverlay');if(el)el.remove();apCur=null;if(next!==false||apQueue.length)apNext();}
+function apRender(){
+  let el=document.getElementById('apOverlay');
+  if(!apCur){if(el)el.remove();return;}
+  if(!el){el=document.createElement('div');el.id='apOverlay';el.className='ap-ov';document.body.appendChild(el);}
+  const f=apCur.file;
+  if(apCur.busy){el.innerHTML=`<div class="ap-dlg"><div class="ap-busy"><i class="ti ti-loader-2"></i> ${esc(f.name)} wird geprüft …</div></div>`;return;}
+  const o=apCur.order,rows=apCur.rows,l=draftLead;
+  const leadNo=String(l.customerNumber||'').trim();
+  const noBad=!!(o.custNo&&leadNo&&o.custNo.replace(/^0+/,'')!==leadNo.replace(/^0+/,''));
+  const dup=o.beleg?ordList().find(x=>String(x.beleg||'').trim()===o.beleg):null;
+  const sumVk=rows.reduce((s,r)=>s+r.vk*r.qty,0),sumEk=rows.reduce((s,r)=>s+(r.ek||0)*r.qty,0);
+  const sumOff=o.net!==null&&Math.abs(o.net-sumVk)>0.02;
+  const miss=rows.filter(r=>r.missing||r.noEk);
+  const warn=(t,soft)=>`<div class="ap-warn ${soft?'soft':''}"><i class="ti ti-alert-triangle"></i><div>${t}</div></div>`;
+  const tag=r=>r.kind==='vp'?'<span class="ap-tag">Versandpauschale</span>':(r.kind==='uwp'?'<span class="ap-tag">Umweltpauschale</span>':(r.missing?'<span class="ap-tag miss">nicht im Katalog</span>':(r.noEk?'<span class="ap-tag miss">ohne EK</span>':'')));
+  const rowsHtml=rows.map(r=>{const m=r.ek===null?null:(r.vk-r.ek)*r.qty;return `<tr><td><b style="font-weight:600">${esc(r.sku||'–')}</b>${tag(r)}<div class="d">${esc(r.title)}</div></td><td class="n">${String(r.qty).replace('.',',')}</td><td class="n">${fmtEurCent(r.vk)}</td><td class="n">${r.ek===null?'–':fmtEurCent(r.ek)}</td><td class="n" ${r.kind==='vp'?'style="color:#4f5d60"':''}>${m===null?'–':(r.kind==='vp'?'±0,00 €':`<b>${fmtEurCent(m)}</b>`)}</td></tr>`;}).join('');
+  el.innerHTML=`<div class="ap-dlg" role="dialog" aria-modal="true" aria-label="Auftragsbestätigung übernehmen">
+    <div class="ap-hdr"><i class="ti ti-file-check"></i><div><b>Auftragsbestätigung erkannt</b><small>${esc(f.name)} · als Auftrag übernehmen?</small></div><button type="button" class="ap-x" onclick="apAttachOnly()" title="Schließen (Datei bleibt als Anhang vorgemerkt)"><i class="ti ti-x"></i></button></div>
+    <div class="ap-body">
+      <div class="ap-g3">
+        <div class="ap-tile"><small>Belegnummer</small><b>${esc(o.beleg||'–')}</b></div>
+        <div class="ap-tile"><small>Auftragsdatum</small><b>${o.date?fmtDate(o.date):'–'}</b></div>
+        <div class="ap-tile ${noBad?'bad':''}"><small>Kundennummer</small><b>${esc(o.custNo||'–')}</b></div>
+      </div>
+      ${noBad?warn(`<b>Kundennummer passt nicht zum Lead.</b> Im PDF steht ${esc(o.custNo)}, der Lead „${esc(l.company||'')}“ hat ${esc(leadNo)}. Bitte prüfen, ob du den richtigen Lead offen hast.`):''}
+      ${dup?warn(`<b>Beleg ${esc(o.beleg)} gibt es schon</b> als Auftrag ${ordNo(dup)} vom ${fmtDate(String(dup.date||'').slice(0,10))}. Beim Übernehmen entsteht ein zweiter Auftrag.`):''}
+      ${miss.length?warn(`${miss.length===1?'Ein Artikel ist':miss.length+' Artikel sind'} nicht im Artikelkatalog oder ohne EK. Die Marge dafür wird mit EK 0 € gerechnet, bitte im Auftrag nachtragen.`,true):''}
+      ${sumOff?warn(`Die Positionen ergeben ${fmtEurCent(sumVk)}, im PDF steht netto ${fmtEurCent(o.net)}. Bitte die Positionen prüfen.`,true):''}
+      <table class="ap-tbl"><thead><tr><th>Artikel</th><th class="n">Menge</th><th class="n">VK</th><th class="n">EK</th><th class="n">Marge</th></tr></thead><tbody>${rowsHtml}</tbody></table>
+      <div class="ap-g3"><div class="ap-k"><small>Umsatz</small><b>${fmtEurCent(sumVk)}</b></div><div class="ap-k"><small>EK gesamt</small><b>${fmtEurCent(sumEk)}</b></div><div class="ap-k dark"><small>Marge</small><b>${fmtEurCent(sumVk-sumEk)}</b></div></div>
+    </div>
+    <div class="ap-ft"><button type="button" class="btn" onclick="apAttachOnly()">Nur als Anhang</button><span style="flex:1"></span><button type="button" class="btn" onclick="apCancel()">Abbrechen</button><button type="button" class="btn btn-primary" id="apTakeBtn" onclick="apTake()"><i class="ti ti-check"></i> Als Auftrag übernehmen</button></div>
+  </div>`;
+}
+function apAttachOnly(){apClose();}
+function apCancel(){if(apCur&&apCur.file){composePending=composePending.filter(x=>x!==apCur.file);renderLeadModal();}apClose();}
+async function apTake(){
+  if(!apCur||!apCur.order||modalReadOnly)return;
+  const btn=document.getElementById('apTakeBtn');if(btn){btn.disabled=true;btn.innerHTML='<i class="ti ti-loader-2"></i> Wird übernommen …';}
+  const {file,order:o,rows}=apCur;
+  const skus=rows.map(r=>({sku:r.sku,qty:r.qty,priceEk:r.ek===null?'':r.ek,priceVk:r.vk,title:r.title,...(r.articleId!=null?{articleId:r.articleId}:{}),...(r.kind!=='art'?{flat:r.kind}:{})}));
+  const ord={id:genId(),model:'',date:o.date||TODAY,beleg:o.beleg||'',skus,source:'pdf'};
+  draftLead.actualPrinters.push(ord);ordOpen=ord.id;recomputeActual();
+  const t=ordTotals(ord);
+  const act={id:Date.now()+Math.random(),type:'activity',author:currentUser,text:`Auftrag aus PDF übernommen: Beleg ${o.beleg||'–'} vom ${o.date?fmtDate(o.date):'–'} (${skus.length} Positionen, ${fmtEurCent(t.u)})`,date:nowISO()};
+  draftLead.activity.unshift(act);pushActivityToDb(editingLeadId||draftLead.id,act);
+  // PDF zusaetzlich als Anhang speichern
+  composePending=composePending.filter(x=>x!==file);
+  try{
+    const fileId=Date.now()+Math.random();
+    const storagePath=await uploadAttachmentToStorage(draftLead.id,fileId,file);
+    draftLead.files.push({id:fileId,name:file.name,size:file.size,storagePath,uploadedBy:currentUser,uploadedAt:nowISO(),note:`Auftragsbestätigung ${o.beleg||''}`.trim()});
+    const fa={id:Date.now()+Math.random(),type:'activity',author:currentUser,text:`Datei hochgeladen: ${file.name}`,date:nowISO()};draftLead.activity.unshift(fa);pushActivityToDb(editingLeadId||draftLead.id,fa);
+  }catch(err){alert(`Der Auftrag wurde angelegt, aber das PDF "${file.name}" konnte nicht als Anhang hochgeladen werden: ${err.message}`);}
+  autoPersistIfEditing();renderLeadModal();apClose();
+}
+
 // Dateien per Drag & Drop aufs offene Lead-Fenster: springt auf "Anhang" und merkt sie vor.
 // Reagiert nur auf echte Dateien (nicht auf das Ziehen von Karten, Labels o. a.).
 let lmDragDepth=0;
