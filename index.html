@@ -346,6 +346,9 @@ body{font-family:'Inter',sans-serif;background:linear-gradient(155deg,#f2f3f0 0%
 .rc-seg button{padding:0 12px}
 .rc-pick{width:100%;height:36px;display:flex;align-items:center;gap:8px;border:1px dashed var(--text3);border-radius:8px;background:transparent;color:var(--text2);font-size:12.5px;cursor:pointer;padding:0 10px;font-family:inherit;text-align:left}
 .rc-pick:hover{border-color:#206A72;color:#206A72}
+/* Dateien per Drag & Drop aufs Lead-Fenster */
+#leadModal.lm-dropping::before{content:'';position:fixed;inset:10px;border:3px dashed #206A72;border-radius:16px;background:rgba(32,106,114,.14);pointer-events:none;z-index:9998}
+#leadModal.lm-dropping::after{content:'Dateien hier ablegen – sie werden als Anhang vorgemerkt';position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#206A72;color:#fff;font:600 15px Inter,sans-serif;padding:14px 22px;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.2);pointer-events:none;z-index:9999;white-space:nowrap}
 .rc-att{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
 .rc-att span{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--border2);background:var(--bg);border-radius:7px;padding:2px 4px 2px 8px;font-size:12px}
 .rc-att button{border:0;background:transparent;color:var(--text3);cursor:pointer;font-weight:700;padding:0 3px}
@@ -1806,7 +1809,7 @@ let localSettingsTrusted=false;
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-10-27T11:30:00.000Z';
+const BUILD_VERSION='2026-10-27T12:15:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -10056,12 +10059,26 @@ function feedFilterBtnHtml(k,cnt){
     ${FEED_KINDS.map(x=>`<button type="button" role="menuitemcheckbox" aria-checked="${sel.includes(x)}" class="${sel.includes(x)?'on':''}" onclick="toggleFeedKind('${x}')">${ck(sel.includes(x))}${L[x]}<b>${cnt[x]||0}</b></button>`).join('')}
   </div>`:''}</span>`;
 }
-function composeAddFiles(e){
-  const fs=Array.from(e.target.files||[]);
+function composeQueueFiles(list){
+  const fs=Array.from(list||[]);
   fs.forEach(f=>{if(f.size>MAX_ATTACHMENT_SIZE){alert(`Datei "${f.name}" ist zu groß (${formatBytes(f.size)}). Maximal erlaubt sind ${formatBytes(MAX_ATTACHMENT_SIZE)} pro Datei.`);return;}composePending.push(f);});
   const t=document.getElementById('fileNoteInput');if(t)draftFileNote=t.value;
-  e.target.value='';renderLeadModal();
+  renderLeadModal();
 }
+function composeAddFiles(e){
+  const list=Array.from(e.target.files||[]);
+  e.target.value='';composeQueueFiles(list);
+}
+// Dateien per Drag & Drop aufs offene Lead-Fenster: springt auf "Anhang" und merkt sie vor.
+// Reagiert nur auf echte Dateien (nicht auf das Ziehen von Karten, Labels o. a.).
+let lmDragDepth=0;
+function lmDropAllowed(){const m=document.getElementById('leadModal');return !!(m&&!m.classList.contains('hidden')&&editingLeadId&&draftLead&&!modalReadOnly);}
+function lmHasFiles(e){const t=e.dataTransfer&&e.dataTransfer.types;return !!t&&Array.from(t).includes('Files');}
+function lmDropOff(){lmDragDepth=0;const m=document.getElementById('leadModal');if(m)m.classList.remove('lm-dropping');}
+document.addEventListener('dragenter',e=>{if(!lmHasFiles(e)||!lmDropAllowed())return;e.preventDefault();lmDragDepth++;document.getElementById('leadModal').classList.add('lm-dropping');});
+document.addEventListener('dragover',e=>{if(!lmHasFiles(e)||!lmDropAllowed())return;e.preventDefault();try{e.dataTransfer.dropEffect='copy';}catch(_){}});
+document.addEventListener('dragleave',e=>{if(!lmHasFiles(e)||!lmDropAllowed())return;lmDragDepth--;if(lmDragDepth<=0)lmDropOff();});
+document.addEventListener('drop',e=>{if(!lmHasFiles(e))return;if(!lmDropAllowed()){lmDropOff();return;}e.preventDefault();lmDropOff();composeMode='file';composeQueueFiles(e.dataTransfer.files);});
 function composeRemoveFile(ix){const t=document.getElementById('fileNoteInput');if(t)draftFileNote=t.value;composePending.splice(ix,1);renderLeadModal();}
 async function composeUpload(){
   if(modalReadOnly)return;
