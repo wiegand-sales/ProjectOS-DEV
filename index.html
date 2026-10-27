@@ -674,6 +674,49 @@ div.pf2-dr{cursor:default}
 .pf-section .movements-strip{gap:8px}
 .pf-section .movements-item{background:#E9F0F1;border-radius:999px;padding:5px 12px}
 .dg{margin:0 0 6px}
+.st-wrap{max-width:1100px}
+.st-lead{font-size:12.5px;color:var(--text2);margin:0 0 14px;max-width:760px}
+.st-card{background:#fbfbfa;border:1px solid #e1e8e8;border-radius:14px;padding:16px 18px;box-shadow:0 10px 26px rgba(15,61,66,.06);margin-bottom:14px;min-width:0}
+.st-ch{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.st-ch h3{margin:0;font-size:11px;font-weight:700;color:#4b5b60;text-transform:uppercase;letter-spacing:.04em;display:flex;align-items:center;gap:6px}
+.st-ch .r{margin-left:auto;display:flex;gap:6px;align-items:center}
+.st-desc{font-size:12px;color:var(--text3);margin:0 0 12px;max-width:760px;line-height:1.5}
+.st-secT{font-size:12px;font-weight:700;color:#174C52;text-transform:uppercase;letter-spacing:.05em;margin:22px 2px 10px;display:flex;align-items:center;gap:8px;scroll-margin-top:16px}
+.st-secT::after{content:"";flex:1;height:1px;background:#d5dfdf}
+.st-jump{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 6px}
+.st-jump a{font-size:12px;color:#206A72;text-decoration:none;background:#E9F0F1;border-radius:999px;padding:4px 12px;font-weight:600}
+.st-chip{display:inline-flex;align-items:center;border-radius:999px;padding:2px 10px;font-size:11.5px;background:#E9F0F1;color:#206A72;font-weight:600}
+.st-row2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.st-row2>.st-card{margin-bottom:14px}
+.set-kv input[type=text],.set-kv input[type=number],.set-kv input[type=password],.set-kv select{max-width:320px;width:100%}
+.st-mean{display:grid;grid-template-columns:minmax(0,1fr) 110px 280px;gap:10px;align-items:center;padding:6px 2px;border-bottom:1px solid #e9eeee}
+.st-mean:last-child{border-bottom:0}
+.st-mean .ln{display:flex;align-items:center;gap:8px;font-size:12.5px}
+.st-bdg{font-size:10px;font-weight:700;border-radius:5px;padding:1px 6px}.st-bdg.s{background:#E9F0F1;color:#206A72}.st-bdg.p{background:#faeeda;color:#7a4e07}
+.st-lst{display:grid;grid-template-columns:18px minmax(0,1fr) auto;gap:10px;align-items:center;padding:5px 2px;border-bottom:1px solid #e9eeee;font-size:12.5px}
+.st-lst .g{color:var(--text3);text-align:center}
+.st-lst .acts{display:flex;gap:2px}
+.st-addrow{display:flex;gap:8px;margin-top:10px}.st-addrow input{flex:1}
+.st-days{display:flex;gap:6px;flex-wrap:wrap}
+.st-day{border:1px solid #d5dfdf;background:#fff;border-radius:999px;padding:3px 11px;font-size:12px;cursor:pointer;color:var(--text3);font-family:inherit}
+.st-day.on{background:#E9F0F1;border-color:#206A72;color:#174C52;font-weight:700}
+.st-tg{width:36px;height:20px;border-radius:999px;background:#c9d3d4;position:relative;border:0;padding:0;cursor:pointer;vertical-align:middle}
+.st-tg::after{content:"";position:absolute;left:2px;top:2px;width:16px;height:16px;border-radius:50%;background:#fff;transition:all .15s}
+.st-tg[aria-checked="true"]{background:#206A72}.st-tg[aria-checked="true"]::after{left:18px}
+.st-sub{font-size:11.5px;font-weight:700;color:var(--text2);margin:14px 0 6px}
+.st-card textarea{width:100%;min-height:110px;border:1px solid var(--border2);border-radius:8px;background:var(--bg2);padding:8px 10px;font-family:inherit;font-size:13px;line-height:1.5;box-sizing:border-box}
+.st-preview{background:#fff;border:1px solid #e1e8e8;border-radius:10px;padding:12px 14px;font-size:12.5px;white-space:pre-wrap;line-height:1.55}
+.st-thr{display:grid;grid-template-columns:200px repeat(2,minmax(0,1fr));gap:12px;align-items:center;padding:8px 0;border-bottom:1px solid #e9eeee;font-size:12.5px}
+.st-thr:last-child{border-bottom:0}
+.st-thr .lv{display:flex;align-items:center;gap:6px}
+.st-thr input{width:70px;height:32px;box-sizing:border-box}
+.st-tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px;margin-bottom:14px}
+.st-tile{display:flex;align-items:center;gap:12px;background:#fff;border:1px solid #e1e8e8;border-radius:12px;padding:12px 14px}
+.st-tile>i{width:34px;height:34px;border-radius:9px;background:#E9F0F1;color:#206A72;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
+.st-tile b{display:block;font-size:13px}.st-tile small{color:var(--text3);font-size:11.5px}
+.st-tile>.btn{margin-left:auto;flex-shrink:0}
+.st-csv>.info-section{background:#fbfbfa;border:1px solid #e1e8e8;border-radius:14px;box-shadow:0 10px 26px rgba(15,61,66,.06)}
+@media (max-width:900px){.st-row2{grid-template-columns:1fr}.st-mean{grid-template-columns:1fr}.st-thr{grid-template-columns:1fr}}
 .set-kv{display:grid;grid-template-columns:230px minmax(0,1fr);gap:10px 18px;align-items:center}
 .set-kv>span{font-size:12.5px;color:var(--text2)}
 .set-kv>span small{display:block;font-size:11px;color:var(--text3)}
@@ -1628,6 +1671,29 @@ const TODAY=new Date().toLocaleDateString('en-CA',{timeZone:'Europe/Berlin'});
 // Feste Versandkosten pro tatsaechlich verschicktem Toner - fliesst sowohl in die
 // Investitions-Anzeige im Lead selbst als auch als eigene Kennzahl ins Dashboard ein.
 const SHIPPING_COST_PER_SEND=4.95;
+// ── Board-Einstellungen (Okt. 2026): alle bisher fest eingebauten Werte, als Vorgabe ──
+// Solange in PROJECT.cfg nichts geaendert ist, verhaelt sich das Board exakt wie vorher.
+const CFG_DEFAULTS={shipCost:4.95,rmaWarn:2.5,rmaBad:5,tonerWarn:40,tonerBad:60,dwellDays:30,tonerGoal:0,
+  artValues:['B2B','B2C','Händler','Öffentliche Einrichtung'],
+  lossReasons:['Kein Interesse','Nicht Möglich','Nicht Erreichbar','Offene RMA','Schlechte Qualität','Preis zu Hoch','Wettbewerber','Keine Rückmeldung','Sonstiges'],
+  required:{customerNumber:false,contact:false,phone:false,email:false},
+  holidayState:'BY',workdays:[1,2,3,4,5],newLeadCol:'',listMeaning:{},
+  invite:{title:'Wiegand & Partner - Telefontermin am {Datum} um {Uhrzeit} Uhr',greet:'Servus',phone:'+49 8142-1305-368',bye:'Viele Grüße aus Bayern',time:'10:00',duration:30,
+    body:'vielen Dank für das nette Gespräch!\n\nWie besprochen rufe ich Sie am {Wochentag}, {Datum}, um {Uhrzeit} Uhr an. Den Termin finden Sie in dieser Einladung – so geht er nicht verloren.'}};
+function cfg(k){const c=(typeof PROJECT!=='undefined'&&PROJECT&&PROJECT.cfg)||{};
+  if(k==='invite')return Object.assign({},CFG_DEFAULTS.invite,c.invite||{});
+  if(k==='required')return Object.assign({},CFG_DEFAULTS.required,c.required||{});
+  if(k==='listMeaning')return Object.assign({},c.listMeaning||{});
+  const v=c[k];return (v===undefined||v===null||v===''||(Array.isArray(v)&&!v.length))?CFG_DEFAULTS[k]:v;}
+function setCfg(k,v){if(!requireAdmin('Einstellungen ändern'))return false;PROJECT.cfg=Object.assign({},PROJECT.cfg||{});PROJECT.cfg[k]=v;saveState();return true;}
+function shipCostCfg(){const v=parseFloat(cfg('shipCost'));return isNaN(v)?4.95:v;}
+function artValuesCfg(){return cfg('artValues');}
+// Bedeutung der Listen: gespeicherte Zuordnung, sonst aus Merkmalen/Namen abgeleitet
+const LIST_MEANINGS=[['inbox','Neue Leads (Eingang)'],['ne','Nicht erreicht'],['reached','Erreicht – in Bearbeitung'],['success','Erfolgreiches Gespräch (→ Toner)'],['handover','Übergabe an PQL · Toner im Test'],['offer','Angebot offen'],['order','Auftrag in Bearbeitung'],['won','Gewonnen'],['lost','Verloren'],['other','Sonstige Liste']];
+function colMeaning(c){if(!c)return 'other';const m=cfg('listMeaning')[c.id];if(m)return m;
+  if(c.outcome==='won')return 'won';if(c.outcome==='lost')return 'lost';if(c.stage==='feedback')return 'handover';if(c.stage==='offer')return 'offer';
+  const n=String(c.name||'').trim();if(/^am:\s*auftrag$/i.test(n))return 'success';if(/kundenauftrag/i.test(n))return 'order';if(/^(leads?:\s*offen|offene leads)/i.test(n))return 'inbox';if(/\bne\s*\d/i.test(n))return 'ne';if(/rückruf/i.test(n))return 'reached';if(/angebot/i.test(n))return 'offer';return 'other';}
+function newLeadColId(){const id=cfg('newLeadCol');if(id&&COLUMNS.some(c=>c.id===id))return id;const ib=COLUMNS.find(c=>colMeaning(c)==='inbox');return (ib||COLUMNS.find(c=>colBoard(c)==='akquise'&&!c.outcome)||COLUMNS[0]).id;}
 
 // ── STATE (in-memory, kein Backend – Vorstufe fuer Supabase) ──
 let LABELS=[
@@ -1710,7 +1776,7 @@ let localSettingsTrusted=false;
 // dass ein laenger offener Tab automatisch erkennt, wenn eine neuere Version online ist
 // (siehe checkForNewVersion) - damit alte Tabs nicht unbemerkt mit veraltetem Code
 // weiterlaufen und neuere Aenderungen ueberschreiben koennen.
-const BUILD_VERSION='2026-10-27T02:00:00.000Z';
+const BUILD_VERSION='2026-10-27T03:00:00.000Z';
 const SUPABASE_URL='https://uijbqmojuhemmrrcpmhi.supabase.co';
 const SUPABASE_KEY='sb_publishable_XfSGpf58REzMsnaEPBd8oA_vHs96St1';
 const SB_SESSION_KEY='sb_session_v1';
@@ -3188,7 +3254,7 @@ let activeAgentFilters=[];
 // Kundenart-Filter (Okt. 2026): in Board, Dashboard, Aktivitaeten und Kalender
 // Kundenarten: hier zentral pflegen (Auswahl, Filter, Dashboard, CSV-Import)
 const ART_VALUES=['B2B','B2C','Händler','Öffentliche Einrichtung'];
-const ART_FILTER_OPTIONS=[['all','Alle'],...ART_VALUES.map(v=>[v,v])];
+const ART_FILTER_OPTIONS=[['all','Alle'],...artValuesCfg().map(v=>[v,v])];
 function artMatches(l,f){return !f||f==='all'||!l||(l.art||'')===f;}
 function artFilterItems(cur,fn){return ART_FILTER_OPTIONS.map(([v,lab])=>`<div class="filtermenu-item ${cur===v?'active':''}" onclick="event.stopPropagation();${fn}('${v}')"><span>${esc(lab)}</span>${cur===v?'<i class="ti ti-check"></i>':''}</div>`).join('');}
 function artToken(cur,fn){return cur&&cur!=='all'?`<div class="omni-token"><i class="ti ti-building-store" style="font-size:12px"></i>Art: ${esc(cur)}<i class="ti ti-x" onclick="${fn}('all')"></i></div>`:'';}
@@ -4444,7 +4510,7 @@ function setTonerSent(obj,v){
   if(v==='Ja'){if(obj.tonerSent!=='Ja')obj.tonerSentAt=TODAY;obj.tonerSent='Ja';}
   else{obj.tonerSent=v;obj.tonerSentAt='';}
 }
-function blankLead(){return{id:null,company:'',customerNumber:'',art:'B2B',address:'',orderCount:'',revenue:'',shipPrinter:{model:'',skus:[{sku:'',priceEk:'',priceVk:''},{sku:'',priceEk:'',priceVk:''},{sku:'',priceEk:'',priceVk:''},{sku:'',priceEk:'',priceVk:''}]},demandPrinters:[],actualPrinters:[],contact:'',phone:'',email:'',competitor:'',status:COLUMNS[0].id,tonerSent:'Nein',members:[],labelIds:[],firstContact:'',followup:'',followupHistory:[],forecast:'',actual:'',lossReason:'',lossComment:'',notes:'',checklist:[],activity:[],files:[],tasks:[],topArticles:[{skuOem:'',skuKompa:'',title:''},{skuOem:'',skuKompa:'',title:''},{skuOem:'',skuKompa:'',title:''}],order:Date.now()};}
+function blankLead(){return{id:null,company:'',customerNumber:'',art:'B2B',address:'',orderCount:'',revenue:'',shipPrinter:{model:'',skus:[{sku:'',priceEk:'',priceVk:''},{sku:'',priceEk:'',priceVk:''},{sku:'',priceEk:'',priceVk:''},{sku:'',priceEk:'',priceVk:''}]},demandPrinters:[],actualPrinters:[],contact:'',phone:'',email:'',competitor:'',status:newLeadColId(),tonerSent:'Nein',members:[],labelIds:[],firstContact:'',followup:'',followupHistory:[],forecast:'',actual:'',lossReason:'',lossComment:'',notes:'',checklist:[],activity:[],files:[],tasks:[],topArticles:[{skuOem:'',skuKompa:'',title:''},{skuOem:'',skuKompa:'',title:''},{skuOem:'',skuKompa:'',title:''}],order:Date.now()};}
 // ── OUTLOOK-TERMINEINLADUNG (ICS-Datei) ──
 // Erzeugt eine echte Kalendereinladung, die der Kunde annehmen/ablehnen kann - ein reiner
 // "mailto"-Link kann das technisch nicht (nur Text, kein Termin). Die .ics-Datei wird
@@ -4512,16 +4578,19 @@ function downloadCalendarInvite(){
   // verwendet - sonst greift wie bisher der Standard-Vorschlag 10:00 Uhr.
   const [followupDatePart,followupTimePart]=draftLead.followup.split('T');
   const hasExplicitTime=followupTimePart&&followupTimePart!=='00:00';
-  const startTime=hasExplicitTime?followupTimePart:'10:00';
+  const startTime=hasExplicitTime?followupTimePart:(cfg('invite').time||'10:00');
   const [startH,startM]=startTime.split(':').map(Number);
-  const endDate=new Date(2000,0,1,startH,startM+30);
+  const endDate=new Date(2000,0,1,startH,startM+(parseInt(cfg('invite').duration)||30));
   const endTime=`${String(endDate.getHours()).padStart(2,'0')}:${String(endDate.getMinutes()).padStart(2,'0')}`;
   const weekday=['Sonntag','Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag'][new Date(followupDatePart+'T12:00:00').getDay()];
-  const INVITE_PHONE='+49 8142-1305-368';
+  const INV=cfg('invite');
+  const INVITE_PHONE=(organizer&&organizer.phone)||INV.phone;
   const greet=draftLead.contact||'zusammen';
-  const bodyText=`Servus ${greet},\n\nvielen Dank für das nette Gespräch!\n\nWie besprochen rufe ich Sie am ${weekday}, ${followupDateFmt}, um ${startTime} Uhr an. Den Termin finden Sie in dieser Einladung – so geht er nicht verloren.\n\nBei Fragen erreichen Sie mich gerne telefonisch unter ${INVITE_PHONE}.\n\nIch freue mich auf unser Gespräch.\n\nViele Grüße aus Bayern\n\n${organizerName}\n${organizerTitle}`;
+  const fillT=t=>String(t||'').replace(/\{Ansprechpartner\}/g,draftLead.contact||'').replace(/\{Firma\}/g,draftLead.company||'').replace(/\{Wochentag\}/g,weekday).replace(/\{Datum\}/g,followupDateFmt).replace(/\{Uhrzeit\}/g,startTime);
+  const bodyMain=fillT(INV.body);
+  const bodyText=`${INV.greet} ${greet},\n\n${bodyMain}\n\nBei Fragen erreichen Sie mich gerne telefonisch unter ${INVITE_PHONE}.\n\nIch freue mich auf unser Gespräch.\n\n${INV.bye}\n\n${organizerName}\n${organizerTitle}`;
   const h=t=>String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  const bodyHtml=`<html><body style="font-family:Arial,sans-serif;font-size:14px">Servus ${h(greet)},<br><br>vielen Dank für das nette Gespräch!<br><br>Wie besprochen rufe ich Sie am ${h(weekday)}, ${h(followupDateFmt)}, um ${h(startTime)} Uhr an. Den Termin finden Sie in dieser Einladung – so geht er nicht verloren.<br><br>Bei Fragen erreichen Sie mich gerne telefonisch unter ${h(INVITE_PHONE)}.<br><br>Ich freue mich auf unser Gespräch.<br><br>Viele Grüße aus Bayern<br><br><b>${h(organizerName)}</b><br>${h(organizerTitle)}</body></html>`;
+  const bodyHtml=`<html><body style="font-family:Arial,sans-serif;font-size:14px">${h(INV.greet)} ${h(greet)},<br><br>${h(bodyMain).replace(/\n/g,'<br>')}<br><br>Bei Fragen erreichen Sie mich gerne telefonisch unter ${h(INVITE_PHONE)}.<br><br>Ich freue mich auf unser Gespräch.<br><br>${h(INV.bye)}<br><br><b>${h(organizerName)}</b><br>${h(organizerTitle)}</body></html>`;
   const start=berlinLocalToUTCString(followupDatePart,startTime);
   const end=berlinLocalToUTCString(followupDatePart,endTime);
   const dtstamp=new Date().toISOString().replace(/[-:]/g,'').split('.')[0]+'Z';
@@ -4537,7 +4606,7 @@ function downloadCalendarInvite(){
     icsFold('DTSTAMP:'+dtstamp),
     icsFold('DTSTART:'+start),
     icsFold('DTEND:'+end),
-    icsFold('SUMMARY:'+icsEscape(`Wiegand & Partner - Telefontermin am ${followupDateFmt} um ${startTime} Uhr`)),
+    icsFold('SUMMARY:'+icsEscape(String(cfg('invite').title||'').replace(/\{Datum\}/g,followupDateFmt).replace(/\{Uhrzeit\}/g,startTime).replace(/\{Firma\}/g,draftLead.company||'').replace(/\{Ansprechpartner\}/g,draftLead.contact||''))),
     icsFold('DESCRIPTION:'+icsEscape(bodyText)),
     icsFold('X-ALT-DESC;FMTTYPE=text/html:'+icsEscape(bodyHtml)),
     icsFold('LOCATION:'+icsEscape('Telefonat')),
@@ -5145,7 +5214,7 @@ function computeDashboardKpiMetrics(arr){
   const forecastSum=arr.reduce((s,l)=>s+(parseFloat(l.forecast)||0),0);
   const investSum=arr.reduce((s,l)=>s+shipEkTotal(l),0);
   const shippedCount=arr.filter(l=>l.tonerSent==='Ja').length;
-  const investTotal=investSum+shippedCount*SHIPPING_COST_PER_SEND;
+  const investTotal=investSum+shippedCount*shipCostCfg();
   const won=arr.filter(l=>isWon(l)).length;
   const lost=arr.filter(l=>isLost(l)).length;
   const closedCount=won+lost;
@@ -5585,7 +5654,7 @@ function renderDashboard(){
   const forecastSum=dl.reduce((s,l)=>s+(parseFloat(l.forecast)||0),0);
   const investSum=dl.reduce((s,l)=>s+shipEkTotal(l),0);
   const shippedCount=dl.filter(l=>l.tonerSent==='Ja').length;
-  const shippingCostSum=shippedCount*SHIPPING_COST_PER_SEND;
+  const shippingCostSum=shippedCount*shipCostCfg();
 
   // Vertriebszyklus-Laenge: Tage von Erstkontakt bis Abschluss (gewonnen/verloren)
   const cycleDays=dl.filter(l=>isClosedLead(l)&&l.firstContact&&l.closedAt)
@@ -5697,7 +5766,7 @@ function renderDashboard(){
 
   // RMA-Risiko: aktive Leads, deren Versand-SKU eine hohe Reklamationsquote hat
   const riskLeads=dl.filter(l=>!isClosedLead(l)).map(l=>{
-    const skuHit=l.shipPrinter.skus.map(s=>s.sku).filter(Boolean).map(sku=>ARTICLES.find(a=>a.sku===sku)).find(a=>a&&a.crRma>=5);
+    const skuHit=l.shipPrinter.skus.map(s=>s.sku).filter(Boolean).map(sku=>ARTICLES.find(a=>a.sku===sku)).find(a=>a&&a.crRma>=cfg('rmaBad'));
     return skuHit?{lead:l,article:skuHit}:null;
   }).filter(Boolean);
   const RISK_LIST_LIMIT=5;
@@ -5773,7 +5842,7 @@ function renderDashboard(){
   const netEffect=forecastWon-investLost;
 
   // B2B vs. B2C vs. Haendler (Kategorien ohne Leads werden nicht angezeigt)
-  const artBreakdown=ART_VALUES.map(art=>{
+  const artBreakdown=artValuesCfg().map(art=>{
     const artLeads=dl.filter(l=>l.art===art);
     const artWon=artLeads.filter(l=>isWon(l)).length;
     const artClosed=artLeads.filter(l=>isClosedLead(l)).length;
@@ -5821,7 +5890,7 @@ function renderDashboard(){
       </details>
     </div>
     <div class="ds1-grid ds1-g2">${dashStep1Html('fSql')}${dashStep1Html('fPql')}</div>
-    <div class="ds1-agelg">Balkenfarbe in SQL/PQL = Ø Tage in der Liste: <i style="background:rgb(79,163,171)"></i>frisch <i style="background:rgb(48,112,118)"></i>ca. 20 Tage <i style="background:rgb(18,61,66)"></i>40 Tage und länger</div>
+    <div class="ds1-agelg">Balkenfarbe in SQL/PQL = Ø Tage in der Liste: <i style="background:rgb(79,163,171)"></i>frisch <i style="background:rgb(48,112,118)"></i>ca. ${Math.round(cfg('dwellDays')*2/3)} Tage <i style="background:rgb(18,61,66)"></i>${Math.round(cfg('dwellDays')*4/3)} Tage und länger</div>
     `)}
     ${dashGroup('today','Heute zu tun','checklist',`${overdueLeads.length} FollowUps überfällig${riskLeads.length?' · '+riskLeads.length+' RMA-Risiko':''}`,()=>`
     <div class="info-section ds4-today" style="margin-bottom:14px">
@@ -6027,9 +6096,9 @@ function dashStep1Html(want){
   const q=list=>list.length?Math.round(list.filter(r=>!ne(r)).length/list.length*100):null;
   // Trichter
   // Verweildauer je Liste: Farbe = Petrol, heller = frisch, dunkler = laenger in der Liste (voll dunkel ab 40 Tagen)
-  const ageShade=d=>{if(d===null)return '#206A72';const t=Math.min(1,d/40);const a=[79,163,171],b=[18,61,66];return `rgb(${a.map((v,i)=>Math.round(v+(b[i]-v)*t)).join(',')})`;};
+  const ageShade=d=>{if(d===null)return '#206A72';const t=Math.min(1,d/(cfg('dwellDays')*4/3));const a=[79,163,171],b=[18,61,66];return `rgb(${a.map((v,i)=>Math.round(v+(b[i]-v)*t)).join(',')})`;};
   const colRows=part=>COLUMNS.filter(c=>colBoard(c)===part&&!c.outcome).map(c=>{const ls=sc.filter(l=>l.status===c.id);const dd2=ls.filter(l=>l.statusSince).map(l=>Math.max(0,-daysUntil(String(l.statusSince).slice(0,10))));
-    const avg=dd2.length?Math.round(dd2.reduce((a,b)=>a+b,0)/dd2.length):null;return [c.name,ls.length,ageShade(avg),avg,dd2.filter(x=>x>30).length];});
+    const avg=dd2.length?Math.round(dd2.reduce((a,b)=>a+b,0)/dd2.length):null;return [c.name,ls.length,ageShade(avg),avg,dd2.filter(x=>x>cfg('dwellDays')).length];});
   const sqlRows=colRows('akquise');const pqlRows=colRows('vertrieb');
   const handoverList=()=>{const byLead=new Map();handovers.forEach(r=>{const k=String(r.lead_id);const prev=byLead.get(k);if(!prev||String(r.date)>String(prev.date))byLead.set(k,r);});
     const items=[...byLead.values()].sort((a,b)=>String(b.date).localeCompare(String(a.date))).map(r=>{const l=leads.find(x=>String(x.id)===String(r.lead_id));const a=agentById(r.author);
@@ -6046,26 +6115,26 @@ function dashStep1Html(want){
   const qM=loading?null:q(com.filter(byAgent));
   const tonerOpen=sc.filter(l=>!isClosedLead(l)&&l.tonerSent==='Ja');
   const tDays=tonerOpen.filter(l=>l.tonerSentAt).map(l=>Math.abs(daysUntil(l.tonerSentAt)));
-  const avgT=tDays.length?Math.round(tDays.reduce((a,b)=>a+b,0)/tDays.length):null;const late=tDays.filter(d=>d>=60).length;
+  const avgT=tDays.length?Math.round(tDays.reduce((a,b)=>a+b,0)/tDays.length):null;const late=tDays.filter(d=>d>=cfg('tonerBad')).length;
   const funnel=(part,title,rows,minis)=>{const vals=rows.map(r=>r[1]||0);const mx=Math.max(...vals,1);const first=vals[0]||0;
     return `<div class="ds1-box ds1-fbox"><div class="ds1-bh"><h2><span class="ds1-pill ${part}">${part==='akquise'?'SQL':'PQL'}</span>${title}</h2><span class="r">Leads je Liste · Anteil · Ø Tage in der Liste</span></div><div class="ds1-fun">${rows.map(([n,c,col,age,old,kind])=>{const w=c===null?0:Math.max(c?6:0,Math.round(c/mx*100));
       const lbl=c===null||!c?'':(age!==undefined&&age!==null&&w>22?`${c} · Ø ${age} T`:(w>14?String(c):''));
-      const tip=age!==undefined&&age!==null?` · Ø ${age} Tage in der Liste${old?`, ${old} länger als 30 Tage`:''}`:'';
+      const tip=age!==undefined&&age!==null?` · Ø ${age} Tage in der Liste${old?`, ${old} länger als ${cfg('dwellDays')} Tage`:''}`:'';
       if(kind==='handover'){const open=dashHandoverOpen&&c;const hl=open?handoverList():'';
         return `<button type="button" class="ds1-fr ds1-fr-ho ${open?'open':''}" onclick="dashToggleHandover()" aria-expanded="${!!open}" title="Übergebene Leads anzeigen"><span class="n"><i class="ti ti-chevron-right ds1-ho-ch"></i>${esc(n)}</span><span class="ds1-bar"><i style="width:${w}%;background:${col}"></i><span>${lbl}</span></span><span class="c2">${c===null?'…':c}<small>${c===null||!first?'':Math.round(c/first*100)+' %'}</small></span></button>${hl}`;}
       return `<button type="button" class="ds1-fr" onclick="dashGoBoard('${part}')" title="${esc(n)}${tip} – im Board öffnen"><span class="n">${esc(n)}</span><span class="ds1-bar"><i style="width:${w}%;background:${col}"></i><span>${lbl}</span></span><span class="c2">${c===null?'…':c}<small>${c===null||!first?'':Math.round(c/first*100)+' %'}</small></span></button>`;}).join('')}</div>
       <div class="ds1-mini">${minis.map(([l,v,cls])=>`<div class="${cls}">${l}<b>${v}</b></div>`).join('')}</div></div>`;};
   const fSql=funnel('akquise','Akquise',sqlRows,[['Erreichbar',qM===null?'…':qM+' %','good'],['Leads in SQL',sqlTotal.toLocaleString('de-DE'),''],['Ø Verweildauer',sqlAvgAge===null?'–':sqlAvgAge+' T','']]);
-  const fPql=funnel('vertrieb','Vertrieb',pqlRows,[['Toner draußen',tonerOpen.length,''],['Ø Testlaufzeit',avgT===null?'–':avgT+' T',avgT!==null&&avgT>=40?'warn':''],['> 60 Tage',late,late?'bad':'']]);
+  const fPql=funnel('vertrieb','Vertrieb',pqlRows,[['Toner draußen',tonerOpen.length,''],['Ø Testlaufzeit',avgT===null?'–':avgT+' T',avgT!==null&&avgT>=cfg('tonerWarn')?'warn':''],[`> ${cfg('tonerBad')} Tage`,late,late?'bad':'']]);
   // Risiken
   const od=sc.filter(l=>!isClosedLead(l)&&l.followup&&daysUntil(l.followup)<0);const od7=od.filter(l=>daysUntil(l.followup)<-7).length;
   const artBySku=new Map();ARTICLES.forEach(a=>{const k=String(a.sku||'').trim().toLowerCase();if(k&&!artBySku.has(k))artBySku.set(k,a);});
-  const rmaRisk=sc.filter(l=>!isClosedLead(l)&&(l.demandPrinters||[]).some(p=>(p.skus||[]).some(x=>{const a=(x.articleId&&ARTICLES.find(y=>y.id===x.articleId))||artBySku.get(String(x.sku||'').trim().toLowerCase());return a&&parseFloat(a.crRma)>=5;}))).length;
+  const rmaRisk=sc.filter(l=>!isClosedLead(l)&&(l.demandPrinters||[]).some(p=>(p.skus||[]).some(x=>{const a=(x.articleId&&ARTICLES.find(y=>y.id===x.articleId))||artBySku.get(String(x.sku||'').trim().toLowerCase());return a&&parseFloat(a.crRma)>=cfg('rmaBad');}))).length;
   const chkLabel=LABELS.find(x=>String(x.name).trim().toLowerCase()==='lead: überprüfen');
   const chkN=chkLabel?sc.filter(l=>(l.labelIds||[]).includes(chkLabel.id)).length:0;
   const rr=(cls,n,t,sub,click)=>`<${click?'button type="button"':'div'} class="ds1-rr ${cls}" ${click?`onclick="${click}" title="Im Board anzeigen"`:''}><b>${n}</b><span>${t}<br><em>${sub}</em></span>${click?'<i class="ti ti-chevron-right"></i>':''}</${click?'button':'div'}>`;
   const risks=rr('red',od.length,'FollowUps überfällig',`davon ${od7} älter als 7 Tage`,'dashGoFuToday()')
-    +rr('amb',late,'Toner länger als 60 Tage draußen','ohne Rückmeldung','')
+    +rr('amb',late,`Toner länger als ${cfg('tonerBad')} Tage draußen`,'ohne Rückmeldung','')
     +rr('pet',rmaRisk,'Forecast mit RMA über 5 %','Patronen-Risiko prüfen','')
     +(chkLabel?rr('amb',chkN,'Leads mit „Lead: Überprüfen“','Label',`dashGoLabel('${chkLabel.id}')`):'');
   // Mitarbeiter
@@ -6173,7 +6242,7 @@ function dashStep2Html(want){
   const sent=sc.filter(l=>l.tonerSentAt&&dOf(l.tonerSentAt)>=d90);
   const sentWon=sent.filter(l=>isWon(l));
   const toWin=sentWon.map(l=>daysBetween(dOf(l.tonerSentAt),dOf(l.statusSince||l.closedAt))).filter(x=>x>=0);
-  const ship=typeof SHIPPING_COST_PER_SEND==='number'?SHIPPING_COST_PER_SEND:4.95;
+  const ship=shipCostCfg();
   const sentMarge=sentWon.reduce((a,l)=>a+ordersOf(l).reduce((b,o)=>b+o.m,0),0);
   const perToner=sent.length?(sentMarge-ship*sent.length)/sent.length:null;
   const noAnswer=sc.filter(l=>!isClosedLead(l)&&l.tonerSent==='Ja'&&l.tonerSentAt&&daysBetween(dOf(l.tonerSentAt),TODAY)>45).length;
@@ -6195,14 +6264,14 @@ function dashStep2Html(want){
   const bDur=box('Durchlaufzeiten','Median in Tagen · letzte 90 Tage',loading?ld:hb(durRows,durMax,v=>v===null?'–':v+' T'),'zeigt, wo Leads am längsten hängen bleiben.');
   const g1=`<div class="ds1-grid">${bTrend}</div><div class="ds1-grid ds1-g2">${bMarge}${bDur}</div>`;
   // ── 2 · Kunden & Produkte ──
-  const artRows=ART_VALUES.map(a=>{const ls=sc.filter(l=>(l.art||'B2B')===a);const w90=ls.filter(l=>isWon(l)&&dOf(l.statusSince||l.closedAt)>=d90);const l90=ls.filter(l=>isLost(l)&&leadBoardPart(l)==='vertrieb'&&dOf(l.statusSince||l.closedAt)>=d90);
+  const artRows=artValuesCfg().map(a=>{const ls=sc.filter(l=>(l.art||'B2B')===a);const w90=ls.filter(l=>isWon(l)&&dOf(l.statusSince||l.closedAt)>=d90);const l90=ls.filter(l=>isLost(l)&&leadBoardPart(l)==='vertrieb'&&dOf(l.statusSince||l.closedAt)>=d90);
     const m=w90.reduce((s2,l)=>s2+ordersOf(l).reduce((b,o)=>b+o.m,0),0);return [a,ls.length,(w90.length+l90.length)?Math.round(w90.length/(w90.length+l90.length)*100):null,w90.length?m/w90.length:null,m];});
   const artMax=Math.max(1,...artRows.map(r=>r[4]));
   const artTab=`<table class="ds1-tab"><thead><tr><th>Art</th><th class="r">Leads</th><th class="r">Gewinnrate</th><th class="r">Ø Marge</th><th>Marge gesamt</th></tr></thead><tbody>${artRows.map(r=>`<tr><td><b>${esc(r[0])}</b></td><td class="r">${nf(r[1])}</td><td class="r">${r[2]===null?'–':r[2]+' %'}</td><td class="r">${r[3]===null?'–':eur(r[3])}</td><td><div style="display:flex;gap:8px;align-items:center"><span class="ds2-mbar" style="flex:1"><i style="width:${r[4]/artMax*100}%"></i></span><b>${eur(r[4])}</b></div></td></tr>`).join('')}</tbody></table>`;
   const agg=new Map();wonOrders.filter(o=>o.d>=d90).forEach(o=>o.skus.forEach(x=>{const k=String(x.sku||'').trim().toLowerCase();if(!k)return;const q=parseFloat(x.qty)||0;const e=agg.get(k)||{sku:x.sku,title:x.title||'',q:0,m:0};e.q+=q;e.m+=((parseFloat(x.priceVk)||0)-(parseFloat(x.priceEk)||0))*q;if(!e.title&&x.title)e.title=x.title;agg.set(k,e);}));
   const artBySku=new Map();ARTICLES.forEach(a=>{const k=String(a.sku||'').trim().toLowerCase();if(k&&!artBySku.has(k))artBySku.set(k,a);});
   const topA=[...agg.values()].sort((a,b)=>b.m-a.m).slice(0,5);
-  const topTab=topA.length?`<table class="ds1-tab"><thead><tr><th>Artikel</th><th class="r">Stück</th><th class="r">Marge</th><th class="r">RMA</th></tr></thead><tbody>${topA.map(e=>{const a=artBySku.get(String(e.sku).trim().toLowerCase());const r=a?parseFloat(a.crRma):NaN;const cls=isNaN(r)?'':r>=5?'b':r>=2.5?'w':'g';
+  const topTab=topA.length?`<table class="ds1-tab"><thead><tr><th>Artikel</th><th class="r">Stück</th><th class="r">Marge</th><th class="r">RMA</th></tr></thead><tbody>${topA.map(e=>{const a=artBySku.get(String(e.sku).trim().toLowerCase());const r=a?parseFloat(a.crRma):NaN;const cls=isNaN(r)?'':r>=cfg('rmaBad')?'b':r>=cfg('rmaWarn')?'w':'g';
       return `<tr><td title="${esc(e.sku)}">${esc((a&&a.title)||e.title||e.sku)}</td><td class="r">${nf(e.q)}</td><td class="r"><b>${eur(e.m)}</b></td><td class="r">${isNaN(r)?'–':`<span class="ds2-tag ${cls}">${String(r).replace('.',',')} %</span>`}</td></tr>`;}).join('')}</tbody></table>`:'<div style="font-size:12px;color:var(--text3)">Noch keine Aufträge in den letzten 90 Tagen.</div>';
   const lossBy=part=>{const m=new Map();sc.filter(l=>isLost(l)&&leadBoardPart(l)===part&&dOf(l.statusSince||l.closedAt)>=d90).forEach(l=>{const k=l.lossReason||'Ohne Angabe';m.set(k,(m.get(k)||0)+1);});return [...m.entries()].sort((a,b)=>b[1]-a[1]).slice(0,6);};
   const lS=lossBy('akquise'),lP=lossBy('vertrieb');
@@ -6298,8 +6367,8 @@ function dashOfferHtml(dl){
 // Erfolgreiche Gespraeche: Leads, die je Tag nach "AM: Auftrag" verschoben wurden (letzte 30 Tage)
 function dashAmPerDayHtml(dl){
   const acts=tasksHeroActs&&tasksHeroActs.rows;if(!acts)return '<div style="font-size:12px;color:var(--text3);padding:8px 0">Lade Verlauf …</div>';
-  const tgt=COLUMNS.find(c=>!c.outcome&&colBoard(c)==='akquise'&&/^am:\s*auftrag$/i.test(c.name.trim()));
-  if(!tgt)return '<div style="font-size:12px;color:var(--text3)">Keine Liste „AM: Auftrag“ gefunden.</div>';
+  const tgt=COLUMNS.find(c=>!c.outcome&&colMeaning(c)==='success');
+  if(!tgt)return '<div style="font-size:12px;color:var(--text3)">Keine Liste mit der Bedeutung „Erfolgreiches Gespräch“ (Einstellungen → Vertriebsprozess).</div>';
   const ids=new Set(dl.map(l=>String(l.id)));
   const byA=r=>!activeDashboardAgentFilters.length||activeDashboardAgentFilters.includes(r.author);
   const days=[];for(let i=29;i>=0;i--){const d=new Date(TODAY+'T12:00:00');d.setDate(d.getDate()-i);days.push(calYmd(d));}
@@ -6323,9 +6392,9 @@ function dashTodayFootHtml(dl){
   const today=open.filter(l=>l.followup&&daysUntil(l.followup)===0);const todayPql=today.filter(l=>leadBoardPart(l)==='vertrieb').length;
   const od=open.filter(l=>l.followup&&daysUntil(l.followup)<0);const od7=od.filter(l=>daysUntil(l.followup)<-7).length;
   const noFu=open.filter(l=>!l.followup);
-  const toner60=open.filter(l=>l.tonerSent==='Ja'&&l.tonerSentAt&&-daysUntil(String(l.tonerSentAt).slice(0,10))>=60).length;
+  const toner60=open.filter(l=>l.tonerSent==='Ja'&&l.tonerSentAt&&-daysUntil(String(l.tonerSentAt).slice(0,10))>=cfg('tonerBad')).length;
   const artBySku=new Map();ARTICLES.forEach(a=>{const k=String(a.sku||'').trim().toLowerCase();if(k&&!artBySku.has(k))artBySku.set(k,a);});
-  const rma=open.filter(l=>(l.demandPrinters||[]).some(p=>(p.skus||[]).some(x=>{const a=(x.articleId&&ARTICLES.find(y=>y.id===x.articleId))||artBySku.get(String(x.sku||'').trim().toLowerCase());return a&&parseFloat(a.crRma)>=5;}))).length;
+  const rma=open.filter(l=>(l.demandPrinters||[]).some(p=>(p.skus||[]).some(x=>{const a=(x.articleId&&ARTICLES.find(y=>y.id===x.articleId))||artBySku.get(String(x.sku||'').trim().toLowerCase());return a&&parseFloat(a.crRma)>=cfg('rmaBad');}))).length;
   const chk=LABELS.find(x=>String(x.name).trim().toLowerCase()==='lead: überprüfen');const chkN=chk?dl.filter(l=>(l.labelIds||[]).includes(chk.id)).length:0;
   const it=(cls,n,lab,sub,click)=>`<${click?'button type="button"':'div'} class="ds4-it ${cls}" ${click?`onclick="${click}" title="Im Board anzeigen"`:''}><b>${n.toLocaleString('de-DE')}</b><span>${lab}<small>${sub}</small></span></${click?'button':'div'}>`;
   return `<div class="ds4-foot">
@@ -6333,7 +6402,7 @@ function dashTodayFootHtml(dl){
     ${it(od.length?'red':'',od.length,'Überfällig',`davon ${od7} älter als 7 Tage`,'dashGoFuToday()')}
     ${it(noFu.length?'amb':'',noFu.length,'Ohne FollowUp','offene Leads ohne Termin','dashGoFuNone()')}
     <span class="ds4-gap" aria-hidden="true"></span>
-    ${it(toner60?'amb':'',toner60,'Toner > 60 Tage','ohne Rückmeldung','')}
+    ${it(toner60?'amb':'',toner60,`Toner > ${cfg('tonerBad')} Tage`,'ohne Rückmeldung','')}
     ${it(rma?'red':'',rma,'RMA > 5 %','im Forecast','')}
     ${it(chkN?'amb':'',chkN,'Überprüfen','Label „Lead: Überprüfen“',chk?`dashGoLabel('${chk.id}')`:'')}
   </div>`;
@@ -6421,7 +6490,7 @@ function dashboardHeroHtml(){
   const projT=dayT?mMonth/dayT*dimT:0;
   const goalLine=goalT?`Ziel ${nf(goalT)} € · ${Math.round(mMonth/goalT*100)} % · Hochr. ${nf(projT)} €`:`Ø ${nf(mMonth/wkInMonth)} € pro Woche`;
   h+=top('Marge gewonnen',mName,nf(mMonth),'€',goalLine,`Vormonat ${nf(mPrev)} €`,heroBars(mBars,C.bar,300,34,undefined,wLbl));
-  h+=top('Toner verschickt',mName,tMonth,tMonth===1?'Zusage':'Zusagen',`Ø ${nf(tMonth/wkInMonth,1)} pro Woche`,`Vormonat ${tPrev}`,heroBars(tBars,C.bar,300,34,undefined,wLbl));
+  h+=top('Toner verschickt',mName,tMonth,tMonth===1?'Zusage':'Zusagen',cfg('tonerGoal')?`Ziel ${cfg('tonerGoal')} · ${Math.round(tMonth/cfg('tonerGoal')*100)} %`:`Ø ${nf(tMonth/wkInMonth,1)} pro Woche`,`Vormonat ${tPrev}`,heroBars(tBars,C.bar,300,34,undefined,wLbl));
   h+=top('Forecast-Marge','offen',nf(fm),'€',`in ${fmN} ${fmN===1?'Lead':'Leads'} im PQL-Board`,fmN?`Ø ${nf(fm/fmN)} € je Lead`:'noch kein Forecast',heroBars(fBars,C.bar,300,34,fBars.indexOf(Math.max(...fBars,0)),pqlCols.map(c=>c.name)));
   h+=`</div><div style="display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px">`;
   const cell=(label,val,curN,prevN,spark,warn,subTxt)=>{
@@ -6449,8 +6518,8 @@ function dashboardHeroHtml(){
     h+=cell('Erreichungsquote',qM===null?'–':qM+' %',qM,qP,weeks.map((w,i)=>q(com.filter(r=>wIdx(dd(r))===i))).filter(x=>x!==null),false,qP===null?'Vormonat –':`Vormonat ${qP} %`);
   }
   // Toner draussen
-  const out=sc.filter(l=>!isClosedLead(l)&&l.tonerSent==='Ja');const late=out.filter(l=>l.tonerSentAt&&Math.abs(daysUntil(l.tonerSentAt))>=60).length;
-  h+=cell('Toner draußen',out.length,null,null,null,late>0,late?`davon ${late} über 60 Tage`:'keiner über 60 Tage');
+  const out=sc.filter(l=>!isClosedLead(l)&&l.tonerSent==='Ja');const late=out.filter(l=>l.tonerSentAt&&Math.abs(daysUntil(l.tonerSentAt))>=cfg('tonerBad')).length;
+  h+=cell('Toner draußen',out.length,null,null,null,late>0,late?`davon ${late} über ${cfg('tonerBad')} Tage`:`keiner über ${cfg('tonerBad')} Tage`);
   // Gewinnrate PQL (90 Tage)
   const d90=(()=>{const d=new Date(TODAY+'T00:00:00');d.setDate(d.getDate()-90);return calYmd(d);})(),d180=(()=>{const d=new Date(TODAY+'T00:00:00');d.setDate(d.getDate()-180);return calYmd(d);})();
   const closedP=(a,b)=>sc.filter(l=>{const dt=dOf(l.statusSince||l.closedAt);return dt>=a&&dt<b&&(isWon(l)||(isLost(l)&&leadBoardPart(l)==='vertrieb'));});
@@ -6997,8 +7066,8 @@ function deleteAllArticles(){
 }
 function crRmaCellClass(v){
   if(v===''||v===null||v===undefined||isNaN(v))return'';
-  if(v>=5)return'crrma-bad';
-  if(v>=2.5)return'crrma-warn';
+  if(v>=cfg('rmaBad'))return'crrma-bad';
+  if(v>=cfg('rmaWarn'))return'crrma-warn';
   return'crrma-good';
 }
 let crrmaSortKey='sku';
@@ -7044,7 +7113,7 @@ document.addEventListener('click',e=>{if(artMenuOpen&&!e.target.closest('#artFil
 function artLive(el){const r=el.closest('.art-row');if(!r)return;const p=x=>{const v=parseLocaleNumber(x);return isNaN(v)?null:v;};
   const e=p(r.querySelector('[data-f="ek"]').value),v=p(r.querySelector('[data-f="vk"]').value);const m=(e===null||v===null)?null:Math.round((v-e)*100)/100;
   const o=r.querySelector('.art-mg');o.textContent=m===null?'–':m.toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2})+' €';o.classList.toggle('neg',m!==null&&m<0);
-  if(el.dataset.f==='crRma'){const rv=p(el.value);el.classList.remove('miss','rwarn','rbad');el.classList.add(rv===null?'miss':rv>=5?'rbad':rv>=2.5?'rwarn':'x');}
+  if(el.dataset.f==='crRma'){const rv=p(el.value);el.classList.remove('miss','rwarn','rbad');el.classList.add(rv===null?'miss':rv>=cfg('rmaBad')?'rbad':rv>=cfg('rmaWarn')?'rwarn':'x');}
   if(el.dataset.f==='vk')el.classList.toggle('miss',p(el.value)===null);}
 function artSave(id,field,el){const v=parseLocaleNumber(el.value);updateArticleField(id,field,isNaN(v)?'':String(field==='verkaufteStk'?Math.round(v):v));saveState();}
 function renderCrRma(){
@@ -7059,7 +7128,7 @@ function renderCrRma(){
     return typeof a==='string'?artSortDir*a.localeCompare(b,'de'):artSortDir*(a-b);});
   const pages=Math.max(1,Math.ceil(l.length/ART_PAGE));crrmaPage=Math.max(0,Math.min(crrmaPage,pages-1));
   const items=l.slice(crrmaPage*ART_PAGE,(crrmaPage+1)*ART_PAGE);
-  const rc=v=>v===null?'miss':v>=5?'rbad':v>=2.5?'rwarn':'';
+  const rc=v=>v===null?'miss':v>=cfg('rmaBad')?'rbad':v>=cfg('rmaWarn')?'rwarn':'';
   const rows=items.map(a=>{const ek=artNum(a.ek),vk=artNum(a.vk),rm=artNum(a.crRma),st=artNum(a.verkaufteStk),mg=artMargin(a),ty=artTypOf(a);
     return `<div class="art-row">
       <div class="art-info"><div class="art-t"><span title="${esc(a.title)}">${esc(a.title)||'<span style="color:var(--text3)">ohne Titel</span>'}</span>${ty?`<span class="art-tag ${ty}">${ty==='oem'?'OEM':'Kompa'}</span>`:''}</div>
@@ -7822,61 +7891,100 @@ function renderSettings(){
   const me=currentAgent();const admin=isAdmin();
   const COLOR_KEYS=Object.keys(COLOR_HEX);
   const defJob=n=>n==='Peter Rode'?'Head of Sales':'Account Manager';
-  const profileHtml=me?`<div class="info-section">
-      <div class="section-hdr" style="margin-top:0">Über mich</div>
-      <div class="set-kv"><span>Name</span><b>${esc(me.name)}</b>
-        <span>Funktion<small>steht im Gruß der Termineinladung</small></span><input type="text" id="profJob" value="${esc(me.jobTitle||'')}" placeholder="${defJob(me.name)}" style="max-width:320px">
-        <span>Login-E-Mail</span><span style="color:var(--text3)">${esc(me.email||'–')}</span>
+  const card=(title,desc,body,right,extra)=>`<div class="st-card"${extra||''}><div class="st-ch"><h3>${title}</h3>${right?`<span class="r">${right}</span>`:''}</div>${desc?`<p class="st-desc">${desc}</p>`:''}${body}</div>`;
+  const secT=(id,t)=>`<div class="st-secT" id="${id}">${t}</div>`;
+  const jump=list=>`<div class="st-jump">${list.map(([id,t])=>`<a href="#${id}" onclick="event.preventDefault();const e=document.getElementById('${id}');if(e)e.scrollIntoView({behavior:'smooth',block:'start'})">${t}</a>`).join('')}</div>`;
+  const chip=t=>`<span class="st-chip">${t}</span>`;
+  const lead=t=>`<p class="st-lead">${t}</p>`;
+  // ── Mein Profil ──
+  const START_VIEWS=[['','Board (wie bisher)'],['tasks','Meine Aufgaben'],['board-akquise','Board: SQL'],['board-vertrieb','Board: PQL'],['calendar','Mein Kalender'],['dashboard','Dashboard']];
+  const profileHtml=me?lead('Deine persönlichen Angaben. Gilt nur für dich – jeder Mitarbeiter sieht hier sein eigenes Profil.')
+    +card('Über mich','',`<div class="set-kv"><span>Name</span><b>${esc(me.name)}</b>
+        <span>Funktion<small>steht im Gruß der Termineinladung</small></span><input type="text" id="profJob" value="${esc(me.jobTitle||'')}" placeholder="${defJob(me.name)}">
+        <span>Telefon-Durchwahl<small>optional – sonst die zentrale Nummer in der Einladung</small></span><input type="text" id="profPhone" value="${esc(me.phone||'')}" placeholder="${esc(cfg('invite').phone)}">
+        <span>Login-E-Mail</span><span style="color:var(--text3)">${esc(me.email||'–')}</span></div>`)
+    +card('Board','',`<div class="set-kv"><span>Startansicht beim Öffnen</span><select id="profStart">${START_VIEWS.map(([v,l])=>`<option value="${v}" ${(me.startView||'')===v?'selected':''}>${l}</option>`).join('')}</select>
         <span>Avatar-Farbe</span><div class="agent-color-swatches" id="profColorSwatches">${COLOR_KEYS.map(c=>`<div class="agent-color-swatch ${me.color===c?'selected':''}" data-color="${c}" style="background:${COLOR_HEX[c]}" onclick="profSelectColor('${c}')" title="${c}"></div>`).join('')}</div>
-        <span></span><span><button class="btn btn-primary btn-sm" onclick="saveMyProfile()"><i class="ti ti-check"></i> Speichern</button></span></div>
-    </div>
-    <div class="info-section">
-      <div class="section-hdr" style="margin-top:0">Passwort ändern</div>
-      <div class="set-kv"><span>Neues Passwort<small>mind. 6 Zeichen</small></span><input type="password" id="profPw1" autocomplete="new-password" style="max-width:320px">
-        <span>Wiederholen</span><input type="password" id="profPw2" autocomplete="new-password" style="max-width:320px">
-        <span></span><span><button class="btn btn-sm" onclick="changeMyPassword()"><i class="ti ti-key"></i> Passwort ändern</button></span></div>
-    </div>`:'<div class="info-section">Kein Profil zur Anmeldung gefunden.</div>';
+        <span></span><span><button class="btn btn-primary btn-sm" onclick="saveMyProfile()"><i class="ti ti-check"></i> Profil speichern</button></span></div>`)
+    +card('Passwort ändern','',`<div class="set-kv"><span>Neues Passwort<small>mind. 6 Zeichen</small></span><input type="password" id="profPw1" autocomplete="new-password">
+        <span>Wiederholen</span><input type="password" id="profPw2" autocomplete="new-password">
+        <span></span><span><button class="btn btn-sm" onclick="changeMyPassword()"><i class="ti ti-key"></i> Passwort ändern</button></span></div>`)
+    :card('Mein Profil','Kein Profil zur Anmeldung gefunden.','');
+  // ── Team & Ziele ──
   const goalT=(PROJECT.dashGoals&&PROJECT.dashGoals.team)||'';
-  const goalsHtml=`<div class="info-section">
-      <div class="section-hdr" style="margin-top:0">Ziele</div>
-      <p style="font-size:11px;color:var(--text3);margin:-4px 0 10px">Das Monatsziel erscheint im Dashboard-Banner bei „Marge gewonnen“ mit Fortschritt und Hochrechnung.</p>
-      <div class="set-kv"><span>Monatsziel Marge (Team)</span><span class="set-unit"><input type="text" id="setGoalTeam" value="${goalT?String(goalT).replace('.',','):''}" placeholder="z. B. 25000" style="max-width:140px"><span>€</span><button class="btn btn-sm" onclick="saveTeamGoal()"><i class="ti ti-check"></i> Speichern</button></span></div>
-    </div>`;
-  const ship=typeof SHIPPING_COST_PER_SEND==='number'?SHIPPING_COST_PER_SEND:4.95;
-  const tonerHtml=`<div class="info-section">
-      <div class="section-hdr" style="margin-top:0">Kosten &amp; Warnschwellen</div>
-      <p style="font-size:11px;color:var(--text3);margin:-4px 0 10px">So rechnet und markiert das Board heute. Diese Werte werden im nächsten Schritt hier einstellbar.</p>
-      <div class="set-kv"><span>Versandkosten je Toner</span><b>${String(ship).replace('.',',')} €</b>
-        <span>RMA-Quote</span><span><span class="set-dot" style="background:#d38e2c"></span>gelb ab 2,5 % &nbsp; <span class="set-dot" style="background:#c0392b"></span>rot ab 5 %</span>
-        <span>Toner ohne Rückmeldung</span><span><span class="set-dot" style="background:#d38e2c"></span>gelb ab 40 Tagen &nbsp; <span class="set-dot" style="background:#c0392b"></span>rot ab 60 Tagen</span></div>
-    </div>
-    <div class="info-section">
-      <div class="section-hdr" style="margin-top:0">Artikelstamm</div>
-      <p style="font-size:12px;color:var(--text2);margin:0 0 10px">${ARTICLES.length.toLocaleString('de-DE')} Artikel. Preise, RMA-Quoten und „CSV aktualisieren“ findest du im Menü „Artikel“.</p>
-      <button class="btn btn-sm" onclick="switchView('crrma')"><i class="ti ti-arrow-right"></i> Zu den Artikeln</button>
-    </div>`;
-  const localBackupHtml=`<div class="info-section">
-      <div class="section-hdr" style="margin-top:0">Lokale Sicherung – bei wem</div>
-      <p style="font-size:11px;color:var(--text3);margin:-4px 0 10px">Nur bei den markierten Personen lädt das Board die Sicherungsdatei automatisch herunter, solange sie angemeldet sind.</p>
-      <div style="display:flex;gap:16px;flex-wrap:wrap">${AGENTS.filter(a=>a.active!==false).map(a=>`<label style="display:inline-flex;align-items:center;gap:6px;font-size:12.5px;margin:0"><input type="checkbox" ${a.localBackupResponsible?'checked':''} onchange="setAgentLocalBackup('${a.id}',this.checked)"> ${esc(a.name)}</label>`).join('')}</div>
-    </div>`;
-  // Lokale-Sicherung-Auswahl direkt hinter die Intervall-Einstellung setzen
-  const sysWithLocal=sysHtml.replace(/(<div class="section-hdr" style="margin-top:0">Automatische lokale Sicherung<\/div>[\s\S]*?<\/div>\s*)(?=<div class="info-section">)/,'$1'+localBackupHtml);
-  const NEWC={
-    profile:profileHtml,
-    team:tabContent.team+goalsHtml,
-    process:tabContent.board,
-    toner:tonerHtml,
-    data:sysWithLocal.replace(/(<div class="info-section" style="border-color:var\(--red\)">)/,tabContent.csv+'$1')
-  };
+  const teamHtml=lead('Wer mit dem Board arbeitet – und welche Ziele gelten.')+jump([['st-t1','Mitarbeiter'],['st-t2','Ziele']])
+    +secT('st-t1','Mitarbeiter')
+    +card('Mitarbeiter','Bearbeiten über den Stift. Inaktive Mitarbeiter können sich nicht anmelden, ihre Leads und Kommentare bleiben erhalten.',
+      `<div style="overflow-x:auto"><table class="agent-table"><thead><tr><th>Name</th><th>Rolle</th><th>Funktion (E-Mail-Gruß)</th><th>Leads</th><th>Status</th><th></th></tr></thead><tbody>${agentRowsHtml}</tbody></table></div>`,
+      `<button class="btn btn-primary btn-sm" onclick="openNewAgentModal()"><i class="ti ti-user-plus"></i> Mitarbeiter anlegen</button>`)
+    +secT('st-t2','Ziele')
+    +card('Team','Erscheinen im Dashboard-Banner mit Fortschritt (bei „Marge gewonnen“ zusätzlich mit Hochrechnung).',
+      `<div class="set-kv"><span>Monatsziel Marge</span><span class="set-unit"><input type="text" id="setGoalTeam" value="${goalT?String(goalT).replace('.',','):''}" placeholder="z. B. 25000" style="max-width:140px"><span>€</span></span>
+       <span>Toner pro Monat</span><span class="set-unit"><input type="number" min="0" id="setGoalToner" value="${cfg('tonerGoal')||''}" placeholder="z. B. 40" style="max-width:140px"><span>Zusagen</span></span>
+       <span></span><span><button class="btn btn-sm" onclick="saveTeamGoal()"><i class="ti ti-check"></i> Ziele speichern</button></span></div>`);
+  // ── Vertriebsprozess ──
+  const orderedCols=[...COLUMNS.filter(c=>colBoard(c)==='akquise'&&!c.outcome),...COLUMNS.filter(c=>colBoard(c)==='vertrieb'&&!c.outcome),...COLUMNS.filter(c=>c.outcome)];
+  const meaningRows=orderedCols.map(c=>{const m=colMeaning(c);const stored=!!cfg('listMeaning')[c.id];return `<div class="st-mean"><span class="ln"><span class="col-dot" style="background:${COLOR_HEX[c.color]||'#9fb3b6'}"></span><span class="st-bdg ${colBoard(c)==='akquise'?'s':'p'}">${colBoard(c)==='akquise'?'SQL':'PQL'}</span>${esc(c.name)} <span style="color:var(--text3);font-size:11.5px">· ${leads.filter(l=>l.status===c.id).length} Leads</span></span><input type="number" min="0" step="1" value="${c.wipLimit||''}" placeholder="kein Limit" title="WIP-Limit: höchstens so viele Karten in dieser Liste" onchange="setColumnWipLimit('${c.id}',this.value)" style="width:100px"><select onchange="setListMeaning('${c.id}',this.value)">${LIST_MEANINGS.map(([k,l])=>`<option value="${k}" ${m===k?'selected':''}>${l}${!stored&&m===k?' (automatisch)':''}</option>`).join('')}</select></div>`;}).join('');
+  const wd=cfg('workdays');
+  const listEditor=(key,used)=>{const list=cfg(key);return list.map((v,i)=>{const n=used?used(v):0;return `<div class="st-lst"><span class="g">⋮⋮</span><span>${esc(v)}${used?` <span style="color:var(--text3)">· ${n} Leads</span>`:''}</span><span class="acts"><button class="icon-btn" title="nach oben" onclick="cfgListMove('${key}',${i},-1)" ${i===0?'disabled':''}><i class="ti ti-arrow-up"></i></button><button class="icon-btn" title="nach unten" onclick="cfgListMove('${key}',${i},1)" ${i===list.length-1?'disabled':''}><i class="ti ti-arrow-down"></i></button><button class="icon-btn icon-btn-danger" title="Entfernen" onclick="cfgListDel('${key}',${i})"><i class="ti ti-trash"></i></button></span></div>`;}).join('')
+    +`<div class="st-addrow"><input type="text" id="cfgAdd_${key}" placeholder="${key==='artValues'?'Neue Kundenart …':'Neuer Verlustgrund …'}" onkeydown="if(event.key==='Enter')cfgListAdd('${key}')"><button class="btn btn-sm" onclick="cfgListAdd('${key}')">Anlegen</button></div>`;};
+  const rq=cfg('required');
+  const INV=cfg('invite');
+  const pv=(()=>{const who=me||{name:'Peter Rode'};const job=who.jobTitle||defJob(who.name);const ph=(who.phone)||INV.phone;
+    const f=t=>String(t||'').replace(/\{Ansprechpartner\}/g,'Edith Maierhofer').replace(/\{Firma\}/g,'Maierhofer GmbH').replace(/\{Wochentag\}/g,'Montag').replace(/\{Datum\}/g,'08.06.2026').replace(/\{Uhrzeit\}/g,INV.time||'10:00');
+    return `<b>${esc(f(INV.title))}</b>\n\n${esc(INV.greet)} Edith Maierhofer,\n\n${esc(f(INV.body))}\n\nBei Fragen erreichen Sie mich gerne telefonisch unter ${esc(ph)}.\n\nIch freue mich auf unser Gespräch.\n\n${esc(INV.bye)}\n\n<b>${esc(who.name)}</b>\n${esc(job)}`;})();
+  const invF=(k,l,small,type)=>`<span>${l}${small?`<small>${small}</small>`:''}</span><input type="${type||'text'}" value="${esc(String(INV[k]))}" onchange="setInvite('${k}',this.value)">`;
+  const processHtml=lead('Wie ein Lead durch den Prozess läuft – vom Eingang über den Anruf bis zum Abschluss.')+jump([['st-p1','Listen & Regeln'],['st-p2','Lead-Angaben'],['st-p3','Termineinladung']])
+    +secT('st-p1','Listen &amp; Regeln')
+    +card('Listen &amp; ihre Bedeutung','Sagt dem Board, wofür jede Liste steht. Optional ein WIP-Limit (höchstens so viele Karten). Neue Leads und die Kennzahl „Erfolgreiche Gespräche“ richten sich danach – auch wenn du eine Liste umbenennst. Listen anlegen, umbenennen und sortieren weiterhin im Board über das •••-Menü.',meaningRows)
+    +card('Regeln','',`<div class="set-kv">
+        <span>„Nicht erreicht“ verschiebt das FollowUp um</span><span class="set-unit"><input type="number" min="1" max="90" value="${PROJECT.notReachedFollowupDays!==undefined?PROJECT.notReachedFollowupDays:6}" onchange="setProjectField('notReachedFollowupDays',Math.max(1,parseInt(this.value)||6))" style="max-width:90px"><span>Arbeitstage</span></span>
+        <span>Neue Leads landen in<small>„Neuer Lead“ und CSV-Import</small></span><select onchange="setCfg('newLeadCol',this.value);renderSettings()">${COLUMNS.filter(c=>!c.outcome).map(c=>`<option value="${c.id}" ${newLeadColId()===c.id?'selected':''}>${esc(c.name)}</option>`).join('')}</select>
+        <span>Verweildauer-Warnung ab<small>dunkler Balken und Zähler im Dashboard</small></span><span class="set-unit"><input type="number" min="5" max="365" value="${cfg('dwellDays')}" onchange="setCfg('dwellDays',Math.max(5,parseInt(this.value)||30))" style="max-width:90px"><span>Tagen in einer Liste</span></span>
+        <span>Feiertage<small>für FollowUp-Verschiebungen und den Kalender</small></span><select onchange="setHolidayState(this.value)">${[['BY','Bayern'],['BW','Baden-Württemberg'],['DE','nur bundesweite Feiertage']].map(([v,l])=>`<option value="${v}" ${cfg('holidayState')===v?'selected':''}>${l}</option>`).join('')}</select>
+        <span>Arbeitstage</span><span class="st-days">${[[1,'Mo'],[2,'Di'],[3,'Mi'],[4,'Do'],[5,'Fr'],[6,'Sa'],[0,'So']].map(([d,l])=>`<button type="button" class="st-day ${wd.includes(d)?'on':''}" onclick="toggleWorkday(${d})" aria-pressed="${wd.includes(d)}">${l}</button>`).join('')}</span></div>`)
+    +secT('st-p2','Lead-Angaben')
+    +`<div class="st-row2">`+card('Kundenarten','Kundenarten, die noch bei Leads verwendet werden, lassen sich nicht entfernen.',listEditor('artValues',v=>leads.filter(l=>(l.art||'B2B')===v).length),chip(artValuesCfg().length))
+      +card('Verlustgründe','Auswahl beim Verschieben nach „Verloren“. Bereits vergebene Gründe bleiben an den Leads erhalten.',listEditor('lossReasons',v=>leads.filter(l=>l.lossReason===v).length),chip(cfg('lossReasons').length))+`</div>`
+    +card('Labels','Reihenfolge per Ziehen am Griff oder mit den Pfeilen – so erscheinen sie auch auf den Karten. Farbe über das Paletten-Symbol.',labelsHtml+newLabelSettingsHtml(),chip(LABELS.length))
+    +card('Pflichtfelder beim Anlegen','Ohne diese Angaben lässt sich ein <b>neuer</b> Lead nicht speichern. Die Firma ist immer Pflicht.',`<div class="set-kv">${[['customerNumber','Kundennummer'],['contact','Ansprechpartner'],['phone','Telefon'],['email','E-Mail']].map(([k,l])=>`<span>${l}</span><span><button type="button" class="st-tg" role="switch" aria-checked="${!!rq[k]}" aria-label="${l} Pflicht" onclick="setRequired('${k}',${!rq[k]})"></button></span>`).join('')}</div>`)
+    +secT('st-p3','Termineinladung')
+    +`<div class="st-row2">`+card('Einladung','Wird beim Kalender-Knopf im Lead erzeugt. Name, Funktion und Durchwahl kommen aus dem Profil der angemeldeten Person.',
+      `<div class="set-kv" style="grid-template-columns:150px minmax(0,1fr)">${invF('title','Titel')}${invF('greet','Anrede')}${invF('phone','Telefon','zentral, wenn keine Durchwahl')}${invF('bye','Gruß')}${invF('time','Standard-Uhrzeit','wenn im FollowUp keine Zeit steht')}${invF('duration','Dauer (Minuten)','','number')}</div>
+       <div class="st-sub">Text</div><textarea rows="5" onchange="setInvite('body',this.value)">${esc(INV.body)}</textarea><p class="st-desc" style="margin:6px 0 0">Platzhalter: {Ansprechpartner} {Firma} {Wochentag} {Datum} {Uhrzeit}</p>`)
+      +card('Vorschau','',`<div class="st-preview">${pv}</div>`,`<span style="font-size:11.5px;color:var(--text3)">als ${esc(me?me.name:'')}</span>`)+`</div>`;
+  // ── Toner & Artikel ──
+  const thr=(label,kw,kb,unit)=>`<div class="st-thr"><b>${label}</b><span class="lv"><span class="set-dot" style="background:#d38e2c"></span>gelb ab <input type="text" value="${String(cfg(kw)).replace('.',',')}" onchange="setThreshold('${kw}',this.value)"> ${unit}</span><span class="lv"><span class="set-dot" style="background:#c0392b"></span>rot ab <input type="text" value="${String(cfg(kb)).replace('.',',')}" onchange="setThreshold('${kb}',this.value)"> ${unit}</span></div>`;
+  const tonerHtml=lead('Kosten und Warnschwellen rund um den Free Toner.')
+    +card('Kosten','',`<div class="set-kv"><span>Versandkosten je Toner<small>fließt in „Marge je Toner“ und die Wirtschaftlichkeit ein</small></span><span class="set-unit"><input type="text" value="${String(shipCostCfg()).replace('.',',')}" onchange="setThreshold('shipCost',this.value)" style="max-width:110px"><span>€</span></span></div>`)
+    +card('Warnschwellen','Ab wann das Board gelb bzw. rot markiert – überall gleich: Karten, Lead-Fenster, Artikel, Dashboard.',thr('RMA-Quote','rmaWarn','rmaBad','%')+thr('Toner ohne Rückmeldung','tonerWarn','tonerBad','Tagen'))
+    +card('Artikelstamm',`${ARTICLES.length.toLocaleString('de-DE')} Artikel. Preise, RMA-Quoten und „CSV aktualisieren“ findest du im Menü „Artikel“.`,`<button class="btn btn-sm" onclick="switchView('crrma')"><i class="ti ti-arrow-right"></i> Zu den Artikeln</button>`,chip(ARTICLES.length.toLocaleString('de-DE')+' Artikel'));
+  // ── Daten ──
+  const tile=(ic,t,sub,btn)=>`<div class="st-tile"><i class="ti ti-${ic}"></i><div><b>${t}</b><small>${sub}</small></div>${btn}</div>`;
+  const csvInner=tabContent.csv;
+  const dataHtml=lead('Import, Export, Sicherung und Wartung. Alle Daten liegen in der gemeinsamen Cloud-Datenbank, die stündlich automatisch gesichert wird.')+jump([['st-d1','Sicherung'],['st-d2','Import & Export'],['st-d3','Wartung']])
+    +secT('st-d1','Sicherung')
+    +`<div class="st-tiles">${tile('cloud','Cloud-Sicherungen','stündlich, 12 Stunden + 14 Tage',`<button class="btn btn-sm" onclick="listAvailableBackups()">Anzeigen / wiederherstellen</button>`)}${tile('download','Jetzt sichern (JSON)','vollständige Datei auf diesen Rechner',`<button class="btn btn-primary btn-sm" onclick="exportFullBackup()">Herunterladen</button>`)}</div>`
+    +card('Automatische lokale Sicherung','Lädt zusätzlich regelmäßig eine Sicherungsdatei auf den Rechner, solange das Board offen ist – nur bei den markierten Personen.',
+      `<div class="set-kv"><span>Intervall</span><select onchange="setProjectField('autoBackupIntervalMinutes',parseInt(this.value)||0)">${[[0,'Aus'],[15,'Alle 15 Minuten'],[30,'Alle 30 Minuten'],[60,'Jede Stunde'],[120,'Alle 2 Stunden']].map(([v,l])=>`<option value="${v}" ${(PROJECT.autoBackupIntervalMinutes||0)===v?'selected':''}>${l}</option>`).join('')}</select>
+       <span>Bei wem</span><span style="display:flex;gap:14px;flex-wrap:wrap">${AGENTS.filter(a=>a.active!==false).map(a=>`<label style="display:inline-flex;align-items:center;gap:6px;font-size:12.5px;margin:0"><input type="checkbox" ${a.localBackupResponsible?'checked':''} onchange="setAgentLocalBackup('${a.id}',this.checked)"> ${esc(a.name)}</label>`).join('')}</span></div>`)
+    +secT('st-d2','Import &amp; Export')
+    +`<div class="st-csv">${csvInner}</div>`
+    +secT('st-d3','Wartung')
+    +`<div class="st-tiles">${tile('circle-check','Datenintegrität prüfen','sucht doppelte oder fehlerhafte Leads',`<button class="btn btn-sm" onclick="runDataIntegrityCheck()">Prüfen</button>`)}${tile('paperclip','Alte Anhänge übertragen','in den Dateispeicher – nur nötig, solange alte vorhanden sind',`<button class="btn btn-sm" onclick="migrateLegacyAttachmentsToStorage()">Übertragen</button>`)}${tile('git-compare','Dev/Live-Abgleich','vor Deploys: Code und Datenbank vergleichen',`<button class="btn btn-sm" onclick="checkDevLiveParity()">Prüfen</button>`)}</div>
+     <div id="devLiveParityResult" style="margin:8px 0 14px;font-size:12px;line-height:1.6"></div>`
+    +card('<span style="color:var(--red)"><i class="ti ti-alert-triangle"></i> Gefahrenzone</span>','Löscht <strong>alle Leads</strong> unwiderruflich. Listen, Labels, Mitarbeiter und Einstellungen bleiben erhalten. Nur für Admins.',`<button class="btn" style="background:var(--red-bg);color:var(--red-dark);border-color:var(--red)" onclick="deleteAllLeads()"><i class="ti ti-trash"></i> Alle Leads löschen</button>`,'',' style="border-color:var(--red)"');
+  const NEWC={profile:profileHtml,team:teamHtml,process:processHtml,toner:tonerHtml,data:dataHtml};
   const ro=!admin&&settingsTab!=='profile';
-  document.getElementById('settingsContent').innerHTML=(ro?`<div class="set-robar"><i class="ti ti-lock"></i> Nur ansehen – Änderungen an den Board-Einstellungen nimmt ein Admin vor. Dein eigenes Profil kannst du unter „Mein Profil“ jederzeit ändern.</div><div class="set-ro">`:'')+(NEWC[settingsTab]||NEWC.team)+(ro?'</div>':'');
+  document.getElementById('settingsContent').innerHTML=`<div class="st-wrap">`+(ro?`<div class="set-robar"><i class="ti ti-lock"></i> Nur ansehen – Änderungen an den Board-Einstellungen nimmt ein Admin vor. Dein eigenes Profil kannst du unter „Mein Profil“ jederzeit ändern.</div><div class="set-ro">`:'')+(NEWC[settingsTab]||NEWC.team)+(ro?'</div>':'')+`</div>`;
   equalizeRowHeights();
 }
 
 // Mein Profil / Ziele (Okt. 2026)
 function profSelectColor(c){const el=document.getElementById('profColorSwatches');if(!el)return;el.dataset.sel=c;el.querySelectorAll('.agent-color-swatch').forEach(x=>x.classList.toggle('selected',x.dataset.color===c));}
 function saveMyProfile(){const me=currentAgent();if(!me)return;const j=document.getElementById('profJob');const v=j?j.value.trim():'';if(v)me.jobTitle=v;else delete me.jobTitle;
+  const ph=document.getElementById('profPhone');if(ph){const pv=ph.value.trim();if(pv)me.phone=pv;else delete me.phone;}
+  const sv=document.getElementById('profStart');if(sv){if(sv.value)me.startView=sv.value;else delete me.startView;}
   const c=document.getElementById('profColorSwatches');if(c&&c.dataset.sel)me.color=c.dataset.sel;saveState();renderSettings();if(typeof renderUserSelect==='function')renderUserSelect();if(typeof renderAgentChips==='function')renderAgentChips();}
 async function changeMyPassword(){const a=document.getElementById('profPw1').value,b=document.getElementById('profPw2').value;
   if(a.length<6){alert('Das Passwort muss mindestens 6 Zeichen haben.');return;}if(a!==b){alert('Die beiden Passwörter stimmen nicht überein.');return;}
@@ -7884,8 +7992,41 @@ async function changeMyPassword(){const a=document.getElementById('profPw1').val
     if(!r.ok){const t=await r.text();throw new Error(t.slice(0,160));}
     document.getElementById('profPw1').value='';document.getElementById('profPw2').value='';alert('Dein Passwort wurde geändert. Beim nächsten Anmelden gilt das neue Passwort.');}
   catch(e){alert('Passwort konnte nicht geändert werden: '+e.message);}}
-function saveTeamGoal(){if(!requireAdmin('Monatsziel ändern'))return;const raw=String(document.getElementById('setGoalTeam').value||'').replace(/[€\s]/g,'').replace(/\.(?=\d{3}(\D|$))/g,'');const v=parseFloat(raw.replace(',','.'));
+function saveTeamGoal(){if(!requireAdmin('Ziele ändern'))return;{const t=document.getElementById('setGoalToner');if(t){PROJECT.cfg=Object.assign({},PROJECT.cfg||{});PROJECT.cfg.tonerGoal=Math.max(0,parseInt(t.value)||0);}}const raw=String(document.getElementById('setGoalTeam').value||'').replace(/[€\s]/g,'').replace(/\.(?=\d{3}(\D|$))/g,'');const v=parseFloat(raw.replace(',','.'));
   PROJECT.dashGoals=PROJECT.dashGoals||{team:0,agents:{}};PROJECT.dashGoals.team=isNaN(v)?0:Math.max(0,v);saveState();renderSettings();}
+// Einstellungen: Hilfsfunktionen (Okt. 2026)
+function setListMeaning(colId,val){const m=Object.assign({},cfg('listMeaning'));m[colId]=val;if(setCfg('listMeaning',m))renderSettings();}
+function cfgListAdd(key){if(!isAdmin())return requireAdmin('Einstellungen ändern');const el=document.getElementById('cfgAdd_'+key);const v=el?el.value.trim():'';if(!v)return;const list=cfg(key).slice();
+  if(list.some(x=>x.toLowerCase()===v.toLowerCase())){alert(`„${v}“ gibt es schon.`);return;}list.push(v);if(setCfg(key,list))renderSettings();}
+function cfgListDel(key,i){const list=cfg(key).slice();const v=list[i];if(v===undefined)return;
+  if(key==='artValues'){const n=leads.filter(l=>(l.art||'B2B')===v).length;if(n){alert(`„${v}“ wird noch bei ${n} Leads verwendet und kann deshalb nicht entfernt werden.`);return;}if(list.length<=1){alert('Mindestens eine Kundenart muss bleiben.');return;}}
+  if(key==='lossReasons'&&list.length<=1){alert('Mindestens ein Verlustgrund muss bleiben.');return;}
+  if(!confirm(`„${v}“ entfernen?`))return;list.splice(i,1);if(setCfg(key,list))renderSettings();}
+function cfgListMove(key,i,d){const list=cfg(key).slice();const j=i+d;if(j<0||j>=list.length)return;[list[i],list[j]]=[list[j],list[i]];if(setCfg(key,list))renderSettings();}
+function toggleWorkday(d){let wd=cfg('workdays').slice();wd=wd.includes(d)?wd.filter(x=>x!==d):[...wd,d];if(!wd.length){alert('Mindestens ein Arbeitstag muss ausgewählt sein.');return;}if(setCfg('workdays',wd.sort()))renderSettings();}
+function setHolidayState(v){if(setCfg('holidayState',v)){for(const k in _feiertagCache)delete _feiertagCache[k];renderSettings();}}
+function setRequired(k,on){const r=Object.assign({},cfg('required'));r[k]=!!on;if(setCfg('required',r))renderSettings();}
+function setInvite(k,v){const inv=Object.assign({},cfg('invite'));inv[k]=k==='duration'?Math.max(5,parseInt(v)||30):v;if(setCfg('invite',inv))renderSettings();}
+function setThreshold(k,v){const n=parseFloat(String(v).replace(',','.'));if(isNaN(n)||n<0){alert('Bitte eine gültige Zahl eingeben.');renderSettings();return;}
+  const pairs={rmaWarn:'rmaBad',tonerWarn:'tonerBad'};const inv={rmaBad:'rmaWarn',tonerBad:'tonerWarn'};
+  if(pairs[k]&&n>=cfg(pairs[k])){alert('Die gelbe Schwelle muss unter der roten liegen.');renderSettings();return;}
+  if(inv[k]&&n<=cfg(inv[k])){alert('Die rote Schwelle muss über der gelben liegen.');renderSettings();return;}
+  if(setCfg(k,n))renderSettings();}
+function openNewAgentModal(){if(!requireAdmin('Mitarbeiter anlegen'))return;editingAgentId=null;
+  document.getElementById('agentModalInner').innerHTML=`<div class="modal-sm-hdr"><div class="modal-sm-title">Mitarbeiter anlegen</div><button class="modal-sm-close" onclick="closeAgentModal()"><i class="ti ti-x"></i></button></div>
+    <p style="font-size:11.5px;color:var(--text3);margin:0 0 10px">Mit E-Mail und Passwort erhält die Person direkt einen Login. Beides kann leer bleiben.</p>
+    <div class="field"><label>Name</label><input type="text" id="newAgentName" placeholder="Vor- und Nachname" style="width:100%"></div>
+    <div class="field-row-2"><div><label>Rolle</label><select id="newAgentRole" style="width:100%"><option value="am" selected>Account Manager</option><option value="admin">Admin</option></select></div>
+      <div><label>Funktion (E-Mail-Gruß)</label><input type="text" id="newAgentJob" placeholder="Account Manager" style="width:100%"></div></div>
+    <div class="field-row-2"><div><label>Login-E-Mail (optional)</label><input type="email" id="newAgentEmail" autocomplete="off" placeholder="login@wiegand-gmbh.de" style="width:100%"></div>
+      <div><label>Passwort (optional, mind. 6 Zeichen)</label><input type="password" id="newAgentPassword" autocomplete="new-password" style="width:100%"></div></div>
+    <div class="modal-sm-actions"><button class="btn" style="flex:1;justify-content:center" onclick="closeAgentModal()">Abbrechen</button><button class="btn btn-primary" style="flex:1;justify-content:center" onclick="createAgentFromModal()"><i class="ti ti-user-plus"></i> Anlegen</button></div>`;
+  openModal('agentModal');setTimeout(()=>{const e=document.getElementById('newAgentName');if(e)e.focus();},0);}
+function createAgentFromModal(){const nm=document.getElementById('newAgentName');if(!nm||!nm.value.trim()){alert('Bitte einen Namen eingeben.');return;}
+  const job=(document.getElementById('newAgentJob')||{}).value||'';const before=AGENTS.length;createAgent();
+  if(AGENTS.length>before){const a=AGENTS[AGENTS.length-1];if(job.trim()){a.jobTitle=job.trim();saveState();}closeAgentModal();renderSettings();}}
+function applyStartView(){const me=currentAgent();if(!me||!me.startView||currentView!=='board')return;const v=me.startView;
+  if(v==='board-akquise'||v==='board-vertrieb'){setBoardPart(v.slice(6));renderBoard();}else switchView(v);}
 // Agents CRUD
 function openAgentModal(id){
   editingAgentId=id;
@@ -8103,7 +8244,7 @@ function cardHtml(l,isFirst,isLast){
   else if(!lost){const m=leadMarginOf(l,'demand');if(m){money=m;moneyTitle='Marge Forecast';}}
   const tonerOn=l.tonerSent==='Ja'&&!closed;
   const tDays=tonerOn&&l.tonerSentAt?Math.max(0,Math.abs(daysUntil(l.tonerSentAt))):null;
-  const tLev=tDays===null?'':(tDays>=60?'late':(tDays>=40?'mid':''));
+  const tLev=tDays===null?'':(tDays>=cfg('tonerBad')?'late':(tDays>=cfg('tonerWarn')?'mid':''));
   let right='';
   if(tonerOn||money!==null){
     const tPart=tonerOn?`<span class="sc-truck" title="${tDays!==null?'Toner seit '+tDays+' Tagen verschickt':'Toner verschickt'}">${ic('truck-delivery')}${tDays!==null?`<b>${tDays} T</b>`:''}</span>`:'';
@@ -8730,7 +8871,7 @@ function renderLeadModal(){
 
   const shipSkuTotal=shipEkTotal(draftLead);
   const shipCostApplies=draftLead.tonerSent==='Ja';
-  const shipInvestTotal=shipSkuTotal+(shipCostApplies?SHIPPING_COST_PER_SEND:0);
+  const shipInvestTotal=shipSkuTotal+(shipCostApplies?shipCostCfg():0);
   const shipPrinterHtml=shipArticlesHtml(shipSkuTotal,shipCostApplies,shipInvestTotal);
 
   const topArticlesHtml=draftLead.topArticles.map((a,i)=>`
@@ -8948,15 +9089,7 @@ function renderLeadModal(){
             <label style="color:var(--red-dark)">Verlust-Grund <span style="font-weight:400">(Pflichtfeld, hilft bei der Auswertung im Dashboard)</span></label>
             <select style="width:100%" onchange="draftLead.lossReason=this.value">
               <option value="">– Bitte auswählen –</option>
-              <option value="Kein Interesse" ${draftLead.lossReason==='Kein Interesse'?'selected':''}>Kein Interesse</option>
-              <option value="Nicht Möglich" ${draftLead.lossReason==='Nicht Möglich'?'selected':''}>Nicht Möglich</option>
-              <option value="Nicht Erreichbar" ${draftLead.lossReason==='Nicht Erreichbar'?'selected':''}>Nicht Erreichbar</option>
-              <option value="Offene RMA" ${draftLead.lossReason==='Offene RMA'?'selected':''}>Offene RMA</option>
-              <option value="Schlechte Qualität" ${draftLead.lossReason==='Schlechte Qualität'?'selected':''}>Schlechte Qualität</option>
-              <option value="Preis zu Hoch" ${draftLead.lossReason==='Preis zu Hoch'?'selected':''}>Preis zu Hoch</option>
-              <option value="Wettbewerber" ${draftLead.lossReason==='Wettbewerber'?'selected':''}>Wettbewerber</option>
-              <option value="Keine Rückmeldung" ${draftLead.lossReason==='Keine Rückmeldung'?'selected':''}>Keine Rückmeldung</option>
-              <option value="Sonstiges" ${draftLead.lossReason==='Sonstiges'?'selected':''}>Sonstiges</option>
+              ${(()=>{const list=cfg('lossReasons').slice();if(draftLead.lossReason&&!list.includes(draftLead.lossReason))list.push(draftLead.lossReason);return list.map(r=>`<option value="${esc(r)}" ${draftLead.lossReason===r?'selected':''}>${esc(r)}</option>`).join('');})()}
             </select>
             <label style="color:var(--red-dark);margin-top:8px">Kommentar zum Verlust <span style="font-weight:400">(Pflichtfeld, erscheint im Verlauf)</span></label>
             <textarea id="fLossComment" style="width:100%;min-height:60px" placeholder="Kurz beschreiben, was zum Verlust geführt hat…" onchange="draftLead.lossComment=this.value" oninput="draftLead.lossComment=this.value">${esc(draftLead.lossComment||'')}</textarea>
@@ -9029,8 +9162,8 @@ function renderLeadModal(){
             <div><label>Kundennummer</label><input type="text" inputmode="numeric" placeholder="z. B. 10234" value="${esc(draftLead.customerNumber)}" oninput="draftLead.customerNumber=this.value;clearModalError()" style="width:100%" id="fCustomerNumber"></div>
             <div><label>Art</label>
               <select style="width:100%" onchange="draftLead.art=this.value;renderLeadModal()">
-                ${draftLead.art&&!ART_VALUES.includes(draftLead.art)?`<option value="${esc(draftLead.art)}" selected>${esc(draftLead.art)}</option>`:''}
-                ${ART_VALUES.map(v=>`<option value="${esc(v)}" ${draftLead.art===v?'selected':''}>${esc(v)}</option>`).join('')}
+                ${draftLead.art&&!artValuesCfg().includes(draftLead.art)?`<option value="${esc(draftLead.art)}" selected>${esc(draftLead.art)}</option>`:''}
+                ${artValuesCfg().map(v=>`<option value="${esc(v)}" ${draftLead.art===v?'selected':''}>${esc(v)}</option>`).join('')}
               </select>
             </div>
           </div>
@@ -9262,7 +9395,7 @@ function shipArticlesHtml(skuTotal,costApplies,investTotal){
   const vkTotal=slots.reduce((s,x)=>{const a=shipArticleFor(x);const v=shipNum(a?a.vk:x.priceVk);return s+(v||0)*shipQty(x);},0);
   const tiles=`<div class="ts-tiles">
     <div class="ts-tile">Patronen EK<b>${fmtEurCent(skuTotal)}</b></div>
-    <div class="ts-tile">Versand<b>${fmtEurCent(costApplies?SHIPPING_COST_PER_SEND:0)}</b>${costApplies?'':`<small>zählt ab Versand</small>`}</div>
+    <div class="ts-tile">Versand<b>${fmtEurCent(costApplies?shipCostCfg():0)}</b>${costApplies?'':`<small>zählt ab Versand</small>`}</div>
     <div class="ts-tile main">Investition<b>${fmtEurCent(investTotal)}</b></div>
     <div class="ts-tile">VK gesamt<b>${fmtEurCent(vkTotal)}</b></div></div>`;
   const search=slots.length<SHIP_ART_MAX&&!modalReadOnly?`<div class="ts-search"><input type="text" id="shipArtSearch" placeholder="Artikel suchen (Titel oder SKU) …" value="${esc(shipArtQ)}" oninput="shipArtSearch(this.value)" onblur="setTimeout(()=>{const r=document.getElementById('shipArtResults');if(r)r.innerHTML='';},180)" autocomplete="off" style="width:100%"><div id="shipArtResults" class="ts-res-inline"></div></div>`
@@ -10140,7 +10273,8 @@ function easterSundayUTC(year){
 function addUTCDaysToDate(d,n){var r=new Date(d);r.setUTCDate(r.getUTCDate()+n);return r;}
 const _feiertagCache={};
 function bayernFeiertage(year){
-  if(_feiertagCache[year])return _feiertagCache[year];
+  const st=cfg('holidayState')||'BY';const ck=year+'_'+st;
+  if(_feiertagCache[ck])return _feiertagCache[ck];
   var ostern=easterSundayUTC(year);
   var liste=[
     {d:new Date(Date.UTC(year,0,1)),n:'Neujahr'},
@@ -10157,11 +10291,12 @@ function bayernFeiertage(year){
     {d:new Date(Date.UTC(year,11,25)),n:'1. Weihnachtsfeiertag'},
     {d:new Date(Date.UTC(year,11,26)),n:'2. Weihnachtsfeiertag'}
   ];
-  var map={};liste.forEach(function(h){map[h.d.toISOString().slice(0,10)]=h.n;});
-  return(_feiertagCache[year]=map);
+  var skip=st==='DE'?['Heilige Drei Könige','Fronleichnam','Mariä Himmelfahrt','Allerheiligen']:st==='BW'?['Mariä Himmelfahrt']:[];
+  var map={};liste.forEach(function(h){if(skip.indexOf(h.n)<0)map[h.d.toISOString().slice(0,10)]=h.n;});
+  return(_feiertagCache[ck]=map);
 }
 function feiertagName(ds){ds=String(ds||'').slice(0,10);if(!/^\d{4}-\d{2}-\d{2}$/.test(ds))return '';return bayernFeiertage(+ds.slice(0,4))[ds]||'';}
-function isWorkdayStr(ds){const dow=new Date(String(ds).slice(0,10)+'T00:00:00').getDay();return dow!==0&&dow!==6&&!feiertagName(ds);}
+function isWorkdayStr(ds){const dow=new Date(String(ds).slice(0,10)+'T00:00:00').getDay();const wd=cfg('workdays');return wd.includes(dow)&&!feiertagName(ds);}
 // n Arbeitstage nach dem Datum (Sa/So und Feiertage zaehlen nicht): Freitag + 3 = Mittwoch, Freitag + 1 = Montag
 function addWorkdays(dateStr,n){
   const d=new Date(String(dateStr).slice(0,10)+'T00:00:00');let left=Math.max(0,n|0);
@@ -10357,6 +10492,8 @@ function saveLead(keepOpen){
     if(el)el.focus();
     return;
   }
+  if(!editingLeadId){const rq=cfg('required');const miss=[['customerNumber','Kundennummer','fCustomerNumber'],['contact','Ansprechpartner',''],['phone','Telefon',''],['email','E-Mail','']].filter(([k])=>rq[k]&&!String(draftLead[k]||'').trim());
+    if(miss.length){showModalError(`Bitte noch ausfüllen: ${miss.map(m=>m[1]).join(', ')} – diese Angaben sind beim Anlegen Pflicht (Einstellungen → Vertriebsprozess).`);return;}}
   if(!isValidCustomerNumber(draftLead.customerNumber)){
     showModalError('Die Kundennummer darf nur aus Ziffern bestehen (keine Buchstaben oder Sonderzeichen).');
     const el=document.getElementById('fCustomerNumber');
@@ -10805,8 +10942,8 @@ const FIELD_REGISTRY={
   notes:{label:'Notizen',group:'Kundeninformationen',importable:true,aliases:['notizen','notiz','notes','bemerkung','kommentar'],example:'Interessiert, ruft nächste Woche zurück',get:l=>l.notes,set:(l,v)=>l.notes=v},
   shipPrinterModel:{label:'Versand-Drucker',group:'Drucker & Patronen (Versand)',importable:false,get:l=>l.shipPrinter.model},
   shipSkus:{label:'Versand-SKUs (EK)',group:'Drucker & Patronen (Versand)',importable:false,get:l=>l.shipPrinter.skus.filter(s=>s.sku).map(s=>`${shipQty(s)>1?shipQty(s)+'× ':''}${s.sku}${s.priceEk?` (EK ${fmtEur(s.priceEk)||'0 €'})`:''}`).join(', ')},
-  investTotal:{label:'Investition gesamt EK + Versand (EUR)',group:'Drucker & Patronen (Versand)',importable:false,get:l=>{const skuTotal=shipEkTotal(l);const total=skuTotal+(l.tonerSent==='Ja'?SHIPPING_COST_PER_SEND:0);return total?csvEur(total):'';}},
-  shippingCost:{label:'Versandkosten (EUR)',group:'Drucker & Patronen (Versand)',importable:false,get:l=>l.tonerSent==='Ja'?csvEur(SHIPPING_COST_PER_SEND):''},
+  investTotal:{label:'Investition gesamt EK + Versand (EUR)',group:'Drucker & Patronen (Versand)',importable:false,get:l=>{const skuTotal=shipEkTotal(l);const total=skuTotal+(l.tonerSent==='Ja'?shipCostCfg():0);return total?csvEur(total):'';}},
+  shippingCost:{label:'Versandkosten (EUR)',group:'Drucker & Patronen (Versand)',importable:false,get:l=>l.tonerSent==='Ja'?csvEur(shipCostCfg()):''},
   tonerSent:{label:'Free Toner verschickt',group:'Drucker & Patronen (Versand)',importable:true,aliases:['free toner verschickt'],example:'Ja',get:l=>l.tonerSent,set:(l,v)=>{if(v)l.tonerSent=v;}},
   statusName:{label:'Status',group:'Lead-Status',importable:false,get:l=>colById(l.status).name},
   statusSince:{label:'Seit wann in dieser Liste',group:'Lead-Status',importable:false,get:l=>fmtDate(l.statusSince)||''},
@@ -11082,7 +11219,7 @@ function importCSVFile(file){
       const collisionBlocked=[];
       const invalidCustNoDetails=[];
       const seenInFile=new Set(); // erkennt Duplikate auch INNERHALB der hochgeladenen Datei
-      const firstColId=COLUMNS[0].id;
+      const firstColId=newLeadColId();
       rows.slice(1).forEach((r,rowIdx)=>{
         const get=f=>colMap[f]!==undefined?(r[colMap[f]]||'').trim():'';
         const company=get('company');
@@ -11433,6 +11570,7 @@ async function bootstrapApp(){
     // Dashboard-Aktivitaets-Counts aus lead_activities voraufladen
     refreshDashActCountCache();
     loadArticlesTable(true);
+    try{applyStartView();}catch(e){}
   }catch(e){
     console.warn('Initialer Sync beim Start fehlgeschlagen (wird automatisch per Hintergrund-Abgleich erneut versucht):',e);
     sbInitialSyncDone=true;
@@ -11702,7 +11840,7 @@ function wizardTeamInvestTotal(){
   const open=leads.filter(l=>!isClosedLead(l));
   const investSum=open.reduce((s,l)=>s+shipEkTotal(l),0);
   const shippedCount=open.filter(l=>l.tonerSent==='Ja').length;
-  return Math.round(investSum+shippedCount*SHIPPING_COST_PER_SEND);
+  return Math.round(investSum+shippedCount*shipCostCfg());
 }
 function wizardTeamRecentWins(){
   const cutoff=new Date(TODAY);cutoff.setDate(cutoff.getDate()-7);
